@@ -1,0 +1,113 @@
+# ==========================================================================
+# AHMS Production stack — Caddy (TLS) + frontend + backend + postgres + redis
+#
+# Usage:
+#   cp .env.production.example .env.production
+#   # edit .env.production with real secrets + your domain
+#   export COMPOSE_FILE=docker-compose.prod.yml
+#   docker compose --env-file .env.production build
+#   docker compose --env-file .env.production up -d
+#
+# Image versioning: tag backend images explicitly before release:
+#   docker compose --env-file .env.production build backend
+#   docker tag ahms-backend-backend:latest ahms-backend-backend:v1.0.0
+#   docker push <registry>/ahms-backend-backend:v1.0.0
+# ==========================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ahms_prod_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - ahms_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # NOT exposed on the host — only reachable via the docker network
+    expose:
+      - "5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: ahms_prod_redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - ahms_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    expose:
+      - "6379"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ahms-backend-backend:${BACKEND_TAG:-latest}
+    container_name: ahms_prod_backend
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      DB_HOST: postgres
+      REDIS_ADDR: redis:6379
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - ahms_uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    expose:
+      - "8080"
+
+  frontend:
+    build:
+      context: ../ahms-frontend
+      dockerfile: Dockerfile.prod
+    image: ahms-frontend:${BACKEND_TAG:-latest}
+    container_name: ahms_prod_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    expose:
+      - "80"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ahms_prod_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - ahms_caddy_data:/data
+      - ahms_caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  ahms_postgres_data:
+  ahms_redis_data:
+  ahms_uploads_data:
+  ahms_caddy_data:
+  ahms_caddy_config:

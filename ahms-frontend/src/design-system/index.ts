@@ -1,0 +1,7 @@
+// Barrel export — import everything from 'design-system'
+export * from './animations'
+export * from './tokens'
+export * from './Buttons'
+export * from './Cards'
+export * from './Forms'
+export * from './Layout'

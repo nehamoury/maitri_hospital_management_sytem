@@ -1,0 +1,4435 @@
+basePath: /api/v1
+definitions:
+  appointments.AppointmentResponse:
+    properties:
+      appointment_date:
+        type: string
+      created_at:
+        type: string
+      doctor_id:
+        type: string
+      doctor_name:
+        type: string
+      id:
+        type: string
+      patient_id:
+        type: string
+      patient_name:
+        type: string
+      patient_uhid:
+        type: string
+      reason:
+        type: string
+      status:
+        type: string
+      token_number:
+        type: integer
+    type: object
+  appointments.CreateAppointmentRequest:
+    properties:
+      appointment_date:
+        type: string
+      doctor_id:
+        type: string
+      patient_id:
+        type: string
+      reason:
+        maxLength: 500
+        type: string
+    required:
+    - appointment_date
+    - doctor_id
+    - patient_id
+    type: object
+  appointments.UpdateAppointmentStatusRequest:
+    properties:
+      status:
+        enum:
+        - SCHEDULED
+        - COMPLETED
+        - CANCELLED
+        type: string
+    required:
+    - status
+    type: object
+  audit.AuditLogResponse:
+    properties:
+      action:
+        type: string
+      created_at:
+        type: string
+      entity_id:
+        type: string
+      entity_type:
+        type: string
+      id:
+        type: string
+      ip_address:
+        type: string
+      user_id:
+        type: string
+      user_name:
+        type: string
+    type: object
+  auth.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in_seconds:
+        type: integer
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/auth.UserResponse'
+    type: object
+  auth.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  auth.UserResponse:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+      mobile:
+        type: string
+      permissions:
+        items:
+          type: string
+        type: array
+      role_name:
+        type: string
+    type: object
+  billing.BillItemInput:
+    properties:
+      description:
+        minLength: 2
+        type: string
+      quantity:
+        type: integer
+      rate:
+        minimum: 0
+        type: number
+      service_type:
+        type: string
+    required:
+    - description
+    - quantity
+    - rate
+    type: object
+  billing.BillItemResponse:
+    properties:
+      amount:
+        type: number
+      description:
+        type: string
+      id:
+        type: string
+      quantity:
+        type: integer
+      rate:
+        type: number
+      service_type:
+        type: string
+    type: object
+  billing.BillResponse:
+    properties:
+      bill_no:
+        type: string
+      billed_by:
+        type: string
+      created_at:
+        type: string
+      discount:
+        type: number
+      due_amount:
+        type: number
+      encounter_id:
+        type: string
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/billing.BillItemResponse'
+        type: array
+      net_amount:
+        type: number
+      paid_amount:
+        type: number
+      patient_id:
+        type: string
+      patient_name:
+        type: string
+      payment_status:
+        type: string
+      payments:
+        items:
+          $ref: '#/definitions/billing.PaymentResponse'
+        type: array
+      total_amount:
+        type: number
+    type: object
+  billing.CreateBillRequest:
+    properties:
+      discount:
+        minimum: 0
+        type: number
+      encounter_id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/billing.BillItemInput'
+        minItems: 1
+        type: array
+      patient_id:
+        type: string
+    required:
+    - items
+    - patient_id
+    type: object
+  billing.PaymentRequest:
+    properties:
+      amount:
+        minimum: 0
+        type: number
+      method:
+        enum:
+        - CASH
+        - CARD
+        - UPI
+        - BANK_TRANSFER
+        type: string
+      reference:
+        type: string
+    required:
+    - amount
+    type: object
+  billing.PaymentResponse:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      id:
+        type: string
+      method:
+        type: string
+      reference:
+        type: string
+    type: object
+  consultations.ConsultationResponse:
+    properties:
+      ayurveda_fields:
+        $ref: '#/definitions/models.JSONB'
+      chief_complaints:
+        type: string
+      clinical_notes:
+        type: string
+      created_at:
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/consultations.DiagnosisResponse'
+        type: array
+      diet_apathya:
+        type: string
+      diet_pathya:
+        type: string
+      doctor_id:
+        type: string
+      doctor_name:
+        type: string
+      encounter_id:
+        type: string
+      examination:
+        type: string
+      follow_up_date:
+        type: string
+      history:
+        type: string
+      id:
+        type: string
+      treatment_plan:
+        type: string
+    type: object
+  consultations.CreateConsultationRequest:
+    properties:
+      ayurveda_fields:
+        $ref: '#/definitions/models.JSONB'
+      chief_complaints:
+        type: string
+      clinical_notes:
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/consultations.DiagnosisInput'
+        type: array
+      diet_apathya:
+        type: string
+      diet_pathya:
+        type: string
+      examination:
+        type: string
+      follow_up_date:
+        type: string
+      history:
+        type: string
+      treatment_plan:
+        type: string
+    type: object
+  consultations.DiagnosisInput:
+    properties:
+      diagnosis:
+        type: string
+      diagnosis_type:
+        enum:
+        - PRIMARY
+        - COMORBIDITY
+        type: string
+      notes:
+        type: string
+    required:
+    - diagnosis
+    type: object
+  consultations.DiagnosisResponse:
+    properties:
+      diagnosis:
+        type: string
+      diagnosis_type:
+        type: string
+      id:
+        type: string
+      notes:
+        type: string
+    type: object
+  consultations.UpdateConsultationRequest:
+    properties:
+      ayurveda_fields:
+        $ref: '#/definitions/models.JSONB'
+      chief_complaints:
+        type: string
+      clinical_notes:
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/consultations.DiagnosisInput'
+        type: array
+      diet_apathya:
+        type: string
+      diet_pathya:
+        type: string
+      examination:
+        type: string
+      follow_up_date:
+        type: string
+      history:
+        type: string
+      treatment_plan:
+        type: string
+    type: object
+  dashboard.RecentPatient:
+    properties:
+      created_at:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+      mobile:
+        type: string
+      uhid:
+        type: string
+    type: object
+  dashboard.SummaryResponse:
+    properties:
+      active_doctors_count:
+        type: integer
+      department_count:
+        type: integer
+      recent_registrations:
+        items:
+          $ref: '#/definitions/dashboard.RecentPatient'
+        type: array
+      todays_appointments:
+        items:
+          $ref: '#/definitions/dashboard.TodayAppointment'
+        type: array
+      todays_appointments_count:
+        type: integer
+      todays_patients_count:
+        type: integer
+    type: object
+  dashboard.TodayAppointment:
+    properties:
+      doctor_name:
+        type: string
+      id:
+        type: string
+      patient_name:
+        type: string
+      status:
+        type: string
+      token_number:
+        type: integer
+    type: object
+  departments.CreateDepartmentRequest:
+    properties:
+      code:
+        maxLength: 20
+        type: string
+      default_fee:
+        minimum: 0
+        type: number
+      description:
+        maxLength: 1000
+        type: string
+      name:
+        maxLength: 150
+        minLength: 2
+        type: string
+      type:
+        type: string
+    required:
+    - name
+    - type
+    type: object
+  departments.DepartmentResponse:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      default_fee:
+        type: number
+      description:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  departments.UpdateDepartmentRequest:
+    properties:
+      code:
+        maxLength: 20
+        type: string
+      default_fee:
+        minimum: 0
+        type: number
+      description:
+        maxLength: 1000
+        type: string
+      is_active:
+        type: boolean
+      name:
+        maxLength: 150
+        minLength: 2
+        type: string
+      type:
+        type: string
+    required:
+    - is_active
+    - name
+    - type
+    type: object
+  doctors.CreateDoctorRequest:
+    properties:
+      consultation_fee:
+        minimum: 0
+        type: number
+      department_id:
+        type: string
+      email:
+        type: string
+      experience_years:
+        minimum: 0
+        type: integer
+      full_name:
+        maxLength: 150
+        minLength: 2
+        type: string
+      mobile:
+        maxLength: 15
+        minLength: 10
+        type: string
+      password:
+        minLength: 8
+        type: string
+      qualification:
+        maxLength: 150
+        type: string
+      specialization:
+        maxLength: 150
+        minLength: 2
+        type: string
+    required:
+    - department_id
+    - email
+    - full_name
+    - mobile
+    - password
+    - specialization
+    type: object
+  doctors.DoctorResponse:
+    properties:
+      consultation_fee:
+        type: number
+      created_at:
+        type: string
+      department_id:
+        type: string
+      department_name:
+        type: string
+      email:
+        type: string
+      experience_years:
+        type: integer
+      full_name:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      mobile:
+        type: string
+      qualification:
+        type: string
+      specialization:
+        type: string
+    type: object
+  doctors.UpdateDoctorRequest:
+    properties:
+      consultation_fee:
+        minimum: 0
+        type: number
+      department_id:
+        type: string
+      experience_years:
+        minimum: 0
+        type: integer
+      full_name:
+        maxLength: 150
+        minLength: 2
+        type: string
+      is_active:
+        type: boolean
+      mobile:
+        maxLength: 15
+        minLength: 10
+        type: string
+      qualification:
+        maxLength: 150
+        type: string
+      specialization:
+        maxLength: 150
+        minLength: 2
+        type: string
+    required:
+    - department_id
+    - full_name
+    - is_active
+    - mobile
+    - specialization
+    type: object
+  encounters.CreateEncounterRequest:
+    properties:
+      consultation_fee:
+        type: number
+      department_id:
+        type: string
+      doctor_id:
+        type: string
+      encounter_type:
+        enum:
+        - OPD
+        - IPD
+        type: string
+      patient_id:
+        type: string
+      referral_id:
+        type: string
+      visit_date:
+        type: string
+      visit_type:
+        enum:
+        - NEW
+        - FOLLOW_UP
+        type: string
+    required:
+    - department_id
+    - doctor_id
+    - patient_id
+    type: object
+  encounters.EncounterConsultationItem:
+    properties:
+      ayurveda_fields:
+        $ref: '#/definitions/models.JSONB'
+      chief_complaints:
+        type: string
+      clinical_notes:
+        type: string
+      consultation_id:
+        type: string
+      created_at:
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/encounters.EncounterDiagnosisItem'
+        type: array
+      diet_apathya:
+        type: string
+      diet_pathya:
+        type: string
+      examination:
+        type: string
+      follow_up_date:
+        type: string
+      history:
+        type: string
+      treatment_plan:
+        type: string
+    type: object
+  encounters.EncounterDiagnosisItem:
+    properties:
+      diagnosis:
+        type: string
+      diagnosis_type:
+        type: string
+      notes:
+        type: string
+    type: object
+  encounters.EncounterPrescriptionItem:
+    properties:
+      created_at:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/encounters.EncounterPrescriptionItemLine'
+        type: array
+      notes:
+        type: string
+      prescription_id:
+        type: string
+      status:
+        type: string
+    type: object
+  encounters.EncounterPrescriptionItemLine:
+    properties:
+      anupana:
+        type: string
+      dispensed_qty:
+        type: integer
+      dose:
+        type: string
+      duration:
+        type: string
+      formulation:
+        type: string
+      frequency:
+        type: string
+      medicine:
+        type: string
+      quantity:
+        type: integer
+      route:
+        type: string
+    type: object
+  encounters.EncounterResponse:
+    properties:
+      consultation_fee:
+        type: number
+      consultations:
+        items:
+          $ref: '#/definitions/encounters.EncounterConsultationItem'
+        type: array
+      created_at:
+        type: string
+      department_id:
+        type: string
+      department_name:
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/encounters.EncounterDiagnosisItem'
+        type: array
+      doctor_id:
+        type: string
+      doctor_name:
+        type: string
+      encounter_type:
+        type: string
+      id:
+        type: string
+      patient_id:
+        type: string
+      patient_name:
+        type: string
+      payment_status:
+        type: string
+      prescriptions:
+        items:
+          $ref: '#/definitions/encounters.EncounterPrescriptionItem'
+        type: array
+      referral_id:
+        type: string
+      status:
+        type: string
+      token_number:
+        type: integer
+      uhid:
+        type: string
+      visit_date:
+        type: string
+      visit_type:
+        type: string
+    type: object
+  encounters.UpdateEncounterStatusRequest:
+    properties:
+      status:
+        enum:
+        - REGISTERED
+        - WAITING
+        - IN_CONSULTATION
+        - COMPLETED
+        type: string
+    required:
+    - status
+    type: object
+  models.JSONB:
+    additionalProperties: true
+    type: object
+  patients.CreatePatientRequest:
+    properties:
+      address:
+        maxLength: 500
+        type: string
+      age:
+        maximum: 150
+        minimum: 0
+        type: integer
+      allergies:
+        type: string
+      alternate_mobile:
+        maxLength: 15
+        minLength: 10
+        type: string
+      blood_group:
+        maxLength: 5
+        type: string
+      blood_pressure:
+        maxLength: 20
+        type: string
+      branch:
+        maxLength: 100
+        type: string
+      chronic_diseases:
+        type: string
+      city:
+        maxLength: 100
+        type: string
+      country:
+        maxLength: 100
+        type: string
+      current_medication:
+        type: string
+      district:
+        maxLength: 100
+        type: string
+      dob:
+        type: string
+      email:
+        type: string
+      emergency_contact:
+        maxLength: 15
+        type: string
+      emergency_contact_address:
+        maxLength: 500
+        type: string
+      emergency_contact_name:
+        maxLength: 150
+        type: string
+      emergency_contact_relation:
+        maxLength: 50
+        type: string
+      force:
+        type: boolean
+      full_name:
+        maxLength: 150
+        minLength: 2
+        type: string
+      gender:
+        enum:
+        - MALE
+        - FEMALE
+        - OTHER
+        type: string
+      height_cm:
+        maximum: 250
+        minimum: 30
+        type: number
+      marital_status:
+        maxLength: 20
+        type: string
+      mobile:
+        maxLength: 15
+        minLength: 10
+        type: string
+      occupation:
+        maxLength: 100
+        type: string
+      photo_url:
+        maxLength: 500
+        type: string
+      pincode:
+        maxLength: 10
+        type: string
+      pulse:
+        maxLength: 20
+        type: string
+      referred_by:
+        maxLength: 150
+        type: string
+      registration_type:
+        enum:
+        - WALK_IN
+        - ONLINE
+        - REFERRAL
+        type: string
+      remarks:
+        type: string
+      state:
+        maxLength: 100
+        type: string
+      sugar:
+        maxLength: 20
+        type: string
+      weight_kg:
+        maximum: 300
+        minimum: 1
+        type: number
+    required:
+    - full_name
+    - gender
+    - mobile
+    type: object
+  patients.DuplicateMobileResponse:
+    properties:
+      existing_patients:
+        items:
+          $ref: '#/definitions/patients.PatientResponse'
+        type: array
+      message:
+        type: string
+    type: object
+  patients.PatientResponse:
+    properties:
+      address:
+        type: string
+      age:
+        type: integer
+      allergies:
+        type: string
+      alternate_mobile:
+        type: string
+      blood_group:
+        type: string
+      blood_pressure:
+        type: string
+      bmi:
+        type: number
+      branch:
+        type: string
+      chronic_diseases:
+        type: string
+      city:
+        type: string
+      country:
+        type: string
+      created_at:
+        type: string
+      current_medication:
+        type: string
+      district:
+        type: string
+      dob:
+        type: string
+      email:
+        type: string
+      emergency_contact:
+        type: string
+      emergency_contact_address:
+        type: string
+      emergency_contact_name:
+        type: string
+      emergency_contact_relation:
+        type: string
+      full_name:
+        type: string
+      gender:
+        type: string
+      height_cm:
+        type: number
+      id:
+        type: string
+      is_active:
+        type: boolean
+      marital_status:
+        type: string
+      mobile:
+        type: string
+      occupation:
+        type: string
+      photo_url:
+        type: string
+      pincode:
+        type: string
+      pulse:
+        type: string
+      referred_by:
+        type: string
+      registration_type:
+        type: string
+      remarks:
+        type: string
+      state:
+        type: string
+      sugar:
+        type: string
+      uhid:
+        type: string
+      weight_kg:
+        type: number
+    type: object
+  patients.UpdatePatientRequest:
+    properties:
+      address:
+        maxLength: 500
+        type: string
+      age:
+        maximum: 150
+        minimum: 0
+        type: integer
+      allergies:
+        type: string
+      alternate_mobile:
+        maxLength: 15
+        minLength: 10
+        type: string
+      blood_group:
+        maxLength: 5
+        type: string
+      blood_pressure:
+        maxLength: 20
+        type: string
+      branch:
+        maxLength: 100
+        type: string
+      chronic_diseases:
+        type: string
+      city:
+        maxLength: 100
+        type: string
+      country:
+        maxLength: 100
+        type: string
+      current_medication:
+        type: string
+      district:
+        maxLength: 100
+        type: string
+      dob:
+        type: string
+      email:
+        type: string
+      emergency_contact:
+        maxLength: 15
+        type: string
+      emergency_contact_address:
+        maxLength: 500
+        type: string
+      emergency_contact_name:
+        maxLength: 150
+        type: string
+      emergency_contact_relation:
+        maxLength: 50
+        type: string
+      full_name:
+        maxLength: 150
+        minLength: 2
+        type: string
+      gender:
+        enum:
+        - MALE
+        - FEMALE
+        - OTHER
+        type: string
+      height_cm:
+        maximum: 250
+        minimum: 30
+        type: number
+      is_active:
+        type: boolean
+      marital_status:
+        maxLength: 20
+        type: string
+      mobile:
+        maxLength: 15
+        minLength: 10
+        type: string
+      occupation:
+        maxLength: 100
+        type: string
+      photo_url:
+        maxLength: 500
+        type: string
+      pincode:
+        maxLength: 10
+        type: string
+      pulse:
+        maxLength: 20
+        type: string
+      referred_by:
+        maxLength: 150
+        type: string
+      registration_type:
+        enum:
+        - WALK_IN
+        - ONLINE
+        - REFERRAL
+        type: string
+      remarks:
+        type: string
+      state:
+        maxLength: 100
+        type: string
+      sugar:
+        maxLength: 20
+        type: string
+      weight_kg:
+        maximum: 300
+        minimum: 1
+        type: number
+    required:
+    - full_name
+    - gender
+    - is_active
+    - mobile
+    type: object
+  pharmacy.CreateMedicineRequest:
+    properties:
+      batch_number:
+        maxLength: 100
+        type: string
+      expiry_date:
+        description: YYYY-MM-DD
+        type: string
+      formulation:
+        maxLength: 100
+        type: string
+      low_stock_threshold:
+        minimum: 0
+        type: number
+      name:
+        maxLength: 200
+        minLength: 2
+        type: string
+      stock_qty:
+        minimum: 0
+        type: number
+      unit:
+        maxLength: 20
+        type: string
+    required:
+    - name
+    type: object
+  pharmacy.DispenseItem:
+    properties:
+      medicine_id:
+        type: string
+      prescription_item_id:
+        type: string
+      quantity:
+        type: integer
+    required:
+    - prescription_item_id
+    - quantity
+    type: object
+  pharmacy.DispenseRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pharmacy.DispenseItem'
+        minItems: 1
+        type: array
+    required:
+    - items
+    type: object
+  pharmacy.MedicineResponse:
+    properties:
+      batch_number:
+        type: string
+      created_at:
+        type: string
+      expiry_date:
+        type: string
+      formulation:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      is_expired:
+        type: boolean
+      low_stock:
+        type: boolean
+      low_stock_threshold:
+        type: number
+      name:
+        type: string
+      near_expiry:
+        type: boolean
+      stock_qty:
+        type: number
+      unit:
+        type: string
+    type: object
+  pharmacy.PrescriptionResponse:
+    properties:
+      created_at:
+        type: string
+      doctor_id:
+        type: string
+      doctor_name:
+        type: string
+      encounter_id:
+        type: string
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/prescriptions.PrescriptionItemResponse'
+        type: array
+      notes:
+        type: string
+      status:
+        type: string
+    type: object
+  pharmacy.StockAdjustRequest:
+    properties:
+      batch_number:
+        type: string
+      notes:
+        type: string
+      quantity:
+        type: number
+    required:
+    - quantity
+    type: object
+  pharmacy.UpdateMedicineRequest:
+    properties:
+      batch_number:
+        maxLength: 100
+        type: string
+      expiry_date:
+        description: YYYY-MM-DD
+        type: string
+      formulation:
+        maxLength: 100
+        type: string
+      is_active:
+        type: boolean
+      low_stock_threshold:
+        minimum: 0
+        type: number
+      name:
+        maxLength: 200
+        minLength: 2
+        type: string
+      unit:
+        maxLength: 20
+        type: string
+    required:
+    - name
+    type: object
+  portal.BookAppointmentRequest:
+    properties:
+      appointment_date:
+        type: string
+      doctor_id:
+        type: string
+      reason:
+        maxLength: 500
+        type: string
+    required:
+    - appointment_date
+    - doctor_id
+    type: object
+  portal.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in_seconds:
+        type: integer
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/auth.UserResponse'
+    type: object
+  portal.PatientLoginRequest:
+    properties:
+      mobile:
+        maxLength: 15
+        minLength: 10
+        type: string
+      uhid:
+        type: string
+    required:
+    - mobile
+    - uhid
+    type: object
+  portal.PortalAppointmentResponse:
+    properties:
+      appointment_date:
+        type: string
+      doctor_id:
+        type: string
+      doctor_name:
+        type: string
+      id:
+        type: string
+      reason:
+        type: string
+      status:
+        type: string
+      token_number:
+        type: integer
+    type: object
+  portal.PortalBillItemResponse:
+    properties:
+      amount:
+        type: number
+      description:
+        type: string
+      quantity:
+        type: integer
+      rate:
+        type: number
+    type: object
+  portal.PortalBillResponse:
+    properties:
+      bill_no:
+        type: string
+      date:
+        type: string
+      discount:
+        type: number
+      due_amount:
+        type: number
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/portal.PortalBillItemResponse'
+        type: array
+      net_amount:
+        type: number
+      paid_amount:
+        type: number
+      payment_status:
+        type: string
+      payments:
+        items:
+          $ref: '#/definitions/portal.PortalPaymentResponse'
+        type: array
+      total_amount:
+        type: number
+    type: object
+  portal.PortalPaymentResponse:
+    properties:
+      amount:
+        type: number
+      date:
+        type: string
+      method:
+        type: string
+    type: object
+  portal.PortalPrescriptionItemResponse:
+    properties:
+      anupana:
+        type: string
+      dispensed_qty:
+        type: integer
+      dose:
+        type: string
+      duration:
+        type: string
+      formulation:
+        type: string
+      frequency:
+        type: string
+      medicine:
+        type: string
+      quantity:
+        type: integer
+      route:
+        type: string
+    type: object
+  portal.PortalPrescriptionResponse:
+    properties:
+      date:
+        type: string
+      doctor:
+        type: string
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/portal.PortalPrescriptionItemResponse'
+        type: array
+      notes:
+        type: string
+      status:
+        type: string
+    type: object
+  portal.ProfileResponse:
+    properties:
+      address:
+        type: string
+      age:
+        type: integer
+      blood_group:
+        type: string
+      dob:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      gender:
+        type: string
+      id:
+        type: string
+      mobile:
+        type: string
+      uhid:
+        type: string
+    type: object
+  prescriptions.CreatePrescriptionRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/prescriptions.PrescriptionItemInput'
+        minItems: 1
+        type: array
+      notes:
+        type: string
+    required:
+    - items
+    type: object
+  prescriptions.PrescriptionItemInput:
+    properties:
+      anupana:
+        type: string
+      dose:
+        type: string
+      duration:
+        type: string
+      formulation:
+        type: string
+      frequency:
+        type: string
+      instructions:
+        type: string
+      medicine:
+        type: string
+      quantity:
+        type: integer
+      route:
+        type: string
+    required:
+    - medicine
+    type: object
+  prescriptions.PrescriptionItemResponse:
+    properties:
+      anupana:
+        type: string
+      dispensed_qty:
+        type: integer
+      dose:
+        type: string
+      duration:
+        type: string
+      formulation:
+        type: string
+      frequency:
+        type: string
+      id:
+        type: string
+      instructions:
+        type: string
+      medicine:
+        type: string
+      quantity:
+        type: integer
+      route:
+        type: string
+    type: object
+  prescriptions.PrescriptionListItem:
+    properties:
+      created_at:
+        type: string
+      doctor_name:
+        type: string
+      encounter_id:
+        type: string
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/prescriptions.PrescriptionItemResponse'
+        type: array
+      notes:
+        type: string
+      patient_name:
+        type: string
+      patient_uh_id:
+        type: string
+      status:
+        type: string
+    type: object
+  prescriptions.PrescriptionResponse:
+    properties:
+      created_at:
+        type: string
+      doctor_id:
+        type: string
+      doctor_name:
+        type: string
+      encounter_id:
+        type: string
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/prescriptions.PrescriptionItemResponse'
+        type: array
+      notes:
+        type: string
+      status:
+        type: string
+    type: object
+  prescriptions.UpdatePrescriptionStatusRequest:
+    properties:
+      status:
+        enum:
+        - PRESCRIBED
+        - PARTIALLY_DISPENSED
+        - DISPENSED
+        type: string
+    required:
+    - status
+    type: object
+  public.DepartmentPublic:
+    properties:
+      code:
+        type: string
+      default_fee:
+        type: number
+      description:
+        type: string
+      doctor_count:
+        type: integer
+      id:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  public.DoctorPublic:
+    properties:
+      consultation_fee:
+        type: number
+      department:
+        type: string
+      experience_years:
+        type: integer
+      id:
+        type: string
+      name:
+        type: string
+      qualification:
+        type: string
+      specialization:
+        type: string
+    type: object
+  public.ProcedureTypePublic:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  referrals.CreateReferralRequest:
+    properties:
+      clinical_notes:
+        type: string
+      diagnosis:
+        type: string
+      patient_id:
+        type: string
+      preferred_doctor_id:
+        type: string
+      priority:
+        enum:
+        - ROUTINE
+        - URGENT
+        - EMERGENCY
+        type: string
+      reason:
+        type: string
+      recommended_treatment:
+        type: string
+      source_encounter_id:
+        type: string
+      to_department_id:
+        type: string
+    required:
+    - patient_id
+    - reason
+    - source_encounter_id
+    - to_department_id
+    type: object
+  referrals.ReferralItemResponse:
+    properties:
+      diagnosis:
+        type: string
+      from_department:
+        type: string
+      id:
+        type: string
+      patient_id:
+        type: string
+      patient_name:
+        type: string
+      priority:
+        type: string
+      reason:
+        type: string
+      referral_no:
+        type: string
+      referred_at:
+        type: string
+      status:
+        type: string
+      to_department:
+        type: string
+      uhid:
+        type: string
+    type: object
+  referrals.ReferralResponse:
+    properties:
+      clinical_notes:
+        type: string
+      diagnosis:
+        type: string
+      from_department:
+        type: string
+      id:
+        type: string
+      patient_id:
+        type: string
+      patient_name:
+        type: string
+      preferred_doctor:
+        type: string
+      priority:
+        type: string
+      reason:
+        type: string
+      recommended_treatment:
+        type: string
+      referral_no:
+        type: string
+      referred_at:
+        type: string
+      referred_by:
+        type: string
+      source_encounter:
+        $ref: '#/definitions/referrals.SourceHistory'
+      status:
+        type: string
+      to_department:
+        type: string
+      uhid:
+        type: string
+    type: object
+  referrals.SourceConsultation:
+    properties:
+      ayurveda_fields:
+        $ref: '#/definitions/models.JSONB'
+      chief_complaints:
+        type: string
+      clinical_notes:
+        type: string
+      consultation_id:
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/referrals.SourceDiagnosis'
+        type: array
+      examination:
+        type: string
+      history:
+        type: string
+      treatment_plan:
+        type: string
+    type: object
+  referrals.SourceDiagnosis:
+    properties:
+      diagnosis:
+        type: string
+      diagnosis_type:
+        type: string
+      notes:
+        type: string
+    type: object
+  referrals.SourceHistory:
+    properties:
+      consultations:
+        items:
+          $ref: '#/definitions/referrals.SourceConsultation'
+        type: array
+      department_name:
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/referrals.SourceDiagnosis'
+        type: array
+      doctor_name:
+        type: string
+      encounter_id:
+        type: string
+      prescriptions:
+        items:
+          $ref: '#/definitions/referrals.SourcePrescription'
+        type: array
+      visit_date:
+        type: string
+    type: object
+  referrals.SourcePrescription:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/referrals.SourcePrescriptionItem'
+        type: array
+      notes:
+        type: string
+      prescription_id:
+        type: string
+      status:
+        type: string
+    type: object
+  referrals.SourcePrescriptionItem:
+    properties:
+      anupana:
+        type: string
+      dispensed_qty:
+        type: integer
+      dose:
+        type: string
+      duration:
+        type: string
+      formulation:
+        type: string
+      frequency:
+        type: string
+      medicine:
+        type: string
+      quantity:
+        type: integer
+      route:
+        type: string
+    type: object
+  referrals.UpdateReferralStatusRequest:
+    properties:
+      status:
+        enum:
+        - CREATED
+        - RECEIVED
+        - ACCEPTED
+        - CONSULTATION_STARTED
+        - COMPLETED
+        - REJECTED
+        - CANCELLED
+        type: string
+    required:
+    - status
+    type: object
+  timeline.EncounterTimeline:
+    properties:
+      consultations:
+        items:
+          $ref: '#/definitions/timeline.TimelineConsultation'
+        type: array
+      department_id:
+        type: string
+      department_name:
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/timeline.TimelineDiagnosis'
+        type: array
+      doctor_id:
+        type: string
+      doctor_name:
+        type: string
+      encounter_id:
+        type: string
+      prescriptions:
+        items:
+          $ref: '#/definitions/timeline.TimelinePrescription'
+        type: array
+      referral_id:
+        type: string
+      status:
+        type: string
+      token_number:
+        type: integer
+      visit_date:
+        type: string
+      visit_type:
+        type: string
+    type: object
+  timeline.TimelineConsultation:
+    properties:
+      ayurveda_fields:
+        $ref: '#/definitions/models.JSONB'
+      chief_complaints:
+        type: string
+      clinical_notes:
+        type: string
+      consultation_id:
+        type: string
+      created_at:
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/timeline.TimelineDiagnosis'
+        type: array
+      diet_apathya:
+        type: string
+      diet_pathya:
+        type: string
+      examination:
+        type: string
+      follow_up_date:
+        type: string
+      history:
+        type: string
+      treatment_plan:
+        type: string
+    type: object
+  timeline.TimelineDiagnosis:
+    properties:
+      diagnosis:
+        type: string
+      diagnosis_type:
+        type: string
+      notes:
+        type: string
+    type: object
+  timeline.TimelinePrescription:
+    properties:
+      created_at:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/timeline.TimelinePrescriptionItem'
+        type: array
+      notes:
+        type: string
+      prescription_id:
+        type: string
+      status:
+        type: string
+    type: object
+  timeline.TimelinePrescriptionItem:
+    properties:
+      anupana:
+        type: string
+      dispensed_qty:
+        type: integer
+      dose:
+        type: string
+      duration:
+        type: string
+      formulation:
+        type: string
+      frequency:
+        type: string
+      medicine:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  timeline.TimelineResponse:
+    properties:
+      age:
+        type: integer
+      encounters:
+        items:
+          $ref: '#/definitions/timeline.EncounterTimeline'
+        type: array
+      gender:
+        type: string
+      mobile:
+        type: string
+      patient_id:
+        type: string
+      patient_name:
+        type: string
+      treatment_plans:
+        items:
+          $ref: '#/definitions/timeline.TreatmentPlanTimeline'
+        type: array
+      uhid:
+        type: string
+    type: object
+  timeline.TimelineTreatmentSession:
+    properties:
+      after_condition:
+        type: string
+      before_condition:
+        type: string
+      complications:
+        type: string
+      observations:
+        type: string
+      session_date:
+        type: string
+      session_number:
+        type: integer
+      status:
+        type: string
+      therapist_name:
+        type: string
+    type: object
+  timeline.TreatmentPlanTimeline:
+    properties:
+      approved_by:
+        type: string
+      completed_by:
+        type: string
+      created_at:
+        type: string
+      doctor_name:
+        type: string
+      end_date:
+        type: string
+      final_assessment:
+        type: string
+      frequency:
+        type: string
+      indication:
+        type: string
+      plan_id:
+        type: string
+      plan_no:
+        type: string
+      planned_sessions:
+        type: integer
+      procedure_category:
+        type: string
+      procedure_name:
+        type: string
+      sessions:
+        items:
+          $ref: '#/definitions/timeline.TimelineTreatmentSession'
+        type: array
+      start_date:
+        type: string
+      status:
+        type: string
+      therapist_name:
+        type: string
+    type: object
+  treatments.CompletePlanRequest:
+    properties:
+      final_assessment:
+        type: string
+    required:
+    - final_assessment
+    type: object
+  treatments.CompleteSessionRequest:
+    properties:
+      after_condition:
+        type: string
+      complications:
+        type: string
+      notes:
+        type: string
+      observations:
+        type: string
+    type: object
+  treatments.CreatePlanRequest:
+    properties:
+      assigned_therapist_user_id:
+        type: string
+      encounter_id:
+        type: string
+      frequency:
+        enum:
+        - DAILY
+        - ALTERNATE_DAY
+        - WEEKLY
+        type: string
+      indication:
+        type: string
+      notes:
+        type: string
+      patient_id:
+        type: string
+      planned_sessions:
+        maximum: 60
+        type: integer
+      procedure_type_id:
+        type: string
+      start_date:
+        type: string
+    required:
+    - frequency
+    - patient_id
+    - planned_sessions
+    - procedure_type_id
+    - start_date
+    type: object
+  treatments.PlanListItem:
+    properties:
+      completed_sessions:
+        type: integer
+      created_at:
+        type: string
+      doctor_name:
+        type: string
+      end_date:
+        type: string
+      id:
+        type: string
+      patient_id:
+        type: string
+      patient_name:
+        type: string
+      patient_uh_id:
+        type: string
+      plan_no:
+        type: string
+      planned_sessions:
+        type: integer
+      procedure_category:
+        type: string
+      procedure_name:
+        type: string
+      start_date:
+        type: string
+      status:
+        type: string
+      therapist_name:
+        type: string
+    type: object
+  treatments.PlanResponse:
+    properties:
+      approved_at:
+        type: string
+      approved_by:
+        type: string
+      completed_at:
+        type: string
+      completed_by:
+        type: string
+      created_at:
+        type: string
+      doctor_name:
+        type: string
+      encounter_id:
+        type: string
+      end_date:
+        type: string
+      final_assessment:
+        type: string
+      frequency:
+        type: string
+      id:
+        type: string
+      indication:
+        type: string
+      notes:
+        type: string
+      patient_id:
+        type: string
+      patient_name:
+        type: string
+      patient_uh_id:
+        type: string
+      plan_no:
+        type: string
+      planned_sessions:
+        type: integer
+      procedure_category:
+        type: string
+      procedure_name:
+        type: string
+      procedure_type_id:
+        type: string
+      sessions:
+        items:
+          $ref: '#/definitions/treatments.SessionResponse'
+        type: array
+      start_date:
+        type: string
+      status:
+        type: string
+      therapist_name:
+        type: string
+    type: object
+  treatments.ProcedureTypeResponse:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+    type: object
+  treatments.SessionResponse:
+    properties:
+      after_condition:
+        type: string
+      before_condition:
+        type: string
+      completed_at:
+        type: string
+      complications:
+        type: string
+      id:
+        type: string
+      notes:
+        type: string
+      observations:
+        type: string
+      session_date:
+        type: string
+      session_number:
+        type: integer
+      started_at:
+        type: string
+      status:
+        type: string
+      therapist_name:
+        type: string
+    type: object
+  treatments.SkipSessionRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  treatments.StartSessionRequest:
+    properties:
+      before_condition:
+        type: string
+      notes:
+        type: string
+    type: object
+  treatments.TherapistResponse:
+    properties:
+      full_name:
+        type: string
+      id:
+        type: string
+    type: object
+  treatments.UpdatePlanRequest:
+    properties:
+      assigned_therapist_user_id:
+        type: string
+      frequency:
+        type: string
+      indication:
+        type: string
+      notes:
+        type: string
+      planned_sessions:
+        type: integer
+      procedure_type_id:
+        type: string
+      start_date:
+        type: string
+    type: object
+  utils.APIResponse:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Ayurvedic Hospital Management System — Phase 1 API (Auth, Roles, Departments,
+    Patients, Doctors, Appointments, Dashboard).
+  title: AHMS Backend API
+  version: "1.0"
+paths:
+  /appointments:
+    get:
+      parameters:
+      - description: Doctor ID
+        in: query
+        name: doctor_id
+        type: string
+      - description: Patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Date (YYYY-MM-DD)
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/appointments.AppointmentResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List appointments (optionally filter by doctor, patient, date)
+      tags:
+      - appointments
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Appointment
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/appointments.CreateAppointmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/appointments.AppointmentResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Book an appointment (auto-generates the queue token number)
+      tags:
+      - appointments
+  /appointments/{id}:
+    get:
+      parameters:
+      - description: Appointment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/appointments.AppointmentResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an appointment by id
+      tags:
+      - appointments
+  /appointments/{id}/status:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Appointment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/appointments.UpdateAppointmentStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/appointments.AppointmentResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an appointment's status
+      tags:
+      - appointments
+  /audit-logs:
+    get:
+      description: |-
+        Returns recent audit-log entries. Optional filters:
+        ?entity=patient&id=<uuid>  entries for one record
+        ?user=<uuid>               entries by one user
+        Without filters, returns the most recent entries.
+      parameters:
+      - description: Entity type to filter (e.g. patient, referral, bill)
+        in: query
+        name: entity
+        type: string
+      - description: Entity id to filter (requires entity)
+        in: query
+        name: id
+        type: string
+      - description: User id to filter by actor
+        in: query
+        name: user
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/audit.AuditLogResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Query the audit trail
+      tags:
+      - audit
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Validates credentials and returns a JWT access + refresh token
+        pair.
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Log in with email and password
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: 'Stateless JWT logout: the client discards its tokens. This endpoint
+        exists as a stable contract and audit point for future token-blacklisting
+        (e.g. via Redis).'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Log out the current session
+      tags:
+      - auth
+  /auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get the currently authenticated user
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.LoginResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Exchange a refresh token for a new token pair
+      tags:
+      - auth
+  /bills:
+    get:
+      parameters:
+      - description: Filter by payment status (UNPAID/PARTIAL/PAID)
+        in: query
+        name: status
+        type: string
+      - description: Search by bill number
+        in: query
+        name: query
+        type: string
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/billing.BillResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List bills
+      tags:
+      - billing
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Bill
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/billing.CreateBillRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/billing.BillResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a bill with line items
+      tags:
+      - billing
+  /bills/{id}:
+    get:
+      parameters:
+      - description: Bill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/billing.BillResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get a bill by id
+      tags:
+      - billing
+  /bills/{id}/payments:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Bill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Payment
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/billing.PaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/billing.BillResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Record a payment against a bill
+      tags:
+      - billing
+  /bills/number/{bill_no}:
+    get:
+      parameters:
+      - description: Bill number
+        in: path
+        name: bill_no
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/billing.BillResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get a bill by its number (BILL-2026-000001)
+      tags:
+      - billing
+  /consultations/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Consultation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Consultation
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/consultations.UpdateConsultationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/consultations.ConsultationResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a consultation (with diagnosis history retained via audit)
+      tags:
+      - consultations
+  /dashboard:
+    get:
+      description: Today's patients, today's appointments, recent registrations, and
+        department count.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dashboard.SummaryResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get dashboard summary
+      tags:
+      - dashboard
+  /departments:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/departments.DepartmentResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List all departments
+      tags:
+      - departments
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Department
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/departments.CreateDepartmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/departments.DepartmentResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a department
+      tags:
+      - departments
+  /departments/{id}:
+    delete:
+      parameters:
+      - description: Department ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a department
+      tags:
+      - departments
+    get:
+      parameters:
+      - description: Department ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/departments.DepartmentResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a single department by id
+      tags:
+      - departments
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Department ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Department
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/departments.UpdateDepartmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/departments.DepartmentResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a department
+      tags:
+      - departments
+  /doctors:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/doctors.DoctorResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List all doctors
+      tags:
+      - doctors
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Doctor
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/doctors.CreateDoctorRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/doctors.DoctorResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a doctor (also provisions their login account)
+      tags:
+      - doctors
+  /doctors/{id}:
+    delete:
+      parameters:
+      - description: Doctor ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete (deactivate) a doctor
+      tags:
+      - doctors
+    get:
+      parameters:
+      - description: Doctor ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/doctors.DoctorResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a doctor by id
+      tags:
+      - doctors
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Doctor ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Doctor
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/doctors.UpdateDoctorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/doctors.DoctorResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a doctor
+      tags:
+      - doctors
+  /encounters:
+    get:
+      parameters:
+      - description: Filter by patient
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by department
+        in: query
+        name: department_id
+        type: string
+      - description: Filter by doctor
+        in: query
+        name: doctor_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Visit date (YYYY-MM-DD)
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/encounters.EncounterResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List encounters with filters
+      tags:
+      - encounters
+    post:
+      consumes:
+      - application/json
+      description: Reception creates a visit for an already-registered patient. Never
+        creates a new patient.
+      parameters:
+      - description: Encounter
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/encounters.CreateEncounterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/encounters.EncounterResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create an OPD encounter (visit) with an auto token
+      tags:
+      - encounters
+  /encounters/{encounter_id}/consultation:
+    get:
+      parameters:
+      - description: Encounter ID
+        in: path
+        name: encounter_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/consultations.ConsultationResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the consultation for an encounter
+      tags:
+      - consultations
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Encounter ID
+        in: path
+        name: encounter_id
+        required: true
+        type: string
+      - description: Consultation
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/consultations.CreateConsultationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/consultations.ConsultationResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a consultation for an encounter (doctor saves clinical record)
+      tags:
+      - consultations
+  /encounters/{id}:
+    get:
+      parameters:
+      - description: Encounter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/encounters.EncounterResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an encounter by id
+      tags:
+      - encounters
+  /encounters/{id}/prescriptions:
+    get:
+      parameters:
+      - description: Encounter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/prescriptions.PrescriptionResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the prescription for an encounter
+      tags:
+      - prescriptions
+    post:
+      consumes:
+      - application/json
+      description: Doctor writes medicines for an encounter. Status starts at PRESCRIBED.
+      parameters:
+      - description: Encounter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Prescription
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/prescriptions.CreatePrescriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/prescriptions.PrescriptionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a prescription for an encounter
+      tags:
+      - prescriptions
+  /encounters/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Encounter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/encounters.UpdateEncounterStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/encounters.EncounterResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update an encounter's status
+      tags:
+      - encounters
+  /medicines:
+    get:
+      parameters:
+      - description: Search by name/formulation
+        in: query
+        name: search
+        type: string
+      - description: Only medicines at or below threshold
+        in: query
+        name: low_stock
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/pharmacy.MedicineResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List medicines (optionally low-stock only)
+      tags:
+      - pharmacy
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Medicine
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pharmacy.CreateMedicineRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/pharmacy.MedicineResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a medicine (stock master)
+      tags:
+      - pharmacy
+  /medicines/{id}:
+    get:
+      parameters:
+      - description: Medicine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/pharmacy.MedicineResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get a medicine by id
+      tags:
+      - pharmacy
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Medicine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Medicine
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pharmacy.UpdateMedicineRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/pharmacy.MedicineResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update a medicine
+      tags:
+      - pharmacy
+  /medicines/{id}/stock:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Medicine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Stock adjustment
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pharmacy.StockAdjustRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/pharmacy.MedicineResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Adjust medicine stock (purchase / adjustment)
+      tags:
+      - pharmacy
+  /patients:
+    get:
+      description: Optional ?search= matches full name, mobile, or UHID.
+      parameters:
+      - description: Search term
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/patients.PatientResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List / search patients
+      tags:
+      - patients
+    post:
+      consumes:
+      - application/json
+      description: If a patient already exists with the same mobile and force=false,
+        responds 409 with the existing matches so the receptionist can confirm before
+        re-submitting with force=true.
+      parameters:
+      - description: Patient
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/patients.CreatePatientRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/patients.PatientResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/patients.DuplicateMobileResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Register a new patient (auto-generates UHID)
+      tags:
+      - patients
+  /patients/{id}:
+    delete:
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete (deactivate) a patient
+      tags:
+      - patients
+    get:
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/patients.PatientResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a patient by id
+      tags:
+      - patients
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Patient
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/patients.UpdatePatientRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/patients.PatientResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a patient
+      tags:
+      - patients
+  /patients/{id}/timeline:
+    get:
+      description: Aggregates every encounter, consultation, diagnosis and prescription
+        of the patient across all departments.
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/timeline.TimelineResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a patient's longitudinal cross-department timeline
+      tags:
+      - timeline
+  /portal/appointments:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/portal.PortalAppointmentResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List the patient's own appointments
+      tags:
+      - portal
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Appointment
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/portal.BookAppointmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/portal.PortalAppointmentResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Book an appointment for yourself
+      tags:
+      - portal
+  /portal/bills:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/portal.PortalBillResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List the patient's own bills with outstanding balance
+      tags:
+      - portal
+  /portal/login:
+    post:
+      consumes:
+      - application/json
+      description: Issues a patient-scoped JWT. Patients have no password; the UHID
+        + registered mobile number identify them.
+      parameters:
+      - description: Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/portal.PatientLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/portal.LoginResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Patient login with UHID + mobile
+      tags:
+      - portal
+  /portal/prescriptions:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/portal.PortalPrescriptionResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List the patient's own prescriptions (with dispensed status)
+      tags:
+      - portal
+  /portal/profile:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/portal.ProfileResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get the logged-in patient's profile
+      tags:
+      - portal
+  /prescriptions:
+    get:
+      description: Returns the latest prescriptions optionally filtered by a
+      parameters:
+      - description: Patient name or UHID
+        in: query
+        name: search
+        type: string
+      - description: PRESCRIBED / PARTIALLY_DISPENSED / DISPENSED
+        in: query
+        name: status
+        type: string
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/prescriptions.PrescriptionListItem'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List prescriptions for the pharmacy dispensing queue
+      tags:
+      - prescriptions
+  /prescriptions/{id}:
+    get:
+      parameters:
+      - description: Prescription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/prescriptions.PrescriptionResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a prescription by id
+      tags:
+      - prescriptions
+  /prescriptions/{id}/dispense:
+    post:
+      consumes:
+      - application/json
+      description: Records actual dispensing, decrements stock, updates prescription
+        status.
+      parameters:
+      - description: Prescription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dispense details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pharmacy.DispenseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/pharmacy.PrescriptionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Dispense medicines against a prescription
+      tags:
+      - pharmacy
+  /prescriptions/{id}/print:
+    get:
+      description: Returns a browser-printable HTML page with patient/doctor
+      parameters:
+      - description: Prescription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML document
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Render a prescription as a printable HTML slip
+      tags:
+      - prescriptions
+  /prescriptions/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Marks PRESCRIBED → PARTIALLY_DISPENSED → DISPENSED.
+      parameters:
+      - description: Prescription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/prescriptions.UpdatePrescriptionStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/prescriptions.PrescriptionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update prescription status (dispensing progress)
+      tags:
+      - prescriptions
+  /procedure-types:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/treatments.ProcedureTypeResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List active procedure types
+      tags:
+      - treatment
+  /public/departments:
+    get:
+      description: No auth. Safe fields only.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/public.DepartmentPublic'
+                  type: array
+              type: object
+      summary: Public list of active departments with doctor counts
+      tags:
+      - public
+  /public/doctors:
+    get:
+      description: 'No auth. Safe fields only: name, department, specialization, qualification,
+        experience, fee.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/public.DoctorPublic'
+                  type: array
+              type: object
+      summary: Public list of active doctors
+      tags:
+      - public
+  /public/procedure-types:
+    get:
+      description: No auth. The treatment catalogue shown on the website.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/public.ProcedureTypePublic'
+                  type: array
+              type: object
+      summary: Public list of active procedure types
+      tags:
+      - public
+  /referrals:
+    post:
+      consumes:
+      - application/json
+      description: The referring doctor sends the patient to another department. A
+        REF number is auto-generated.
+      parameters:
+      - description: Referral
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/referrals.CreateReferralRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/referrals.ReferralResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create an inter-department referral
+      tags:
+      - referrals
+  /referrals/{id}:
+    get:
+      description: The receiving doctor sees the previous consultation, diagnosis,
+        prescription and dispensing status.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/referrals.ReferralResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a referral with the source clinical history
+      tags:
+      - referrals
+  /referrals/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/referrals.UpdateReferralStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/referrals.ReferralResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update a referral's status
+      tags:
+      - referrals
+  /referrals/incoming:
+    get:
+      description: Dashboard for the receiving department. If department_id is omitted,
+        the caller's own department is used.
+      parameters:
+      - description: Receiving department (defaults to caller's department)
+        in: query
+        name: department_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/referrals.ReferralItemResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List incoming referrals for a department
+      tags:
+      - referrals
+  /therapists:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/treatments.TherapistResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List therapists assignable to plans
+      tags:
+      - treatment
+  /treatment-plans:
+    get:
+      description: Filterable by status, patient, or patient search term.
+      parameters:
+      - description: Filter by plan status
+        in: query
+        name: status
+        type: string
+      - description: Filter by patient id
+        in: query
+        name: patient_id
+        type: string
+      - description: Search by patient name or UHID
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/treatments.PlanListItem'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List treatment plans
+      tags:
+      - treatment
+    post:
+      consumes:
+      - application/json
+      description: Doctor orders a course of a procedure (Panchakarma today, other
+        categories later). Sessions are auto-scheduled from start date and frequency.
+        A PKR number is auto-generated.
+      parameters:
+      - description: Plan
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/treatments.CreatePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/treatments.PlanResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a treatment plan
+      tags:
+      - treatment
+  /treatment-plans/{id}:
+    get:
+      parameters:
+      - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/treatments.PlanResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a treatment plan with its sessions
+      tags:
+      - treatment
+    patch:
+      consumes:
+      - application/json
+      description: Editable only while the plan is in PLANNED status.
+      parameters:
+      - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/treatments.UpdatePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/treatments.PlanResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a plan (before approval)
+      tags:
+      - treatment
+  /treatment-plans/{id}/approve:
+    post:
+      description: Panchakarma doctor (or any approver) confirms the plan for execution.
+      parameters:
+      - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/treatments.PlanResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Approve a treatment plan
+      tags:
+      - treatment
+  /treatment-plans/{id}/cancel:
+    post:
+      parameters:
+      - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/treatments.PlanResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel a treatment plan
+      tags:
+      - treatment
+  /treatment-plans/{id}/complete:
+    post:
+      consumes:
+      - application/json
+      description: All sessions must be completed/skipped before completion.
+      parameters:
+      - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Final assessment
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/treatments.CompletePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/treatments.PlanResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Complete a treatment plan with final assessment
+      tags:
+      - treatment
+  /treatment-sessions/{id}/complete:
+    post:
+      consumes:
+      - application/json
+      description: Records the post-session condition, complications and observations.
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Post-session findings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/treatments.CompleteSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/treatments.SessionResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Complete a session
+      tags:
+      - treatment
+  /treatment-sessions/{id}/skip:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/treatments.SkipSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/treatments.SessionResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Skip a pending session
+      tags:
+      - treatment
+  /treatment-sessions/{id}/start:
+    post:
+      consumes:
+      - application/json
+      description: Begins a pending session; moves the plan to IN_PROGRESS.
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Pre-session condition
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/treatments.StartSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/treatments.SessionResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Start a session
+      tags:
+      - treatment
+  /treatment-sessions/today:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/treatments.PlanListItem'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Today's sessions for the logged-in therapist
+      tags:
+      - treatment
+  /uploads/patient-photo:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Accepts a multipart field "file" (JPG/PNG/WEBP, max 2MB). Returns
+        the stored /uploads URL. The photo is saved to the patient in a later registration/update
+        call.
+      parameters:
+      - description: Image file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload a patient photo
+      tags:
+      - uploads
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and the JWT access token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

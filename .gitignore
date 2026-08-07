@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment Variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*
+env/
+*.env
+
+# Specific User Exclusions
+ahms_main/
+ahms_main
+ahms_backup/
+ahms_backup
+ahmss-main/
+ahmss-main
+*.zip
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build directories
+ahms-frontend/dist/
+ahms-frontend/build/
+ahms-backend/bin/
+bin/
+build/
+out/
+dist/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
