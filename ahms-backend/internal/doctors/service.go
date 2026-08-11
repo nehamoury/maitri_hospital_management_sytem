@@ -98,6 +98,7 @@ func (s *service) Update(id uuid.UUID, req UpdateDoctorRequest) (*models.Doctor,
 	}
 
 	doctor.DepartmentID = deptID
+	doctor.Department = models.Department{} // Clear preloaded department to prevent GORM from overriding DepartmentID
 	doctor.Specialization = req.Specialization
 	doctor.Qualification = req.Qualification
 	doctor.ExperienceYears = req.ExperienceYears
@@ -105,6 +106,9 @@ func (s *service) Update(id uuid.UUID, req UpdateDoctorRequest) (*models.Doctor,
 	if req.IsActive != nil {
 		doctor.IsActive = *req.IsActive
 	}
+
+	doctor.User.FullName = req.FullName
+	doctor.User.Mobile = req.Mobile
 
 	if err := s.repo.Update(doctor); err != nil {
 		return nil, err

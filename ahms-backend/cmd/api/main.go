@@ -30,16 +30,21 @@ import (
 	"github.com/ahms/backend/internal/doctors"
 	"github.com/ahms/backend/internal/encounters"
 	"github.com/ahms/backend/internal/middleware"
+	"github.com/ahms/backend/internal/models"
+	"github.com/ahms/backend/internal/patientdocs"
 	"github.com/ahms/backend/internal/patients"
 	"github.com/ahms/backend/internal/pharmacy"
 	"github.com/ahms/backend/internal/portal"
 	"github.com/ahms/backend/internal/prescriptions"
 	"github.com/ahms/backend/internal/public"
 	"github.com/ahms/backend/internal/referrals"
+	"github.com/ahms/backend/internal/roles"
 	"github.com/ahms/backend/internal/timeline"
 	"github.com/ahms/backend/internal/treatments"
 	"github.com/ahms/backend/internal/uploads"
+	"github.com/ahms/backend/internal/users"
 	"github.com/ahms/backend/internal/utils"
+	"github.com/ahms/backend/internal/websocket"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -136,6 +141,35 @@ func main() {
 	permissionMiddleware := middleware.NewPermissionMiddleware(db)
 	dataScopeMiddleware := middleware.DataScopeMiddleware(db)
 
+	wsHub := websocket.NewHub()
+	go wsHub.Run()
+
+	router.GET("/ws", func(c *gin.Context) {
+		tokenStr := c.Query("token")
+		if tokenStr == "" {
+			c.JSON(401, gin.H{"error": "missing token"})
+			return
+		}
+		claims, err := jwtManager.Parse(tokenStr)
+		if err != nil || claims.TokenType != "access" || blacklist.IsBlacklisted(tokenStr) {
+			c.JSON(401, gin.H{"error": "invalid token"})
+			return
+		}
+		if claims.RoleName == "PATIENT" {
+			c.JSON(403, gin.H{"error": "patients not allowed on system websocket"})
+			return
+		}
+		// Only front-desk / admin roles need live appointment notifications.
+		// Doctors, pharmacists and other clinical roles get no realtime stream.
+		if claims.RoleName != models.RoleSuperAdmin &&
+			claims.RoleName != models.RoleHospitalAdmin &&
+			claims.RoleName != models.RoleReceptionist {
+			c.JSON(403, gin.H{"error": "your role is not allowed on the live notification stream"})
+			return
+		}
+		websocket.ServeWs(wsHub, c.Writer, c.Request)
+	})
+
 	apiV1 := router.Group("/api/v1")
 	{
 		auditService := audit.NewService(db)
@@ -163,15 +197,24 @@ func main() {
 		patientHandler.SetAuditRecorder(auditRecorder)
 		patients.RegisterRoutes(apiV1, patientHandler, authMiddleware, permissionMiddleware)
 
+		docRepo := patientdocs.NewRepository(db)
+		docService := patientdocs.NewService(docRepo)
+		docHandler := patientdocs.NewHandler(docService)
+		docHandler.SetAuditRecorder(auditRecorder)
+		docHandler.SetUploadDir(uploadDir)
+		patientdocs.RegisterRoutes(apiV1, docHandler, authMiddleware, permissionMiddleware)
+
 		apptRepo := appointments.NewRepository(db)
 		apptService := appointments.NewService(apptRepo)
 		apptHandler := appointments.NewHandler(apptService)
 		apptHandler.SetAuditRecorder(auditRecorder)
+		apptHandler.SetWebSocketHub(wsHub)
 		appointments.RegisterRoutes(apiV1, apptHandler, authMiddleware, permissionMiddleware)
 
 		publicGroup := apiV1.Group("/public")
 		{
 			publicGroup.POST("/appointments", apptHandler.PublicCreate)
+			publicGroup.GET("/slots", apptHandler.Slots)
 		}
 
 		dashboardRepo := dashboard.NewRepository(db)
@@ -183,6 +226,7 @@ func main() {
 		encounterService := encounters.NewService(encounterRepo)
 		encounterHandler := encounters.NewHandler(encounterService)
 		encounterHandler.SetAuditRecorder(auditRecorder)
+		encounterHandler.SetWebSocketHub(wsHub)
 		encounters.RegisterRoutes(apiV1, encounterHandler, authMiddleware, permissionMiddleware, dataScopeMiddleware)
 
 		consultationRepo := consultations.NewRepository(db)
@@ -206,6 +250,7 @@ func main() {
 		referralService := referrals.NewService(referralRepo)
 		referralHandler := referrals.NewHandler(referralService)
 		referralHandler.SetAuditRecorder(auditRecorder)
+		referralHandler.SetUploadDir(uploadDir)
 		referrals.RegisterRoutes(apiV1, referralHandler, authMiddleware, permissionMiddleware)
 
 		treatmentRepo := treatments.NewRepository(db)
@@ -232,6 +277,16 @@ func main() {
 		auditHandler := audit.NewHandler(auditService)
 		audit.RegisterRoutes(apiV1, auditHandler, authMiddleware, permissionMiddleware)
 
+		userRepo := users.NewRepository(db)
+		userService := users.NewService(userRepo)
+		userHandler := users.NewHandler(userService)
+		users.RegisterRoutes(apiV1, userHandler, authMiddleware, permissionMiddleware)
+
+		roleRepo := roles.NewRepository(db)
+		roleService := roles.NewService(roleRepo)
+		roleHandler := roles.NewHandler(roleService)
+		roles.RegisterRoutes(apiV1, roleHandler, authMiddleware, permissionMiddleware)
+
 		portalRepo := portal.NewRepository(db)
 		portalService := portal.NewService(portalRepo, jwtManager)
 		portalHandler := portal.NewHandler(portalService)
@@ -255,26 +310,26 @@ func main() {
 				Gender   string `json:"gender"`
 			}
 			var patResults []PatientResult
-			db.Raw(`SELECT id, uh_id, full_name, mobile, gender FROM patients WHERE deleted_at IS NULL AND (full_name ILIKE ? OR mobile ILIKE ? OR uh_id ILIKE ?) LIMIT 10`, like, like, like).Scan(&patResults)
+			db.Raw(`SELECT id, uhid, full_name, mobile, gender FROM patients WHERE deleted_at IS NULL AND (full_name ILIKE ? OR mobile ILIKE ? OR uhid ILIKE ?) LIMIT 10`, like, like, like).Scan(&patResults)
 
 			type ReferralResult struct {
-				ID         string `json:"id"`
-				PatientID  string `json:"patient_id"`
+				ID          string `json:"id"`
+				PatientID   string `json:"patient_id"`
 				PatientName string `json:"patient_name"`
-				Department string `json:"from_department_name"`
-				Status     string `json:"status"`
-				CreatedAt  string `json:"created_at"`
+				Department  string `json:"from_department_name"`
+				Status      string `json:"status"`
+				CreatedAt   string `json:"created_at"`
 			}
 			var refResults []ReferralResult
-			db.Raw(`SELECT r.id, r.patient_id, COALESCE(p.full_name,'') AS patient_name, COALESCE(d.name,'') AS from_department_name, r.status, r.created_at::text FROM referrals r LEFT JOIN patients p ON p.id = r.patient_id LEFT JOIN departments d ON d.id = r.from_department_id WHERE r.deleted_at IS NULL AND (p.full_name ILIKE ? OR r.referral_id ILIKE ?) LIMIT 10`, like, like).Scan(&refResults)
+			db.Raw(`SELECT r.id, r.patient_id, COALESCE(p.full_name,'') AS patient_name, COALESCE(d.name,'') AS from_department_name, r.status, r.created_at::text FROM referrals r LEFT JOIN patients p ON p.id = r.patient_id LEFT JOIN departments d ON d.id = r.from_department_id WHERE r.deleted_at IS NULL AND (p.full_name ILIKE ? OR r.referral_no ILIKE ?) LIMIT 10`, like, like).Scan(&refResults)
 
 			type BillResult struct {
-				ID         string `json:"id"`
-				BillNo     string `json:"bill_no"`
-				PatientID  string `json:"patient_id"`
-				PatientName string `json:"patient_name"`
-				Total      float64 `json:"total_amount"`
-				Status     string `json:"status"`
+				ID          string  `json:"id"`
+				BillNo      string  `json:"bill_no"`
+				PatientID   string  `json:"patient_id"`
+				PatientName string  `json:"patient_name"`
+				Total       float64 `json:"total_amount"`
+				Status      string  `json:"status"`
 			}
 			var billResults []BillResult
 			db.Raw(`SELECT b.id, b.bill_no, b.patient_id, COALESCE(p.full_name,'') AS patient_name, b.total_amount, b.status FROM bills b LEFT JOIN patients p ON p.id = b.patient_id WHERE b.deleted_at IS NULL AND (b.bill_no ILIKE ? OR p.full_name ILIKE ?) LIMIT 10`, like, like).Scan(&billResults)

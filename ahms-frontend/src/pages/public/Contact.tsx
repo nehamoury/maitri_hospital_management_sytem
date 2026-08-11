@@ -13,8 +13,14 @@ export default function Contact() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name || !form.message) { setError('Please fill in your name and message.'); return }
-    setSent(true)
     setError('')
+    // Route the inquiry straight to the hospital WhatsApp so it actually
+    // reaches the front desk (no dead-end fake success).
+    const text = encodeURIComponent(
+      `Namaste, I am ${form.name}.${form.phone ? ` (${form.phone})` : ''}${form.email ? ` (${form.email})` : ''}\n\n${form.message}`
+    )
+    window.open(`https://wa.me/${hospitalInfo.whatsapp}?text=${text}`, '_blank', 'noopener,noreferrer')
+    setSent(true)
   }
 
   const contactCards = [
@@ -70,7 +76,6 @@ export default function Contact() {
         title="Contact Us"
         subtitle="We're here to help. Reach out for appointments, queries, or emergency assistance."
         tag="Get in Touch"
-        breadcrumb={[{ label: 'Home' }, { label: 'Contact' }]}
       />
 
       {/* Emergency Banner */}
@@ -170,7 +175,7 @@ export default function Contact() {
               </p>
 
               {sent ? (
-                <FormSuccess message="Thank you! Your message has been received. We'll contact you soon." />
+                <FormSuccess message="Opening WhatsApp with your inquiry — just press send to reach our front desk. We'll get back to you within 24 hours." />
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {error && <FormError message={error} />}

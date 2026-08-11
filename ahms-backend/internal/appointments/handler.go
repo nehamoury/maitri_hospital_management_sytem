@@ -1,6 +1,7 @@
 package appointments
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/ahms/backend/internal/audit"
 	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
+	"github.com/ahms/backend/internal/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -16,6 +18,7 @@ import (
 type Handler struct {
 	service Service
 	audit   *audit.Recorder
+	wsHub   *websocket.Hub
 }
 
 // NewHandler builds a Handler.
@@ -25,6 +28,9 @@ func NewHandler(service Service) *Handler {
 
 // SetAuditRecorder attaches the audit recorder used to log data changes.
 func (h *Handler) SetAuditRecorder(r *audit.Recorder) { h.audit = r }
+
+// SetWebSocketHub sets the websocket hub for broadcasting messages.
+func (h *Handler) SetWebSocketHub(hub *websocket.Hub) { h.wsHub = hub }
 
 func toResponse(a *models.Appointment) AppointmentResponse {
 	return AppointmentResponse{
@@ -36,6 +42,7 @@ func toResponse(a *models.Appointment) AppointmentResponse {
 		DoctorName:      a.Doctor.User.FullName,
 		AppointmentDate: a.AppointmentDate.Format("2006-01-02"),
 		TokenNumber:     a.TokenNumber,
+		TimeSlot:        a.TimeSlot,
 		Status:          a.Status,
 		Reason:          a.Reason,
 		CreatedAt:       a.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -149,6 +156,18 @@ func (h *Handler) Create(c *gin.Context) {
 	if h.audit != nil {
 		_ = h.audit.Log(c, "appointment.create", "appointment", appt.ID.String())
 	}
+	if h.wsHub != nil {
+		payload := map[string]interface{}{
+			"type":             "NEW_APPOINTMENT",
+			"appointment_id":   appt.ID.String(),
+			"patient_name":     appt.Patient.FullName,
+			"appointment_date": appt.AppointmentDate.Format("2006-01-02"),
+			"token_number":     appt.TokenNumber,
+		}
+		if b, err := json.Marshal(payload); err == nil {
+			h.wsHub.Broadcast(b)
+		}
+	}
 }
 
 // UpdateStatus godoc
@@ -185,6 +204,16 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		return
 	}
 	utils.Success(c, http.StatusOK, "appointment status updated", toResponse(appt))
+	if h.wsHub != nil {
+		payload := map[string]interface{}{
+			"type":           "appointment_updated",
+			"appointment_id": appt.ID.String(),
+			"status":         appt.Status,
+		}
+		if b, err := json.Marshal(payload); err == nil {
+			h.wsHub.Broadcast(b)
+		}
+	}
 }
 
 // PublicCreate handles POST /api/v1/public/appointments (no auth required).
@@ -201,4 +230,46 @@ func (h *Handler) PublicCreate(c *gin.Context) {
 		return
 	}
 	utils.Success(c, http.StatusCreated, "appointment booked", toResponse(appt))
+	if h.wsHub != nil {
+		payload := map[string]interface{}{
+			"type":             "NEW_APPOINTMENT",
+			"appointment_id":   appt.ID.String(),
+			"patient_name":     appt.Patient.FullName,
+			"appointment_date": appt.AppointmentDate.Format("2006-01-02"),
+			"token_number":     appt.TokenNumber,
+		}
+		if b, err := json.Marshal(payload); err == nil {
+			h.wsHub.Broadcast(b)
+		}
+	}
+}
+
+// Slots godoc
+// @Summary      Get real-time slot availability for a doctor on a date
+// @Description  No auth. Returns the clinic's standard OPD time-slot grid
+//               with each slot's live availability (a slot is taken when a
+//               non-cancelled appointment already holds it).
+// @Tags         public
+// @Produce      json
+// @Param        doctor_id query string true "Doctor ID"
+// @Param        date query string true "Date (YYYY-MM-DD)"
+// @Success      200 {object} utils.APIResponse{data=[]SlotAvailability}
+// @Router       /public/slots [get]
+func (h *Handler) Slots(c *gin.Context) {
+	doctorID, err := uuid.Parse(c.Query("doctor_id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid doctor_id")
+		return
+	}
+	day, err := time.Parse("2006-01-02", c.Query("date"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid date, expected YYYY-MM-DD")
+		return
+	}
+	slots, err := h.service.Slots(doctorID, day)
+	if err != nil {
+		utils.Fail(c, http.StatusInternalServerError, "failed to fetch slot availability")
+		return
+	}
+	utils.Success(c, http.StatusOK, "slot availability fetched", slots)
 }

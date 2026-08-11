@@ -16,12 +16,16 @@ interface Patient {
   created_at: string
 }
 
+const ITEMS_PER_PAGE = 10
+
 export default function Patients() {
   const [patients, setPatients] = useState<Patient[] | null>(null)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
+    setPage(1)
     api
       .get<{ data: Patient[] }>('/patients', { params: { search: query || undefined } })
       .then((res) => setPatients(res.data.data))
@@ -56,25 +60,40 @@ export default function Patients() {
         ) : patients.length === 0 ? (
           <EmptyState message="No patients found" />
         ) : (
-          <Table headers={['UHID', 'Name', 'Gender', 'Age', 'Mobile', 'Status', '']}>
-            {patients.map((p) => (
-              <tr key={p.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-mono text-xs text-emerald-700">{p.uhid}</td>
-                <td className="px-4 py-3 font-medium text-slate-800">{p.full_name}</td>
-                <td className="px-4 py-3 text-slate-600">{p.gender}</td>
-                <td className="px-4 py-3 text-slate-600">{p.age}</td>
-                <td className="px-4 py-3 text-slate-600">{p.mobile}</td>
-                <td className="px-4 py-3">
-                  <Badge color={p.is_active ? 'green' : 'red'}>{p.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Link to={`/admin/patients/${p.id}`} className="text-sm font-medium text-emerald-700 hover:underline">
-                    View
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </Table>
+          <>
+            <Table headers={['UHID', 'Name', 'Gender', 'Age', 'Mobile', 'Status', '']}>
+              {patients.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE).map((p) => (
+                <tr key={p.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-mono text-xs text-emerald-700">{p.uhid}</td>
+                  <td className="px-4 py-3 font-medium text-slate-800">{p.full_name}</td>
+                  <td className="px-4 py-3 text-slate-600">{p.gender}</td>
+                  <td className="px-4 py-3 text-slate-600">{p.age}</td>
+                  <td className="px-4 py-3 text-slate-600">{p.mobile}</td>
+                  <td className="px-4 py-3">
+                    <Badge color={p.is_active ? 'green' : 'red'}>{p.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link to={`/admin/patients/${p.id}`} className="text-sm font-medium text-emerald-700 hover:underline">
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+            <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+              <span className="text-sm text-slate-500">
+                Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, patients.length)} of {patients.length} patients
+              </span>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                  Previous
+                </Button>
+                <Button variant="secondary" onClick={() => setPage(p => Math.min(Math.ceil(patients.length / ITEMS_PER_PAGE), p + 1))} disabled={page === Math.ceil(patients.length / ITEMS_PER_PAGE)}>
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </Card>
     </div>

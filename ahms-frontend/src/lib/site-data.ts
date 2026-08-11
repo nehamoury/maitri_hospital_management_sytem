@@ -14,7 +14,7 @@ export const departments = [
   {
     slug: "panchakarma",
     name: "Panchakarma",
-    code: "PANCHA",
+    code: "PANCH",
     type: "Procedure",
     fee: 800,
     tagline: "Detox & Rejuvenation",
@@ -26,7 +26,7 @@ export const departments = [
   {
     slug: "shalya-tantra",
     name: "Shalya Tantra",
-    code: "SHALYA",
+    code: "SALYA",
     type: "OPD",
     fee: 700,
     tagline: "Ayurvedic Surgery",

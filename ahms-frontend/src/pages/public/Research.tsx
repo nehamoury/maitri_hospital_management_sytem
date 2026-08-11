@@ -36,7 +36,6 @@ export default function Research() {
       <PageHero
         title="Research & Innovation"
         subtitle="Validating ancient wisdom through modern scientific rigor."
-        breadcrumb={[{ label: 'Home', to: '/' }, { label: 'Research' }]}
       />
 
       {/* Introduction */}

@@ -26,6 +26,7 @@ interface Patient {
 interface Doctor {
   id: string
   full_name: string
+  department_id: string
 }
 
 export default function Appointments() {
@@ -65,6 +66,12 @@ export default function Appointments() {
     api.get<{ data: Doctor[] }>('/doctors').then((res) => setDoctors(res.data.data)).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    const handleUpdate = () => load()
+    window.addEventListener('appointment_updated', handleUpdate)
+    return () => window.removeEventListener('appointment_updated', handleUpdate)
+  }, [])
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -81,9 +88,27 @@ export default function Appointments() {
     }
   }
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (appt: Appointment, status: string) => {
     try {
-      await api.put(`/appointments/${id}/status`, { status })
+      if (status === 'COMPLETED') {
+        const doc = doctors.find((d) => d.id === appt.doctor_id)
+        if (doc) {
+          try {
+            await api.post('/encounters', {
+              patient_id: appt.patient_id,
+              department_id: doc.department_id,
+              doctor_id: appt.doctor_id,
+              encounter_type: 'OPD',
+              visit_type: 'NEW',
+              visit_date: appt.appointment_date,
+              consultation_fee: 0,
+            })
+          } catch (e) {
+            console.error('Failed to auto-create encounter', e)
+          }
+        }
+      }
+      await api.put(`/appointments/${appt.id}/status`, { status })
       load()
     } catch (err) {
       setError(errorMessage(err, 'Failed to update status'))
@@ -94,14 +119,14 @@ export default function Appointments() {
   const filteredAppointments = useMemo(() => {
     if (!appointments) return []
 
-    // Sort: Latest date first, then highest token number first
+    // Sort: Latest date first, then lowest token number first (1, 2, 3...)
     const sorted = [...appointments].sort((a, b) => {
       const dateA = new Date(a.appointment_date).getTime()
       const dateB = new Date(b.appointment_date).getTime()
       if (dateB !== dateA) {
         return dateB - dateA
       }
-      return b.token_number - a.token_number
+      return a.token_number - b.token_number
     })
 
     return sorted.filter((a) => {
@@ -233,10 +258,10 @@ export default function Appointments() {
                     {a.status === 'SCHEDULED' && (
                       <Can permission="appointment.update">
                         <div className="flex gap-3">
-                          <button onClick={() => updateStatus(a.id, 'COMPLETED')} className="text-sm font-semibold text-emerald-700 hover:underline">
+                          <button onClick={() => updateStatus(a, 'COMPLETED')} className="text-sm font-semibold text-emerald-700 hover:underline">
                             Complete
                           </button>
-                          <button onClick={() => updateStatus(a.id, 'CANCELLED')} className="text-sm font-semibold text-red-600 hover:underline">
+                          <button onClick={() => updateStatus(a, 'CANCELLED')} className="text-sm font-semibold text-red-600 hover:underline">
                             Cancel
                           </button>
                         </div>

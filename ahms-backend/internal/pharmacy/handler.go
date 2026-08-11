@@ -58,9 +58,10 @@ func (h *Handler) CreateMedicine(c *gin.Context) {
 // @Router       /medicines [get]
 func (h *Handler) ListMedicines(c *gin.Context) {
 	lowStock := c.Query("low_stock") == "true"
+	outOfStock := c.Query("out_of_stock") == "true"
 	nearExpiry := c.Query("near_expiry") == "true"
 	expired := c.Query("expired") == "true"
-	list, err := h.service.ListMedicines(c.Query("search"), lowStock, nearExpiry, expired)
+	list, err := h.service.ListMedicines(c.Query("search"), lowStock, outOfStock, nearExpiry, expired)
 	if err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to fetch medicines")
 		return
@@ -171,6 +172,71 @@ func (h *Handler) AdjustStock(c *gin.Context) {
 	if h.audit != nil {
 		_ = h.audit.Log(c, "inventory.adjust", "medicine", id.String())
 	}
+}
+
+// ReturnStock godoc
+// @Summary      Record returned stock against a medicine
+// @Description  Adds returned medicine back to stock and logs a RETURN inventory transaction.
+// @Tags         pharmacy
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path string true "Medicine ID"
+// @Param        request body ReturnStockRequest true "Returned stock"
+// @Success      200 {object} utils.APIResponse{data=MedicineResponse}
+// @Router       /medicines/{id}/return [post]
+func (h *Handler) ReturnStock(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid medicine id")
+		return
+	}
+	var req ReturnStockRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid request payload: "+err.Error())
+		return
+	}
+	userIDStr, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDStr.(string))
+	m, err := h.service.ReturnStock(id, req, userID)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			utils.Fail(c, http.StatusNotFound, "medicine not found")
+			return
+		}
+		utils.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	utils.Success(c, http.StatusOK, "returned stock recorded", toMedicineResponse(m))
+	if h.audit != nil {
+		_ = h.audit.Log(c, "inventory.return", "medicine", id.String())
+	}
+}
+
+// ListTransactions godoc
+// @Summary      List a medicine's stock-movement history
+// @Tags         pharmacy
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path string true "Medicine ID"
+// @Success      200 {object} utils.APIResponse{data=[]InventoryTransactionResponse}
+// @Router       /medicines/{id}/transactions [get]
+func (h *Handler) ListTransactions(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid medicine id")
+		return
+	}
+	list, err := h.service.ListTransactions(id)
+	if err != nil {
+		utils.Fail(c, http.StatusInternalServerError, "failed to fetch transactions")
+		return
+	}
+	resp := make([]InventoryTransactionResponse, 0, len(list))
+	for i := range list {
+		resp = append(resp, toTxResponse(&list[i]))
+	}
+	utils.Success(c, http.StatusOK, "transactions fetched", resp)
 }
 
 // Dispense godoc

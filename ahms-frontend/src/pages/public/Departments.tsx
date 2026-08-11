@@ -138,7 +138,6 @@ export default function Departments() {
         title="Our Departments"
         subtitle="Specialized Ayurvedic departments staffed by experienced practitioners for comprehensive holistic care."
         tag="Specialized Care"
-        breadcrumb={[{ label: 'Home' }, { label: 'Departments' }]}
       />
 
       <Section>

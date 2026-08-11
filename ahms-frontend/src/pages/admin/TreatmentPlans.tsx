@@ -14,6 +14,11 @@ interface Therapist {
   full_name: string
 }
 
+interface Doctor {
+  id: string
+  full_name: string
+}
+
 interface Patient {
   id: string
   full_name: string
@@ -85,6 +90,7 @@ const emptyForm = {
   planned_sessions: '7',
   frequency: 'DAILY',
   start_date: '',
+  doctor_id: '',
   assigned_therapist_user_id: '',
   indication: '',
   notes: '',
@@ -94,6 +100,7 @@ export default function TreatmentPlans() {
   const [plans, setPlans] = useState<PlanListItem[] | null>(null)
   const [procedureTypes, setProcedureTypes] = useState<ProcedureType[]>([])
   const [therapists, setTherapists] = useState<Therapist[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
   const [statusFilter, setStatusFilter] = useState('')
   const [search, setSearch] = useState('')
@@ -113,9 +120,10 @@ export default function TreatmentPlans() {
 
   useEffect(() => {
     load()
-    api.get<{ data: ProcedureType[] }>('/procedure-types').then((res) => setProcedureTypes(res.data.data)).catch(() => {})
-    api.get<{ data: Therapist[] }>('/therapists').then((res) => setTherapists(res.data.data)).catch(() => {})
-    api.get<{ data: Patient[] }>('/patients').then((res) => setPatients(res.data.data)).catch(() => {})
+    api.get<{ data: ProcedureType[] }>('/procedure-types').then((res) => setProcedureTypes(res.data.data)).catch(() => { })
+    api.get<{ data: Therapist[] }>('/therapists').then((res) => setTherapists(res.data.data)).catch(() => { })
+    api.get<{ data: Doctor[] }>('/doctors').then((res) => setDoctors(res.data.data)).catch(() => { })
+    api.get<{ data: Patient[] }>('/patients').then((res) => setPatients(res.data.data)).catch(() => { })
   }, [])
 
   const openPlan = (id: string) => {
@@ -133,6 +141,7 @@ export default function TreatmentPlans() {
       const body = {
         patient_id: form.patient_id,
         procedure_type_id: form.procedure_type_id,
+        doctor_id: form.doctor_id || undefined,
         planned_sessions: parseInt(form.planned_sessions, 10),
         frequency: form.frequency,
         start_date: form.start_date,
@@ -284,6 +293,16 @@ export default function TreatmentPlans() {
                 {patients.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.full_name} ({p.uhid})
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Prescribing Doctor (Required if not a doctor)">
+              <Select value={form.doctor_id} onChange={(e) => setForm({ ...form, doctor_id: e.target.value })}>
+                <option value="">Select doctor</option>
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.full_name}
                   </option>
                 ))}
               </Select>

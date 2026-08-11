@@ -12,6 +12,19 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+// UpdateProfileRequest is the payload for PUT /api/v1/auth/me.
+type UpdateProfileRequest struct {
+	FullName string `json:"full_name" binding:"required,min=2"`
+	Email    string `json:"email" binding:"required,email"`
+	Mobile   string `json:"mobile"`
+}
+
+// ChangePasswordRequest is the payload for POST /api/v1/auth/change-password.
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
 // UserResponse is the safe, public-facing shape of a user returned by
 // auth endpoints (never includes the password hash).
 type UserResponse struct {

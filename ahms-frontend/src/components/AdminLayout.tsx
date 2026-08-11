@@ -7,10 +7,11 @@ import {
   LayoutDashboard, Users, Calendar, Stethoscope, ArrowLeftRight,
   Pill, Receipt, UserCog, Building2, FileText, Search, Bell, LogOut,
   Menu, X, ChevronRight, ChevronDown, Settings, User as UserIcon,
-  Leaf, CalendarClock
+  Leaf, CalendarClock, ShieldCheck, MonitorPlay
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ThemeToggle } from './ThemeToggle'
+import { toast } from 'sonner'
 
 // ─── Navigation Config ──────────────────────────────────────────────
 const navSections = [
@@ -26,6 +27,7 @@ const navSections = [
       { to: '/admin/patients', label: 'Patients', icon: Users, perm: 'patient.view' },
       { to: '/admin/appointments', label: 'Appointments', icon: Calendar, perm: 'appointment.view' },
       { to: '/admin/encounters', label: 'OPD', icon: Stethoscope, perm: 'encounter.view' },
+      { to: '/admin/token-board', label: 'Token Board', icon: MonitorPlay, perm: 'encounter.view' },
       { to: '/admin/referrals', label: 'Referrals', icon: ArrowLeftRight, perm: 'referral.view' },
       { to: '/admin/treatment-plans', label: 'Treatment Plans', icon: Leaf, perm: 'treatment.view' },
       { to: '/admin/treatment-sessions', label: 'Therapist Sessions', icon: CalendarClock, perm: 'treatment.session' },
@@ -43,7 +45,15 @@ const navSections = [
     items: [
       { to: '/admin/doctors', label: 'Doctors', icon: UserCog, perm: 'doctor.view' },
       { to: '/admin/departments', label: 'Departments', icon: Building2, perm: 'department.view' },
+      { to: '/admin/users', label: 'Staff Users', icon: Users, perm: 'user.view' },
+      { to: '/admin/roles', label: 'Roles & Permissions', icon: ShieldCheck, perm: 'role.manage' },
       { to: '/admin/audit', label: 'Audit Logs', icon: FileText, perm: 'audit.view' },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { to: '/admin/profile', label: 'My Profile', icon: UserIcon },
     ],
   },
 ] as const
@@ -54,7 +64,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
   const { can } = useCan()
 
   const visibleSections = navSections
-    .map((section) => ({ ...section, items: section.items.filter((item) => can(item.perm)) }))
+    .map((section) => ({ ...section, items: section.items.filter((item) => !('perm' in item) || can(item.perm)) }))
     .filter((section) => section.items.length > 0)
 
   return (
@@ -148,7 +158,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { can } = useCan()
   const visibleSections = navSections
-    .map((section) => ({ ...section, items: section.items.filter((item) => can(item.perm)) }))
+    .map((section) => ({ ...section, items: section.items.filter((item) => !('perm' in item) || can(item.perm)) }))
     .filter((section) => section.items.length > 0)
   
   return (
@@ -221,17 +231,19 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 // ─── Topbar ─────────────────────────────────────────────────────────
-function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
+function Topbar({ onMenuClick, notifications, setNotifications }: { onMenuClick: () => void, notifications: any[], setNotifications: React.Dispatch<React.SetStateAction<any[]>> }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<{ patients: any[]; referrals: any[]; bills: any[] }>({ patients: [], referrals: [], bills: [] })
   const [showResults, setShowResults] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timerRef = useRef<any>(undefined)
   const searchBoxRef = useRef<HTMLDivElement>(null)
   const profileBoxRef = useRef<HTMLDivElement>(null)
+  const notifBoxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!query.trim()) { setResults({ patients: [], referrals: [], bills: [] }); setShowResults(false); return }
@@ -251,6 +263,7 @@ function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
     const handler = (e: MouseEvent) => {
       if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setShowResults(false)
       if (profileBoxRef.current && !profileBoxRef.current.contains(e.target as Node)) setProfileOpen(false)
+      if (notifBoxRef.current && !notifBoxRef.current.contains(e.target as Node)) setNotifOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -371,10 +384,62 @@ function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
       <div className="ml-auto flex items-center gap-3">
         <ThemeToggle />
         {/* Notification bell */}
-        <button className="relative rounded-full p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors bg-card border border-border shadow-sm">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500 border-2 border-white shadow-sm" />
-        </button>
+        <div ref={notifBoxRef} className="relative">
+          <button
+            onClick={() => {
+              setNotifOpen(!notifOpen)
+              if (!notifOpen) {
+                // Mark all as read when opening
+                setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+              }
+            }}
+            className="relative rounded-full p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors bg-card border border-border shadow-sm"
+          >
+            <Bell className="h-5 w-5" />
+            {notifications.filter(n => !n.read).length > 0 && (
+              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 border-2 border-card text-[9px] font-bold text-white shadow-sm">
+                {notifications.filter(n => !n.read).length}
+              </span>
+            )}
+          </button>
+          <AnimatePresence>
+            {notifOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-[calc(100%+12px)] z-50 w-80 rounded-2xl border border-border bg-card p-0 shadow-2xl origin-top-right overflow-hidden flex flex-col max-h-[24rem]"
+              >
+                <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3">
+                  <span className="font-bold text-foreground">Notifications</span>
+                  {notifications.length > 0 && (
+                    <button onClick={() => setNotifications([])} className="text-xs font-medium text-emerald-600 hover:text-emerald-700">Clear All</button>
+                  )}
+                </div>
+                <div className="flex-1 overflow-y-auto p-2">
+                  {notifications.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <p className="text-sm font-medium text-muted-foreground">No notifications</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {notifications.map((n) => (
+                        <div key={n.id} className={`flex flex-col gap-1 rounded-xl p-3 text-sm transition-colors ${n.read ? 'bg-transparent' : 'bg-emerald-50/50 dark:bg-emerald-950/20'}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-foreground">{n.title}</span>
+                            <span className="text-[10px] text-muted-foreground">{new Date(n.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground leading-tight">{n.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Profile Dropdown */}
         <div ref={profileBoxRef} className="relative">
@@ -412,11 +477,11 @@ function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
                 </div>
 
                 <div className="py-2">
-                  <button onClick={() => { setProfileOpen(false); /* Optional: navigate to profile page if exists */ }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/30 hover:text-emerald-600 transition-colors">
+                  <button onClick={() => { setProfileOpen(false); navigate('/admin/profile') }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/30 hover:text-emerald-600 transition-colors">
                     <UserIcon className="h-4 w-4" />
                     My Profile
                   </button>
-                  <button onClick={() => setProfileOpen(false)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/30 hover:text-emerald-600 transition-colors">
+                  <button onClick={() => { setProfileOpen(false); navigate('/admin/profile') }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/30 hover:text-emerald-600 transition-colors">
                     <Settings className="h-4 w-4" />
                     Account Settings
                   </button>
@@ -444,6 +509,69 @@ function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
 export function AdminLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [notifications, setNotifications] = useState<any[]>([])
+  const { token, user } = useAuth()
+
+  useEffect(() => {
+    if (!token || !user) return
+
+    // Only allow websocket connection for roles that handle live appointment notifications
+    const allowedRoles = ['SUPER_ADMIN', 'HOSPITAL_ADMIN', 'RECEPTIONIST']
+    if (!allowedRoles.includes(user.role_name)) return
+
+    const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${wsProto}//${window.location.host}/ws?token=${token}`
+    
+    const ws = new WebSocket(wsUrl)
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'NEW_APPOINTMENT') {
+          // Play a simple beep sound using Web Audio API
+          try {
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+            const osc = ctx.createOscillator()
+            const gain = ctx.createGain()
+            osc.type = 'sine'
+            osc.frequency.setValueAtTime(800, ctx.currentTime)
+            osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1)
+            gain.gain.setValueAtTime(0.5, ctx.currentTime)
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
+            osc.connect(gain)
+            gain.connect(ctx.destination)
+            osc.start()
+            osc.stop(ctx.currentTime + 0.2)
+          } catch (e) { /* ignore audio error */ }
+
+          setNotifications(prev => [{
+            id: Date.now(),
+            title: 'New Appointment',
+            message: `Token ${data.token_number} for ${data.patient_name} on ${data.appointment_date}`,
+            time: new Date().toISOString(),
+            read: false
+          }, ...prev])
+
+          toast.success(`New Appointment Booked`, {
+            description: `Token ${data.token_number} for ${data.patient_name} on ${data.appointment_date}`,
+          })
+          window.dispatchEvent(new CustomEvent('appointment_updated'))
+        } else if (data.type === 'appointment_updated') {
+          // Status changed on the appointment board — let open lists refresh.
+          window.dispatchEvent(new CustomEvent('appointment_updated'))
+        } else if (data.type === 'encounter_created' || data.type === 'encounter_updated') {
+          // Status or queue changed on the live Token Board
+          window.dispatchEvent(new CustomEvent('encounter_updated'))
+        }
+      } catch (e) {
+        console.error('WebSocket parse error:', e)
+      }
+    }
+
+    return () => {
+      ws.close()
+    }
+  }, [token])
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30/50">
@@ -453,7 +581,7 @@ export function AdminLayout() {
         {/* Optional subtle background gradient */}
         <div className="absolute top-0 inset-x-0 h-64 bg-gradient-to-b from-white to-transparent pointer-events-none -z-10" />
         
-        <Topbar onMenuClick={() => setMenuOpen(v => !v)} />
+        <Topbar onMenuClick={() => setMenuOpen(v => !v)} notifications={notifications} setNotifications={setNotifications} />
         <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
           <Outlet />
         </main>

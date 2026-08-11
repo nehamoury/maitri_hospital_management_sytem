@@ -17,5 +17,6 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.Au
 		group.GET("/number/:bill_no", permMW.RequirePermission(models.PermBillingView), handler.GetBillByNo)
 		group.GET("/:id", permMW.RequirePermission(models.PermBillingView), handler.GetBill)
 		group.POST("/:id/payments", permMW.RequirePermission(models.PermBillingPayment), handler.AddPayment)
+		group.POST("/:id/refunds", permMW.RequirePermission(models.PermBillingPayment), handler.RefundPayment)
 	}
 }

@@ -7,6 +7,7 @@ interface AuthContextValue {
   token: string | null
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  updateUser: (patch: Partial<ApiUser>) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -67,8 +68,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null)
   }, [])
 
+  const updateUser = useCallback((patch: Partial<ApiUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev
+      const next = { ...prev, ...patch }
+      localStorage.setItem('ahms_user', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

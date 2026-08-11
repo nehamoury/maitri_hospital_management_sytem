@@ -60,6 +60,26 @@ func (f *fakeRepo) ApplyPayment(id uuid.UUID, amount float64, method, ref string
 	return f.bill, nil
 }
 
+func (f *fakeRepo) ApplyRefund(id uuid.UUID, amount float64, reason string, userID uuid.UUID) (*models.Bill, error) {
+	if f.bill == nil {
+		return nil, ErrNotFound
+	}
+	if amount <= 0 || amount > f.bill.PaidAmount {
+		return nil, ErrRefundExceedsPaid
+	}
+	f.bill.PaidAmount -= amount
+	f.bill.DueAmount = f.bill.NetAmount - f.bill.PaidAmount
+	switch {
+	case f.bill.PaidAmount <= 0:
+		f.bill.PaymentStatus = models.BillUnpaid
+	case f.bill.PaidAmount >= f.bill.NetAmount:
+		f.bill.PaymentStatus = models.BillPaid
+	default:
+		f.bill.PaymentStatus = models.BillPartial
+	}
+	return f.bill, nil
+}
+
 func newTestService(f *fakeRepo) Service {
 	return NewService(f)
 }
@@ -165,6 +185,65 @@ func TestAddPaymentNotFound(t *testing.T) {
 	_, err := svc.AddPayment(uuid.New(), PaymentRequest{Amount: float64Ptr(100), Method: "CASH"}, uuid.New())
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestRefundPaymentRecomputesStatus(t *testing.T) {
+	bill := &models.Bill{
+		BaseModel:     models.BaseModel{ID: uuid.New()},
+		NetAmount:     1000,
+		PaidAmount:    600,
+		DueAmount:     400,
+		PaymentStatus: models.BillPartial,
+	}
+	repo := &fakeRepo{bill: bill}
+	svc := newTestService(repo)
+
+	// Partial refund keeps the bill PARTIAL.
+	b, err := svc.RefundPayment(bill.ID, RefundRequest{Amount: float64Ptr(200), Reason: "overcharged"}, uuid.New())
+	if err != nil {
+		t.Fatalf("refund should succeed, got %v", err)
+	}
+	if b.PaymentStatus != models.BillPartial || b.PaidAmount != 400 || b.DueAmount != 600 {
+		t.Fatalf("expected PARTIAL / paid 400 / due 600, got %s / %v / %v", b.PaymentStatus, b.PaidAmount, b.DueAmount)
+	}
+
+	// Refunding everything restores UNPAID.
+	b2, err := svc.RefundPayment(bill.ID, RefundRequest{Amount: float64Ptr(400), Reason: "full refund"}, uuid.New())
+	if err != nil {
+		t.Fatalf("full refund should succeed, got %v", err)
+	}
+	if b2.PaymentStatus != models.BillUnpaid || b2.PaidAmount != 0 || b2.DueAmount != b2.NetAmount {
+		t.Fatalf("expected UNPAID / paid 0, got %s / %v", b2.PaymentStatus, b2.PaidAmount)
+	}
+}
+
+func TestRefundPaymentValidation(t *testing.T) {
+	repo := &fakeRepo{notFound: true}
+	svc := newTestService(repo)
+
+	_, err := svc.RefundPayment(uuid.New(), RefundRequest{Amount: float64Ptr(0), Reason: "zero"}, uuid.New())
+	if err == nil {
+		t.Fatal("refunding 0 must return an error")
+	}
+
+	_, err = svc.RefundPayment(uuid.New(), RefundRequest{Reason: "no amount"}, uuid.New())
+	if err == nil {
+		t.Fatal("missing amount must return an error")
+	}
+
+	bill := &models.Bill{
+		BaseModel:     models.BaseModel{ID: uuid.New()},
+		NetAmount:     1000,
+		PaidAmount:    100,
+		DueAmount:     900,
+		PaymentStatus: models.BillPartial,
+	}
+	repo2 := &fakeRepo{bill: bill}
+	svc2 := newTestService(repo2)
+	_, err = svc2.RefundPayment(bill.ID, RefundRequest{Amount: float64Ptr(500), Reason: "too much"}, uuid.New())
+	if err == nil {
+		t.Fatal("refunding more than paid must return an error")
 	}
 }
 

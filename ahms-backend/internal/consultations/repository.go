@@ -18,7 +18,7 @@ type Repository interface {
 	CreateWithDiagnoses(c *models.Consultation, diagnoses []models.Diagnosis) error
 	UpdateWithDiagnoses(c *models.Consultation, diagnoses []models.Diagnosis) error
 	FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error)
-	EncounterExists(id uuid.UUID) (bool, error)
+	FindEncounterByID(id uuid.UUID) (*models.Encounter, error)
 	CompleteEncounter(encounterID uuid.UUID) error
 }
 
@@ -95,10 +95,13 @@ func (r *repository) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error
 	return &doctor, err
 }
 
-func (r *repository) EncounterExists(id uuid.UUID) (bool, error) {
-	var count int64
-	err := r.db.Model(&models.Encounter{}).Where("id = ?", id).Count(&count).Error
-	return count > 0, err
+func (r *repository) FindEncounterByID(id uuid.UUID) (*models.Encounter, error) {
+	var enc models.Encounter
+	err := r.db.First(&enc, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	return &enc, err
 }
 
 func (r *repository) CompleteEncounter(encounterID uuid.UUID) error {

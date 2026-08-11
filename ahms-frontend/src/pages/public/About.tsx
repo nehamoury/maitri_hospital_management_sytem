@@ -108,21 +108,30 @@ export default function About() {
         </div>
       </Section>
 
-      <Section>
-        <Reveal>
-          <div className="bg-card shadow-md border border-border rounded-[2.5rem] p-8 md:p-14 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-teal-50 rounded-full opacity-50 -translate-y-1/2 translate-x-1/3" />
-            <Quote className="text-[#C8A14D] h-12 w-12 relative z-10" />
-            <blockquote className="mt-8 max-w-4xl text-2xl leading-relaxed text-foreground relative z-10" style={{ fontFamily: "'Poppins', sans-serif" }}>
-              “We never wanted the largest hospital. We wanted the one where a patient is remembered
-              by name ten years after discharge. That is still the measure we hold ourselves to.”
-            </blockquote>
-            <p className="mt-8 text-sm text-muted-foreground relative z-10">
-              <span className="font-bold text-foreground">Dr. Nandini Sharma</span> · Chairperson
-              &amp; Managing Trustee
-            </p>
-          </div>
-        </Reveal>
+      <Section bg="transparent" className="bg-[#022C22] !py-12 lg:!py-16">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((s, i) => (
+            <Reveal key={s.label} delay={i * 50}>
+              <div className="text-center">
+                <p className="text-4xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#34d399' }}>
+                  {s.value}
+                  {s.suffix}
+                </p>
+                <p className="mt-2 text-xs font-semibold tracking-wider uppercase text-white/60">{s.label}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-2 max-w-5xl mx-auto">
+          {awards.map((a, i) => (
+            <Reveal key={a} delay={i * 50}>
+              <div className="flex items-center gap-3 rounded-xl bg-card/5 border border-white/10 px-4 py-3.5 hover:bg-card/10 transition-colors">
+                <Award className="text-[#C8A14D] h-5 w-5 shrink-0" />
+                <span className="text-white/90 text-sm font-medium">{a}</span>
+              </div>
+            </Reveal>
+          ))}
+        </div>
       </Section>
 
       <Section>
@@ -149,30 +158,21 @@ export default function About() {
         </div>
       </Section>
 
-      <Section bg="transparent" className="bg-[#022C22] !py-12 lg:!py-16">
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((s, i) => (
-            <Reveal key={s.label} delay={i * 50}>
-              <div className="text-center">
-                <p className="text-4xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#34d399' }}>
-                  {s.value}
-                  {s.suffix}
-                </p>
-                <p className="mt-2 text-xs font-semibold tracking-wider uppercase text-white/60">{s.label}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-2 max-w-5xl mx-auto">
-          {awards.map((a, i) => (
-            <Reveal key={a} delay={i * 50}>
-              <div className="flex items-center gap-3 rounded-xl bg-card/5 border border-white/10 px-4 py-3.5 hover:bg-card/10 transition-colors">
-                <Award className="text-[#C8A14D] h-5 w-5 shrink-0" />
-                <span className="text-white/90 text-sm font-medium">{a}</span>
-              </div>
-            </Reveal>
-          ))}
-        </div>
+      <Section>
+        <Reveal>
+          <div className="bg-card shadow-md border border-border rounded-[2.5rem] p-8 md:p-14 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-teal-50 rounded-full opacity-50 -translate-y-1/2 translate-x-1/3" />
+            <Quote className="text-[#C8A14D] h-12 w-12 relative z-10" />
+            <blockquote className="mt-8 max-w-4xl text-2xl leading-relaxed text-foreground relative z-10" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              “We never wanted the largest hospital. We wanted the one where a patient is remembered
+              by name ten years after discharge. That is still the measure we hold ourselves to.”
+            </blockquote>
+            <p className="mt-8 text-sm text-muted-foreground relative z-10">
+              <span className="font-bold text-foreground">Dr. Nandini Sharma</span> · Chairperson
+              &amp; Managing Trustee
+            </p>
+          </div>
+        </Reveal>
       </Section>
     </>
   )

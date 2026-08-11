@@ -29,6 +29,12 @@ type PaymentRequest struct {
 	Reference string   `json:"reference"`
 }
 
+// RefundRequest is the payload for POST /bills/{id}/refunds.
+type RefundRequest struct {
+	Amount *float64 `json:"amount" binding:"required,gte=0"`
+	Reason string   `json:"reason"`
+}
+
 // BillItemResponse is the public shape of a billed line.
 type BillItemResponse struct {
 	ID          string  `json:"id"`
@@ -54,6 +60,7 @@ type BillResponse struct {
 	BillNo        string             `json:"bill_no"`
 	PatientID     string             `json:"patient_id"`
 	PatientName   string             `json:"patient_name"`
+	PatientUHID   string             `json:"patient_uhid"`
 	EncounterID   string             `json:"encounter_id,omitempty"`
 	TotalAmount   float64            `json:"total_amount"`
 	Discount      float64            `json:"discount"`
@@ -73,6 +80,7 @@ func toBillResponse(b *models.Bill) BillResponse {
 		BillNo:        b.BillNo,
 		PatientID:     b.PatientID.String(),
 		PatientName:   b.Patient.FullName,
+		PatientUHID:   b.Patient.UHID,
 		EncounterID:   "",
 		TotalAmount:   b.TotalAmount,
 		Discount:      b.Discount,

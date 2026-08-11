@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/ahms/backend/internal/middleware"
@@ -21,6 +22,8 @@ type Service interface {
 	Login(email, password string) (*LoginResponse, error)
 	Refresh(refreshToken string) (*LoginResponse, error)
 	CurrentUser(id string) (*UserResponse, error)
+	UpdateProfile(userID string, req UpdateProfileRequest) (*UserResponse, error)
+	ChangePassword(userID, oldPassword, newPassword string) error
 	Logout(accessToken string)
 }
 
@@ -74,6 +77,50 @@ func (s *service) CurrentUser(id string) (*UserResponse, error) {
 		return nil, err
 	}
 	return toUserResponse(user), nil
+}
+
+// UpdateProfile edits the caller's own name/email/mobile. Changing the
+// email to one already used by another active user is rejected.
+func (s *service) UpdateProfile(userID string, req UpdateProfileRequest) (*UserResponse, error) {
+	user, err := s.repo.FindUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if req.FullName != "" {
+		user.FullName = req.FullName
+	}
+	if req.Mobile != "" {
+		user.Mobile = req.Mobile
+	}
+	if req.Email != "" && !strings.EqualFold(req.Email, user.Email) {
+		if s.repo.EmailTaken(req.Email, user.ID.String()) {
+			return nil, ErrDuplicateEmail
+		}
+		user.Email = req.Email
+	}
+	if err := s.repo.UpdateProfile(user.ID.String(), user.FullName, user.Email, user.Mobile); err != nil {
+		return nil, err
+	}
+	return toUserResponse(user), nil
+}
+
+// ChangePassword verifies the current password before replacing the hash.
+func (s *service) ChangePassword(userID, oldPassword, newPassword string) error {
+	if newPassword == "" || len(newPassword) < 6 {
+		return errors.New("new password must be at least 6 characters")
+	}
+	user, err := s.repo.FindUserByID(userID)
+	if err != nil {
+		return err
+	}
+	if !utils.CheckPassword(user.PasswordHash, oldPassword) {
+		return ErrInvalidCredentials
+	}
+	hash, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	return s.repo.SetPassword(user.ID.String(), hash)
 }
 
 func (s *service) Logout(accessToken string) {

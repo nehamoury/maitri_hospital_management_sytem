@@ -81,7 +81,15 @@ func (r *repository) FindByUserID(userID uuid.UUID) (*models.Doctor, error) {
 }
 
 func (r *repository) Update(doctor *models.Doctor) error {
-	return r.db.Save(doctor).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(&doctor.User).Error; err != nil {
+			return err
+		}
+		if err := tx.Omit("User", "Department").Save(doctor).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (r *repository) Delete(id uuid.UUID) error {

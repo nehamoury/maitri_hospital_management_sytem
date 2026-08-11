@@ -2,12 +2,28 @@
 // per-doctor-per-day token number generation.
 package appointments
 
+// StandardSlotSchedule is the clinic's fixed OPD time-slot grid. Slot
+// availability is derived from real bookings (a slot is "taken" when the
+// doctor already holds a non-cancelled appointment at that time on that
+// day). Keeping the grid server-side removes the hardcoded client copy.
+var StandardSlotSchedule = []string{
+	"09:00 AM",
+	"10:00 AM",
+	"11:30 AM",
+	"12:30 PM",
+	"02:00 PM",
+	"03:30 PM",
+	"04:30 PM",
+	"05:30 PM",
+}
+
 // CreateAppointmentRequest is the payload for POST /api/v1/appointments.
 type CreateAppointmentRequest struct {
 	PatientID       string `json:"patient_id" binding:"required,uuid"`
 	DoctorID        string `json:"doctor_id" binding:"required,uuid"`
 	AppointmentDate string `json:"appointment_date" binding:"required,datetime=2006-01-02"`
 	Reason          string `json:"reason" binding:"max=500"`
+	TimeSlot        string `json:"time_slot" binding:"max=12"`
 }
 
 // PublicAppointmentRequest is the payload for POST /api/v1/public/appointments.
@@ -18,6 +34,7 @@ type PublicAppointmentRequest struct {
 	DoctorID        string `json:"doctor_id" binding:"required,uuid"`
 	AppointmentDate string `json:"appointment_date" binding:"required,datetime=2006-01-02"`
 	Reason          string `json:"reason" binding:"max=500"`
+	TimeSlot        string `json:"time_slot" binding:"max=12"`
 }
 
 // UpdateAppointmentStatusRequest is the payload for
@@ -36,7 +53,14 @@ type AppointmentResponse struct {
 	DoctorName      string `json:"doctor_name"`
 	AppointmentDate string `json:"appointment_date"`
 	TokenNumber     int    `json:"token_number"`
+	TimeSlot        string `json:"time_slot,omitempty"`
 	Status          string `json:"status"`
 	Reason          string `json:"reason"`
 	CreatedAt       string `json:"created_at"`
+}
+
+// SlotAvailability is one time slot with its real-time booking status.
+type SlotAvailability struct {
+	Slot      string `json:"slot"`
+	Available bool   `json:"available"`
 }

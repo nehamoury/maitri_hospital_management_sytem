@@ -25,6 +25,15 @@ type CreateConsultationRequest struct {
 	DietPathya      string           `json:"diet_pathya"`
 	DietApathya     string           `json:"diet_apathya"`
 	AyurvedaFields  models.JSONB     `json:"ayurveda_fields"`
+	Prakriti        string           `json:"prakriti"`
+	Vikriti         string           `json:"vikriti"`
+	Dosha           string           `json:"dosha"`
+	Agni            string           `json:"agni"`
+	Nadi            string           `json:"nadi"`
+	Mala            string           `json:"mala"`
+	Mutra           string           `json:"mutra"`
+	Jihva           string           `json:"jihva"`
+	Nidra           string           `json:"nidra"`
 	FollowUpDate    string           `json:"follow_up_date"`
 	Diagnoses       []DiagnosisInput `json:"diagnoses"`
 }
@@ -39,6 +48,15 @@ type UpdateConsultationRequest struct {
 	DietPathya      string           `json:"diet_pathya"`
 	DietApathya     string           `json:"diet_apathya"`
 	AyurvedaFields  models.JSONB     `json:"ayurveda_fields"`
+	Prakriti        string           `json:"prakriti"`
+	Vikriti         string           `json:"vikriti"`
+	Dosha           string           `json:"dosha"`
+	Agni            string           `json:"agni"`
+	Nadi            string           `json:"nadi"`
+	Mala            string           `json:"mala"`
+	Mutra           string           `json:"mutra"`
+	Jihva           string           `json:"jihva"`
+	Nidra           string           `json:"nidra"`
 	FollowUpDate    string           `json:"follow_up_date"`
 	Diagnoses       []DiagnosisInput `json:"diagnoses"`
 }
@@ -57,6 +75,15 @@ type ConsultationResponse struct {
 	DietPathya      string              `json:"diet_pathya"`
 	DietApathya     string              `json:"diet_apathya"`
 	AyurvedaFields  models.JSONB        `json:"ayurveda_fields"`
+	Prakriti        string              `json:"prakriti"`
+	Vikriti         string              `json:"vikriti"`
+	Dosha           string              `json:"dosha"`
+	Agni            string              `json:"agni"`
+	Nadi            string              `json:"nadi"`
+	Mala            string              `json:"mala"`
+	Mutra           string              `json:"mutra"`
+	Jihva           string              `json:"jihva"`
+	Nidra           string              `json:"nidra"`
 	FollowUpDate    string              `json:"follow_up_date,omitempty"`
 	Diagnoses       []DiagnosisResponse `json:"diagnoses"`
 	CreatedAt       string              `json:"created_at"`
@@ -87,6 +114,15 @@ func toResponse(c *models.Consultation) ConsultationResponse {
 		DietPathya:      c.DietPathya,
 		DietApathya:     c.DietApathya,
 		AyurvedaFields:  c.AyurvedaFields,
+		Prakriti:        c.Prakriti,
+		Vikriti:         c.Vikriti,
+		Dosha:           c.Dosha,
+		Agni:            c.Agni,
+		Nadi:            c.Nadi,
+		Mala:            c.Mala,
+		Mutra:           c.Mutra,
+		Jihva:           c.Jihva,
+		Nidra:           c.Nidra,
 		FollowUpDate:    followUp,
 		CreatedAt:       c.CreatedAt.Format(time.RFC3339),
 	}

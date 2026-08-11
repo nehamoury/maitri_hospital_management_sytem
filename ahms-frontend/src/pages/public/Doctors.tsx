@@ -7,6 +7,18 @@ import { Reveal } from '../../components/site/Reveal'
 import { SEO } from '../../components/SEO'
 import { fetchDoctors, fetchDepartments } from '../../lib/public-site'
 
+function getShortDeptName(name: string): string {
+  const mapping: Record<string, string> = {
+    'Prasuti Tantra Evam Stri Roga': 'Prasuti & Stri Roga',
+    'Agad Tantra Evam Vidhi Vaidyaka': 'Agad Tantra',
+    'Kaumarbhritya (Bal Roga)': 'Kaumarbhritya',
+    'Rasashastra & Bhaishajya Kalpana': 'Rasashastra',
+    'General Ayurveda Consultation': 'General Consult',
+    'Swasthavritta & Yoga': 'Swasthavritta',
+  }
+  return mapping[name] || name
+}
+
 export default function Doctors() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [q, setQ] = useState('')
@@ -67,23 +79,25 @@ export default function Doctors() {
         title="Find the right specialist for your condition."
         subtitle="Every consultant here holds an MD or MS in Ayurveda and practises full-time on campus."
         tag="Our Physicians"
-        breadcrumb={[{ label: 'Home' }, { label: 'Doctors' }]}
       />
 
       <Section bg="ivory">
         {/* Search and Filters */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-12">
-          <div className="relative w-full lg:max-w-sm">
-            <Search className="text-muted-foreground absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2" />
+        <div className="flex flex-col gap-6 mb-12 max-w-4xl mx-auto">
+          {/* Search Bar */}
+          <div className="relative w-full">
+            <Search className="text-muted-foreground absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2" />
             <input
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by name or specialty"
-              className="w-full rounded-full pl-10 pr-5 py-3 text-sm outline-none border border-border focus:border-teal-600 focus:ring-1 focus:ring-teal-600 bg-card shadow-sm text-foreground"
+              placeholder="Search by name or specialty..."
+              className="w-full rounded-full pl-12 pr-6 py-4 text-base outline-none border border-border focus:border-teal-600 focus:ring-1 focus:ring-teal-600 bg-card shadow-sm text-foreground transition-all hover:shadow-md"
             />
           </div>
-          <div className="flex flex-wrap gap-2">
+          
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap justify-center gap-2">
             {deptNames.slice(0, 9).map((t) => (
               <button
                 key={t}
@@ -94,7 +108,7 @@ export default function Doctors() {
                     : 'border-border text-muted-foreground hover:border-border bg-card hover:text-foreground'
                 }`}
               >
-                {t}
+                {getShortDeptName(t)}
               </button>
             ))}
           </div>
@@ -123,8 +137,8 @@ export default function Doctors() {
                     </div>
                     <div>
                       <h2 className="text-lg leading-tight font-bold text-foreground">{d.name}</h2>
-                      <p className="text-[#14B8A6] mt-1 text-[10px] font-bold tracking-wider uppercase">
-                        {d.department}
+                      <p className="text-primary mt-1 text-[10px] font-bold tracking-wider uppercase">
+                        {getShortDeptName(d.department)}
                       </p>
                     </div>
                   </div>

@@ -67,9 +67,17 @@ type MedicineResponse struct {
 	LowStockThreshold float64 `json:"low_stock_threshold"`
 	IsActive          bool    `json:"is_active"`
 	LowStock          bool    `json:"low_stock"`
+	OutOfStock        bool    `json:"out_of_stock"`
 	IsExpired         bool    `json:"is_expired"`
 	NearExpiry        bool    `json:"near_expiry"`
 	CreatedAt         string  `json:"created_at"`
+}
+
+// ReturnStockRequest is the payload for POST /medicines/{id}/return.
+type ReturnStockRequest struct {
+	Quantity    float64 `json:"quantity" binding:"required,gt=0"`
+	BatchNumber string  `json:"batch_number"`
+	Notes       string  `json:"notes"`
 }
 
 func toMedicineResponse(m *models.Medicine) MedicineResponse {
@@ -92,6 +100,7 @@ func toMedicineResponse(m *models.Medicine) MedicineResponse {
 		LowStockThreshold: m.LowStockThreshold,
 		IsActive:          m.IsActive,
 		LowStock:          m.StockQty <= m.LowStockThreshold,
+		OutOfStock:        m.StockQty <= 0.001,
 		IsExpired:         isExpired,
 		NearExpiry:        nearExpiry,
 		CreatedAt:         m.CreatedAt.Format(time.RFC3339),

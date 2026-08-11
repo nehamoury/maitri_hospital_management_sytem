@@ -30,7 +30,6 @@ export default function Gallery() {
       <PageHero
         title="Photo Gallery"
         subtitle="A glimpse into the healing environment of Maitri Ayurveda."
-        breadcrumb={[{ label: 'Home', to: '/' }, { label: 'Gallery' }]}
       />
 
       <Section>

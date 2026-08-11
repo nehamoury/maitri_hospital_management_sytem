@@ -19,10 +19,12 @@ var ErrInsufficientStock = errors.New("insufficient stock")
 // Repository is the data-access layer for pharmacy.
 type Repository interface {
 	CreateMedicine(m *models.Medicine) error
-	FindAllMedicines(search string, lowStock bool, nearExpiry bool, expired bool) ([]models.Medicine, error)
+	FindAllMedicines(search string, lowStock bool, outOfStock bool, nearExpiry bool, expired bool) ([]models.Medicine, error)
 	FindMedicineByID(id uuid.UUID) (*models.Medicine, error)
 	UpdateMedicine(m *models.Medicine) error
 	AdjustStock(m *models.Medicine, qty float64, batchNumber string, notes string, userID uuid.UUID) error
+	ReturnStock(m *models.Medicine, qty float64, batchNumber string, notes string, userID uuid.UUID) error
+	ListTransactions(medicineID uuid.UUID) ([]models.InventoryTransaction, error)
 	FindPrescriptionWithItems(id uuid.UUID) (*models.Prescription, error)
 	DispenseItems(rx *models.Prescription, updates []dispenseUpdate, userID uuid.UUID) error
 	FindDoctorOrStaffRoleName(userID uuid.UUID) (string, error)
@@ -47,7 +49,7 @@ func (r *repository) CreateMedicine(m *models.Medicine) error {
 	return r.db.Create(m).Error
 }
 
-func (r *repository) FindAllMedicines(search string, lowStock bool, nearExpiry bool, expired bool) ([]models.Medicine, error) {
+func (r *repository) FindAllMedicines(search string, lowStock bool, outOfStock bool, nearExpiry bool, expired bool) ([]models.Medicine, error) {
 	query := r.db.Order("name asc")
 	if search != "" {
 		like := "%" + search + "%"
@@ -55,6 +57,9 @@ func (r *repository) FindAllMedicines(search string, lowStock bool, nearExpiry b
 	}
 	if lowStock {
 		query = query.Where("stock_qty <= low_stock_threshold")
+	}
+	if outOfStock {
+		query = query.Where("stock_qty <= 0.001")
 	}
 	now := time.Now()
 	nearExpiryCutoff := now.AddDate(0, 3, 0)
@@ -118,6 +123,41 @@ func txTypeFor(qty float64) string {
 		return models.InventoryAdjustment
 	}
 	return models.InventoryAdjustment
+}
+
+// ReturnStock adds returned stock back to the medicine balance and records a
+// RETURN inventory transaction atomically.
+func (r *repository) ReturnStock(m *models.Medicine, qty float64, batchNumber string, notes string, userID uuid.UUID) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var locked models.Medicine
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&locked, "id = ?", m.ID).Error; err != nil {
+			return err
+		}
+		newBalance := locked.StockQty + qty
+		if err := tx.Model(&models.Medicine{}).Where("id = ?", m.ID).Update("stock_qty", newBalance).Error; err != nil {
+			return err
+		}
+		return tx.Create(&models.InventoryTransaction{
+			MedicineID:      m.ID,
+			Type:            models.InventoryReturn,
+			Quantity:        qty,
+			BalanceAfter:    newBalance,
+			BatchNumber:     batchNumber,
+			Notes:           notes,
+			CreatedByUserID: userID,
+		}).Error
+	})
+}
+
+// ListTransactions returns the stock-movement history for one medicine.
+func (r *repository) ListTransactions(medicineID uuid.UUID) ([]models.InventoryTransaction, error) {
+	var list []models.InventoryTransaction
+	err := r.db.Preload("Medicine").
+		Where("medicine_id = ?", medicineID).
+		Order("created_at desc").
+		Limit(200).
+		Find(&list).Error
+	return list, err
 }
 
 func (r *repository) FindPrescriptionWithItems(id uuid.UUID) (*models.Prescription, error) {

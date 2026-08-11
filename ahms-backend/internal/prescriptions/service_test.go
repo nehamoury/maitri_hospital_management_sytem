@@ -62,8 +62,15 @@ func (f *fakeRepo) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error) 
 	return f.doctor, nil
 }
 
-func (f *fakeRepo) EncounterExists(id uuid.UUID) (bool, error) {
-	return f.encounterExists, nil
+func (f *fakeRepo) FindEncounterByID(id uuid.UUID) (*models.Encounter, error) {
+	if !f.encounterExists {
+		return nil, ErrNotFound
+	}
+	var docID uuid.UUID
+	if f.doctor != nil {
+		docID = f.doctor.ID
+	}
+	return &models.Encounter{BaseModel: models.BaseModel{ID: id}, DoctorID: docID}, nil
 }
 
 func newTestService(f *fakeRepo) Service {

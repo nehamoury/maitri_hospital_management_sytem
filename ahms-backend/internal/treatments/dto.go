@@ -15,6 +15,7 @@ import (
 type CreatePlanRequest struct {
 	PatientID              string `json:"patient_id" binding:"required"`
 	EncounterID            string `json:"encounter_id"`
+	DoctorID               string `json:"doctor_id"`
 	ProcedureTypeID        string `json:"procedure_type_id" binding:"required"`
 	Indication             string `json:"indication"`
 	PlannedSessions        int    `json:"planned_sessions" binding:"required,gt=0,lte=60"`
@@ -43,6 +44,7 @@ type CompletePlanRequest struct {
 // StartSessionRequest is the payload for POST /treatment-sessions/:id/start.
 type StartSessionRequest struct {
 	BeforeCondition string `json:"before_condition"`
+	Duration        int    `json:"duration_minutes"`
 	Notes           string `json:"notes"`
 }
 
@@ -51,6 +53,8 @@ type CompleteSessionRequest struct {
 	AfterCondition string `json:"after_condition"`
 	Complications  string `json:"complications"`
 	Observations   string `json:"observations"`
+	Duration       int    `json:"duration_minutes"`
+	MaterialsUsed  string `json:"materials_used"`
 	Notes          string `json:"notes"`
 }
 
@@ -66,6 +70,8 @@ type SessionResponse struct {
 	SessionDate    string  `json:"session_date"`
 	TherapistName  string  `json:"therapist_name,omitempty"`
 	Status         string  `json:"status"`
+	Duration       int     `json:"duration_minutes"`
+	MaterialsUsed  string  `json:"materials_used,omitempty"`
 	BeforeCondition string `json:"before_condition,omitempty"`
 	AfterCondition  string `json:"after_condition,omitempty"`
 	Complications   string `json:"complications,omitempty"`
@@ -144,6 +150,8 @@ func toSessionResponse(s *models.TreatmentSession) SessionResponse {
 		SessionNumber:  s.SessionNumber,
 		SessionDate:    s.SessionDate.Format("2006-01-02"),
 		Status:         s.Status,
+		Duration:       s.Duration,
+		MaterialsUsed:  s.MaterialsUsed,
 		BeforeCondition: s.BeforeCondition,
 		AfterCondition:  s.AfterCondition,
 		Complications:   s.Complications,

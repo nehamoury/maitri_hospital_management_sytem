@@ -65,6 +65,18 @@ type ReferralResponse struct {
 	ReferredBy           string         `json:"referred_by"`
 	SourceEncounter      *SourceHistory `json:"source_encounter"`
 	ReferredAt           string         `json:"referred_at"`
+	Attachments          []AttachmentResponse `json:"attachments"`
+}
+
+// AttachmentResponse is the metadata of a referral attachment.
+type AttachmentResponse struct {
+	ID         string `json:"id"`
+	FileName   string `json:"file_name"`
+	FilePath   string `json:"file_path"`
+	FileType   string `json:"file_type"`
+	FileSize   int64  `json:"file_size"`
+	UploadedBy string `json:"uploaded_by"`
+	UploadedAt string `json:"uploaded_at"`
 }
 
 // SourceHistory carries the relevant previous consultation data.
@@ -136,6 +148,18 @@ func toItemResponse(r *models.Referral) ReferralItemResponse {
 	}
 }
 
+func toAttachmentResponse(a *models.ReferralAttachment, uploadedByName string) AttachmentResponse {
+	return AttachmentResponse{
+		ID:         a.ID.String(),
+		FileName:   a.FileName,
+		FilePath:   a.FilePath,
+		FileType:   a.FileType,
+		FileSize:   a.FileSize,
+		UploadedBy: uploadedByName,
+		UploadedAt: a.CreatedAt.Format(time.RFC3339),
+	}
+}
+
 func toResponse(r *models.Referral) ReferralResponse {
 	resp := ReferralResponse{
 		ID:                   r.ID.String(),
@@ -153,6 +177,11 @@ func toResponse(r *models.Referral) ReferralResponse {
 		Status:               r.Status,
 		ReferredBy:           r.ReferredBy.FullName,
 		ReferredAt:           r.CreatedAt.Format(time.RFC3339),
+		Attachments:          []AttachmentResponse{},
+	}
+	for i := range r.Attachments {
+		a := &r.Attachments[i]
+		resp.Attachments = append(resp.Attachments, toAttachmentResponse(a, a.UploadedBy.FullName))
 	}
 	if r.PreferredDoctor != nil {
 		resp.PreferredDoctor = r.PreferredDoctor.User.FullName

@@ -15,6 +15,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMiddleware *middl
 		// Protected — requires a valid access token.
 		authGroup.POST("/logout", authMiddleware.RequireAuth(), handler.Logout)
 		authGroup.GET("/me", authMiddleware.RequireAuth(), handler.Me)
+		authGroup.PUT("/me", authMiddleware.RequireAuth(), handler.UpdateProfile)
+		authGroup.POST("/change-password", authMiddleware.RequireAuth(), handler.ChangePassword)
 	}
 }
 
@@ -28,5 +30,7 @@ func RegisterRoutesWithLimiter(rg *gin.RouterGroup, handler *Handler, authMiddle
 		// Protected — requires a valid access token.
 		authGroup.POST("/logout", authMiddleware.RequireAuth(), handler.Logout)
 		authGroup.GET("/me", authMiddleware.RequireAuth(), handler.Me)
+		authGroup.PUT("/me", authMiddleware.RequireAuth(), handler.UpdateProfile)
+		authGroup.POST("/change-password", authMiddleware.RequireAuth(), handler.ChangePassword)
 	}
 }

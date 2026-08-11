@@ -14,6 +14,7 @@ type Service interface {
 	List(doctorID, patientID *uuid.UUID, date *time.Time) ([]models.Appointment, error)
 	GetByID(id uuid.UUID) (*models.Appointment, error)
 	UpdateStatus(id uuid.UUID, status string) (*models.Appointment, error)
+	Slots(doctorID uuid.UUID, day time.Time) ([]SlotAvailability, error)
 }
 
 type service struct {
@@ -44,6 +45,7 @@ func (s *service) Book(req CreateAppointmentRequest, bookedByUserID uuid.UUID) (
 		DoctorID:        doctorID,
 		AppointmentDate: date,
 		Reason:          req.Reason,
+		TimeSlot:        req.TimeSlot,
 		BookedByUserID:  bookedByUserID,
 	}
 
@@ -79,6 +81,7 @@ func (s *service) PublicBook(req PublicAppointmentRequest) (*models.Appointment,
 		DoctorID:        doctorID,
 		AppointmentDate: date,
 		Reason:          req.Reason,
+		TimeSlot:        req.TimeSlot,
 		BookedByUserID:  systemUserID,
 	}
 
@@ -99,4 +102,26 @@ func (s *service) GetByID(id uuid.UUID) (*models.Appointment, error) {
 
 func (s *service) UpdateStatus(id uuid.UUID, status string) (*models.Appointment, error) {
 	return s.repo.UpdateStatus(id, status)
+}
+
+// Slots returns the standard OPD grid with live availability for the
+// given doctor and day. A slot is unavailable when a non-cancelled
+// appointment already claims it.
+func (s *service) Slots(doctorID uuid.UUID, day time.Time) ([]SlotAvailability, error) {
+	dayStart := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location())
+	dayEnd := dayStart.Add(24 * time.Hour)
+
+	booked, err := s.repo.CountSlotsOnDay(doctorID, dayStart, dayEnd)
+	if err != nil {
+		return nil, err
+	}
+
+	slots := make([]SlotAvailability, 0, len(StandardSlotSchedule))
+	for _, slot := range StandardSlotSchedule {
+		slots = append(slots, SlotAvailability{
+			Slot:      slot,
+			Available: booked[slot] == 0,
+		})
+	}
+	return slots, nil
 }

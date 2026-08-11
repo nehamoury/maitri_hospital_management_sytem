@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, errorMessage } from '../../lib/api'
 import { Can } from '../../lib/can'
+import { hospitalInfo } from '../../design-system/tokens'
 import { Card, CardHeader, Badge, Table, EmptyState, Spinner, PageHeader, Button, Input, Select, Field } from '../../components/ui'
 
 interface Bill {
@@ -8,6 +9,7 @@ interface Bill {
   bill_no: string
   patient_id: string
   patient_name: string
+  patient_uhid?: string
   total_amount: number
   discount: number
   net_amount: number
@@ -17,6 +19,7 @@ interface Bill {
   billed_by: string
   created_at: string
   items?: BillItem[]
+  payments?: Payment[]
 }
 
 interface Patient {
@@ -32,6 +35,14 @@ interface BillItem {
   service_type: string
 }
 
+interface Payment {
+  id: string
+  amount: number
+  method: string
+  reference?: string
+  created_at: string
+}
+
 const statusColor = (s: string) =>
   s === 'PAID' ? 'green' : s === 'PARTIAL' ? 'amber' : s === 'UNPAID' ? 'red' : 'slate'
 
@@ -42,9 +53,12 @@ export default function Billing() {
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<Bill | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
   const [payAmt, setPayAmt] = useState('')
   const [payMethod, setPayMethod] = useState('CASH')
   const [payRef, setPayRef] = useState('')
+  const [refundAmt, setRefundAmt] = useState('')
+  const [refundReason, setRefundReason] = useState('')
   const [form, setForm] = useState({
     patient_id: '',
     discount: '',
@@ -64,13 +78,24 @@ export default function Billing() {
     api.get<{ data: Patient[] }>('/patients').then((res) => setPatients(res.data.data)).catch(() => {})
   }, [])
 
-  useEffect(() => {
-    if (expanded) {
-      setPayAmt(expanded.due_amount.toString())
-    } else {
-      setPayAmt('')
-    }
-  }, [expanded])
+  const fetchDetail = (id: string) =>
+    api.get<{ data: Bill }>(`/bills/${id}`).then((res) => {
+      setExpanded(res.data.data)
+      setDetailLoading(false)
+      return res.data.data
+    })
+
+  const openDetails = (b: Bill) => {
+    setError('')
+    setExpanded(b)
+    setDetailLoading(true)
+    fetchDetail(b.id).catch((err) => {
+      setDetailLoading(false)
+      setError(errorMessage(err, 'Failed to load bill details'))
+    })
+  }
+
+  // defaults for pay/refund are initialized inside openDetails
 
   const addLine = () => {
     if (!line.description.trim()) return
@@ -93,7 +118,7 @@ export default function Billing() {
       setShowForm(false)
       setForm({ patient_id: '', discount: '', items: [] })
       load()
-      setExpanded(res.data.data)
+      openDetails(res.data.data)
     } catch (err) {
       setError(errorMessage(err, 'Failed to create bill'))
     } finally {
@@ -113,13 +138,91 @@ export default function Billing() {
       setPayAmt('')
       setPayRef('')
       load()
-      const updated = bills?.find((b) => b.id === billId)
-      if (updated) setExpanded({ ...updated })
+      setDetailLoading(true)
+      await fetchDetail(billId)
     } catch (err) {
       setError(errorMessage(err, 'Failed to record payment'))
     } finally {
       setLoading(false)
     }
+  }
+
+  const refund = async (billId: string) => {
+    if (!refundAmt) return
+    setLoading(true)
+    setError('')
+    try {
+      await api.post(`/bills/${billId}/refunds`, {
+        amount: Number(refundAmt),
+        reason: refundReason || undefined,
+      })
+      setRefundAmt('')
+      setRefundReason('')
+      load()
+      setDetailLoading(true)
+      await fetchDetail(billId)
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to record refund'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const fmtAbs = (n: number) => `₹${Math.abs(n).toFixed(2)}`
+
+  const printReceipt = (b: Bill) => {
+    const w = window.open('', '_blank', 'width=420,height=680')
+    if (!w) return
+    const items = (b.items ?? [])
+      .map(
+        (it) =>
+          `<tr><td style="padding:4px 8px">${esc(it.description)}</td><td style="padding:4px 8px;text-align:center">${it.quantity}</td><td style="padding:4px 8px;text-align:right">${fmtAbs(it.rate)}</td><td style="padding:4px 8px;text-align:right">${fmtAbs(it.quantity * it.rate)}</td></tr>`,
+      )
+      .join('')
+    const ledger = (b.payments ?? [])
+      .map((p) => {
+        const neg = p.amount < 0
+        const col = neg ? '#DC2626' : '#334155'
+        return `<tr style="color:${col}"><td style="padding:4px 8px;font-size:11px">${new Date(p.created_at).toLocaleString('en-IN')}</td><td style="padding:4px 8px;text-align:center">${esc(p.method)}</td><td style="padding:4px 8px;text-align:right">${neg ? '-' : '+'}${fmtAbs(p.amount)}</td></tr>`
+      })
+      .join('')
+    w.document.write(
+      `<!doctype html><html><head><meta charset="utf-8" /><title>Receipt ${esc(b.bill_no)}</title><style>
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#0F172A;margin:0;padding:24px}
+      .head{text-align:center;border-bottom:2px solid #0F766E;padding-bottom:12px}
+      .head h1{margin:0;font-size:20px;color:#0F766E}.head p{margin:2px 0;font-size:11px;color:#64748B}
+      h2{font-size:14px;text-align:center;letter-spacing:2px;margin:16px 0 8px;color:#334155}
+      table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+      .totals td{padding:4px 8px}.totals .last td{border-top:2px solid #0F766E;font-weight:bold}
+      .meta{font-size:12px;margin-top:12px;line-height:1.7}
+      .mk{background:#0F766E;color:#fff;padding:4px 8px;border-radius:4px;font-size:11px;display:inline-block}
+      .foot{text-align:center;font-size:11px;color:#64748B;margin-top:20px;border-top:1px dashed #CBD5E1;padding-top:10px}
+      </style></head><body>
+      <div class="head"><h1>${esc(hospitalInfo.name)}</h1><p>${esc(hospitalInfo.fullName)}</p><p>${esc(hospitalInfo.address)} · ${esc(hospitalInfo.phone)}</p></div>
+      <h2>PAYMENT RECEIPT</h2>
+      <div class="meta">
+        <div><strong>Bill No:</strong> <span class="mk">${esc(b.bill_no)}</span></div>
+        <div><strong>Patient:</strong> ${esc(b.patient_name)} <span style="color:#64748B">(${esc(b.patient_uhid || '-')})</span></div>
+        <div><strong>Date:</strong> ${new Date(b.created_at).toLocaleString('en-IN')}</div>
+        <div><strong>Billed By:</strong> ${esc(b.billed_by || '-')}</div>
+        <div><strong>Status:</strong> ${b.payment_status}</div>
+      </div>
+      <table><thead><tr style="background:#F1F5F9"><th style="padding:6px 8px;text-align:left">Item</th><th style="padding:6px 8px">Qty</th><th style="padding:6px 8px;text-align:right">Rate</th><th style="padding:6px 8px;text-align:right">Amount</th></tr></thead><tbody>${items}</tbody></table>
+      <table class="totals">
+        <tr><td>Total</td><td style="text-align:right">${fmtAbs(b.total_amount)}</td></tr>
+        <tr><td>Discount</td><td style="text-align:right;color:#DC2626">-${fmtAbs(b.discount)}</td></tr>
+        <tr class="last"><td>Net</td><td style="text-align:right">${fmtAbs(b.net_amount)}</td></tr>
+        <tr><td>Paid</td><td style="text-align:right;color:#16A34A">${fmtAbs(b.paid_amount)}</td></tr>
+        <tr><td>Due</td><td style="text-align:right;color:#DC2626">${fmtAbs(b.due_amount)}</td></tr>
+      </table>
+      ${ledger ? `<table><thead><tr style="background:#F1F5F9"><th style="padding:6px 8px;text-align:left;font-size:11px">Transaction Ledger</th><th style="padding:6px 8px;font-size:11px">Method</th><th style="padding:6px 8px;text-align:right;font-size:11px">Amount</th></tr></thead><tbody>${ledger}</tbody></table>` : ''}
+      <div class="foot">Thank you for choosing ${esc(hospitalInfo.name)}. This is a computer-generated receipt.</div>
+      </body></html>`,
+    )
+    w.document.close()
+    w.focus()
+    w.print()
   }
 
   const fmt = (n: number) => `₹${n.toFixed(2)}`
@@ -250,7 +353,7 @@ export default function Billing() {
                   <Badge color={statusColor(b.payment_status)}>{b.payment_status}</Badge>
                 </td>
                 <td className="px-4 py-3">
-                  <button onClick={() => setExpanded(b)} className="text-sm text-emerald-700 hover:underline">
+                  <button onClick={() => openDetails(b)} className="text-sm text-emerald-700 hover:underline">
                     Details
                   </button>
                 </td>
@@ -266,11 +369,11 @@ export default function Billing() {
             <div onClick={(e) => e.stopPropagation()}>
               <CardHeader
                 title={expanded.bill_no}
-                subtitle={`${expanded.patient_name} • ${new Date(expanded.created_at).toLocaleString()}`}
+                subtitle={`${expanded.patient_name} (${expanded.patient_uhid || '-'}) • ${new Date(expanded.created_at).toLocaleString()}`}
                 action={<Badge color={statusColor(expanded.payment_status)}>{expanded.payment_status}</Badge>}
               />
               <div className="space-y-4 p-5">
-                {/* Itemized List */}
+                {detailLoading && <Spinner label="Refreshing bill..." />}
                 <div className="rounded-xl border border-slate-100 bg-slate-50/30 p-4">
                   <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Bill Items</p>
                   {expanded.items && expanded.items.length > 0 ? (
@@ -313,6 +416,36 @@ export default function Billing() {
                   </div>
                 </div>
 
+                <Button variant="secondary" className="w-full" onClick={() => printReceipt(expanded)}>
+                  Print Receipt
+                </Button>
+
+                <div className="rounded-xl border border-slate-100 p-4">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Payment Ledger</p>
+                  {expanded.payments && expanded.payments.length > 0 ? (
+                    <div className="space-y-2">
+                      {expanded.payments.map((p) => {
+                        const isRefund = p.amount < 0
+                        return (
+                          <div key={p.id} className="flex items-center justify-between text-sm">
+                            <div>
+                              <span className={`inline-block w-16 rounded-full py-0.5 text-center text-[10px] font-bold uppercase ${isRefund ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                {isRefund ? 'Refund' : p.method}
+                              </span>
+                              <span className="ml-2 text-xs text-slate-400">{new Date(p.created_at).toLocaleString()}</span>
+                            </div>
+                            <span className={`font-mono ${isRefund ? 'text-red-600' : 'text-emerald-700'}`}>
+                              {isRefund ? '-' : '+'}{fmtAbs(p.amount)}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400">No payments recorded</p>
+                  )}
+                </div>
+
                 {expanded.payment_status !== 'PAID' && (
                   <Can permission="billing.payment">
                     <form
@@ -338,6 +471,31 @@ export default function Billing() {
                           {loading ? '...' : 'Pay'}
                         </Button>
                       </div>
+                    </form>
+                  </Can>
+                )}
+
+                {expanded.paid_amount > 0 && (
+                  <Can permission="billing.payment">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        refund(expanded.id)
+                      }}
+                      className="rounded-xl border border-red-100 bg-red-50/50 p-4"
+                    >
+                      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-red-400">Refund</p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field label={`Amount (max ${expanded.paid_amount.toFixed(2)}) *`}>
+                          <Input type="number" min={0.01} max={expanded.paid_amount} step="any" value={refundAmt} onChange={(e) => setRefundAmt(e.target.value)} required />
+                        </Field>
+                        <Field label="Reason">
+                          <Input value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder="e.g. Overcharged, cancelled service" />
+                        </Field>
+                      </div>
+                      <Button type="submit" variant="danger" className="mt-3 w-full" disabled={loading}>
+                        {loading ? 'Processing...' : `Refund ${fmtAbs(Number(refundAmt) || 0)}`}
+                      </Button>
                     </form>
                   </Can>
                 )}

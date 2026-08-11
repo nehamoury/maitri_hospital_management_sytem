@@ -56,10 +56,31 @@ type Referral struct {
 
 	ReferredByUserID uuid.UUID `gorm:"type:uuid;not null" json:"referred_by_user_id"`
 	ReferredBy       User      `gorm:"foreignKey:ReferredByUserID" json:"referred_by,omitempty"`
+
+	Attachments []ReferralAttachment `gorm:"foreignKey:ReferralID" json:"attachments,omitempty"`
 }
 
 func (Referral) TableName() string {
 	return "referrals"
+}
+
+// ReferralAttachment is a file (report, image, document) attached to a
+// referral. Files are stored on local disk and served through the /uploads
+// static route; the DB row keeps the metadata and linkage to the referral.
+type ReferralAttachment struct {
+	BaseModel
+	ReferralID       uuid.UUID `gorm:"type:uuid;not null;index" json:"referral_id"`
+	Referral         Referral  `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
+	FileName         string    `gorm:"type:varchar(255);not null" json:"file_name"`
+	FilePath         string    `gorm:"type:varchar(500);not null" json:"file_path"`
+	FileType         string    `gorm:"type:varchar(100)" json:"file_type"`
+	FileSize         int64     `json:"file_size"`
+	UploadedByUserID uuid.UUID `gorm:"type:uuid;not null" json:"uploaded_by_user_id"`
+	UploadedBy       User      `gorm:"foreignKey:UploadedByUserID" json:"uploaded_by,omitempty"`
+}
+
+func (ReferralAttachment) TableName() string {
+	return "referral_attachments"
 }
 
 // ReferralCounter tracks the last-issued referral sequence per year so

@@ -1,12 +1,14 @@
 package encounters
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
-	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/audit"
+	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
+	"github.com/ahms/backend/internal/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -15,6 +17,7 @@ import (
 type Handler struct {
 	service Service
 	audit   *audit.Recorder
+	wsHub   *websocket.Hub
 }
 
 // NewHandler builds a Handler.
@@ -24,6 +27,9 @@ func NewHandler(service Service) *Handler {
 
 // SetAuditRecorder attaches the audit recorder used to log data changes.
 func (h *Handler) SetAuditRecorder(r *audit.Recorder) { h.audit = r }
+
+// SetWebSocketHub sets the websocket hub for broadcasting messages.
+func (h *Handler) SetWebSocketHub(hub *websocket.Hub) { h.wsHub = hub }
 
 // Create godoc
 // @Summary      Create an OPD encounter (visit) with an auto token
@@ -57,6 +63,18 @@ func (h *Handler) Create(c *gin.Context) {
 	utils.Success(c, http.StatusCreated, "encounter created", toResponse(encounter))
 	if h.audit != nil {
 		_ = h.audit.Log(c, "encounter.create", "encounter", encounter.ID.String())
+	}
+	if h.wsHub != nil {
+		payload := map[string]interface{}{
+			"type":         "encounter_created",
+			"encounter_id": encounter.ID.String(),
+			"status":       encounter.Status,
+			"token_number": encounter.TokenNumber,
+			"doctor_id":    encounter.DoctorID.String(),
+		}
+		if b, err := json.Marshal(payload); err == nil {
+			h.wsHub.Broadcast(b)
+		}
 	}
 }
 
@@ -164,5 +182,17 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 	utils.Success(c, http.StatusOK, "encounter status updated", toResponse(encounter))
 	if h.audit != nil {
 		_ = h.audit.Log(c, "encounter.update_status", "encounter", id.String())
+	}
+	if h.wsHub != nil {
+		payload := map[string]interface{}{
+			"type":         "encounter_updated",
+			"encounter_id": encounter.ID.String(),
+			"status":       encounter.Status,
+			"token_number": encounter.TokenNumber,
+			"doctor_id":    encounter.DoctorID.String(),
+		}
+		if b, err := json.Marshal(payload); err == nil {
+			h.wsHub.Broadcast(b)
+		}
 	}
 }

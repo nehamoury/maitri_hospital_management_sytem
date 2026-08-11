@@ -36,6 +36,7 @@ type Repository interface {
 	PatientExists(id uuid.UUID) (bool, error)
 	EncounterExists(id uuid.UUID) (bool, error)
 	FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error)
+	FindDoctorByID(id uuid.UUID) (*models.Doctor, error)
 	ProcedureTypeExists(id uuid.UUID) (bool, error)
 	TherapistExists(userID uuid.UUID) (bool, error)
 	CountCompletedSessions(planID uuid.UUID) (int, error)
@@ -100,7 +101,7 @@ func (r *repository) ListPlans(filter ListFilter) ([]models.TreatmentPlan, error
 	if filter.Search != "" {
 		like := "%" + filter.Search + "%"
 		q = q.Where(
-			"EXISTS (SELECT 1 FROM patients p WHERE p.id = treatment_plans.patient_id AND (p.full_name ILIKE ? OR p.uh_id ILIKE ?))",
+			"EXISTS (SELECT 1 FROM patients p WHERE p.id = treatment_plans.patient_id AND (p.full_name ILIKE ? OR p.uhid ILIKE ?))",
 			like, like,
 		)
 	}
@@ -183,6 +184,15 @@ func (r *repository) EncounterExists(id uuid.UUID) (bool, error) {
 func (r *repository) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error) {
 	var doctor models.Doctor
 	err := r.db.Preload("User").First(&doctor, "user_id = ?", userID).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	return &doctor, err
+}
+
+func (r *repository) FindDoctorByID(id uuid.UUID) (*models.Doctor, error) {
+	var doctor models.Doctor
+	err := r.db.Preload("User").First(&doctor, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}

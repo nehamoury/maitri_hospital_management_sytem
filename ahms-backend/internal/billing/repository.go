@@ -19,6 +19,7 @@ type Repository interface {
 	ListBills(filter BillFilter) ([]models.Bill, error)
 	NextBillNumber(year int) (string, error)
 	ApplyPayment(id uuid.UUID, amount float64, method, ref string, userID uuid.UUID) (*models.Bill, error)
+	ApplyRefund(id uuid.UUID, amount float64, reason string, userID uuid.UUID) (*models.Bill, error)
 }
 
 // BillFilter narrows the bill listing.
@@ -48,6 +49,11 @@ func (r *repository) CreateBill(bill *models.Bill, items []models.BillItem) (*mo
 				return err
 			}
 		}
+		if bill.EncounterID != nil {
+			if err := r.syncEncounterPayment(tx, *bill.EncounterID); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -56,9 +62,40 @@ func (r *repository) CreateBill(bill *models.Bill, items []models.BillItem) (*mo
 	return r.FindBillByID(bill.ID)
 }
 
+// syncEncounterPayment recomputes an encounter's payment_status from all of
+// its linked bills, so OPD records never drift from the billing state.
+func (r *repository) syncEncounterPayment(tx *gorm.DB, encounterID uuid.UUID) error {
+	var bills []models.Bill
+	if err := tx.Where("encounter_id = ?", encounterID).Find(&bills).Error; err != nil {
+		return err
+	}
+	status := models.PaymentUnpaid
+	if len(bills) > 0 {
+		var totalNet, totalPaid float64
+		anyPaid, allPaid := false, true
+		for _, b := range bills {
+			totalNet += b.NetAmount
+			totalPaid += b.PaidAmount
+			if b.PaidAmount > 0 {
+				anyPaid = true
+			}
+			if b.PaymentStatus != models.BillPaid {
+				allPaid = false
+			}
+		}
+		if allPaid && totalPaid > 0 && totalPaid >= totalNet {
+			status = models.PaymentPaid
+		} else if anyPaid {
+			status = models.PaymentPartial
+		}
+	}
+	return tx.Model(&models.Encounter{}).Where("id = ?", encounterID).Update("payment_status", status).Error
+}
+
 func (r *repository) FindBillByID(id uuid.UUID) (*models.Bill, error) {
 	var b models.Bill
 	err := r.db.Preload("Patient").Preload("Items").Preload("BilledBy").
+		Preload("Payments").
 		First(&b, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
@@ -69,6 +106,7 @@ func (r *repository) FindBillByID(id uuid.UUID) (*models.Bill, error) {
 func (r *repository) FindBillByNo(no string) (*models.Bill, error) {
 	var b models.Bill
 	err := r.db.Preload("Patient").Preload("Items").Preload("BilledBy").
+		Preload("Payments").
 		First(&b, "bill_no = ?", no).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound

@@ -92,18 +92,26 @@ interface PageHeroProps {
   title: string
   subtitle?: string
   tag?: string
-  breadcrumb?: Array<{ label: string; to?: string }>
+  bgImage?: string
 }
 
-export function PageHero({ title, subtitle, tag, breadcrumb }: PageHeroProps) {
+export function PageHero({ title, subtitle, tag, bgImage }: PageHeroProps) {
   return (
     <div className="relative overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, #0F172A 0%, #0F766E 60%, #14B8A6 100%)',
-        paddingTop: '96px',
+        paddingTop: '120px',
         paddingBottom: '80px',
       }}
     >
+      <div
+        className="absolute inset-0"
+        style={{
+          background: bgImage
+            ? `linear-gradient(to bottom, rgba(15, 23, 42, 0.4), rgba(15, 118, 110, 0.8)), url(${bgImage}) center/cover no-repeat`
+            : 'linear-gradient(135deg, #0F172A 0%, #0F766E 60%, #14B8A6 100%)',
+        }}
+      />
+      
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-5"
         style={{
@@ -117,20 +125,7 @@ export function PageHero({ title, subtitle, tag, breadcrumb }: PageHeroProps) {
       <div className="absolute -left-12 bottom-0 w-64 h-64 rounded-full opacity-8"
         style={{ background: 'radial-gradient(circle, #14B8A6, transparent)' }} />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-        {breadcrumb && (
-          <div className="flex items-center justify-center gap-2 mb-4 text-sm"
-            style={{ color: 'rgba(255,255,255,0.6)' }}>
-            {breadcrumb.map((crumb, i) => (
-              <span key={crumb.label} className="flex items-center gap-2">
-                {i > 0 && <span>/</span>}
-                <span style={{ color: i === breadcrumb.length - 1 ? '#C8A14D' : 'rgba(255,255,255,0.6)' }}>
-                  {crumb.label}
-                </span>
-              </span>
-            ))}
-          </div>
-        )}
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center pt-8 md:pt-12">
 
         {tag && (
           <div className="inline-flex items-center gap-2 mb-4">
@@ -271,35 +266,33 @@ interface CTASectionProps {
 
 export function CTASection({ title, subtitle, children }: CTASectionProps) {
   return (
-    <section className="py-20 relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #0F766E 0%, #0F172A 100%)' }}>
+    <section className="py-16 md:py-20 relative overflow-hidden bg-gradient-to-br from-teal-800 to-teal-950 text-white my-16 mx-4 md:mx-8 lg:mx-auto max-w-5xl rounded-[2.5rem] shadow-2xl border border-teal-700/50">
       {/* Decorations */}
-      <div className="absolute inset-0 opacity-5"
+      <div className="absolute inset-0 opacity-10"
         style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-          backgroundSize: '28px 28px',
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.5) 1px, transparent 0)',
+          backgroundSize: '24px 24px',
         }} />
-      <div className="absolute -right-20 top-1/2 -translate-y-1/2 w-80 h-80 rounded-full opacity-10"
-        style={{ background: 'radial-gradient(circle, #C8A14D, transparent)' }} />
+      <div className="absolute -right-20 -top-20 w-80 h-80 rounded-full opacity-10 blur-3xl bg-white pointer-events-none" />
+      <div className="absolute -left-10 -bottom-20 w-72 h-72 rounded-full opacity-30 blur-3xl bg-teal-600 pointer-events-none" />
 
-      <div className="relative mx-auto max-w-4xl px-4 text-center">
+      <div className="relative mx-auto max-w-3xl px-6 text-center">
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
           viewport={viewportOpts}
         >
-          <motion.p variants={fadeUp} className="text-xs font-semibold uppercase tracking-widest mb-3"
-            style={{ color: '#C8A14D' }}>
+          <motion.p variants={fadeUp} className="text-xs md:text-sm font-bold uppercase tracking-[0.2em] mb-4 text-teal-200/90">
             Begin Your Healing Journey
           </motion.p>
           <motion.h2 variants={fadeUp}
-            className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4"
-            style={{ fontFamily: "'Poppins', sans-serif" }}>
+            className="text-3xl md:text-4xl lg:text-4xl font-bold mb-5 leading-tight text-white"
+            style={{ fontFamily: "'Outfit', sans-serif" }}>
             {title}
           </motion.h2>
           {subtitle && (
-            <motion.p variants={fadeUp} className="text-lg mb-8" style={{ color: 'rgba(255,255,255,0.75)' }}>
+            <motion.p variants={fadeUp} className="text-base md:text-lg mb-10 text-teal-100/80 max-w-xl mx-auto font-medium">
               {subtitle}
             </motion.p>
           )}

@@ -30,7 +30,11 @@ interface Doctor {
 }
 
 const STEPS = ['Department', 'Doctor', 'Date & time', 'Your details', 'Confirm']
-const TIME_SLOTS = ['09:00 AM', '10:00 AM', '11:30 AM', '12:30 PM', '02:00 PM', '03:30 PM', '04:30 PM', '05:30 PM']
+
+interface Slot {
+  slot: string
+  available: boolean
+}
 
 export default function Appointment() {
   const [doctors, setDoctors] = useState<Doctor[]>([])
@@ -46,6 +50,8 @@ export default function Appointment() {
   const [selectedDocId, setSelectedDocId] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedSlot, setSelectedSlot] = useState('')
+  const [slots, setSlots] = useState<Slot[]>([])
+  const [slotsLoading, setSlotsLoading] = useState(false)
   const [patientName, setPatientName] = useState('')
   const [patientMobile, setPatientMobile] = useState('')
   const [patientEmail, setPatientEmail] = useState('')
@@ -105,6 +111,53 @@ export default function Appointment() {
     return doctors.find(d => d.id === selectedDocId)
   }, [doctors, selectedDocId])
 
+  // Fetch real-time slot availability whenever a doctor + date are chosen.
+  useEffect(() => {
+    if (!selectedDocId || !selectedDate) return
+    let active = true
+    setSlotsLoading(true)
+    setSelectedSlot('')
+    api
+      .get('/public/slots', { params: { doctor_id: selectedDocId, date: selectedDate } })
+      .then(({ data }) => {
+        if (active) {
+          let fetchedSlots = data.data || []
+          
+          // Disable past slots if the selected date is today
+          const today = new Date()
+          const [yyyy, mm, dd] = selectedDate.split('-')
+          const isToday = 
+            today.getFullYear() === parseInt(yyyy, 10) &&
+            today.getMonth() === parseInt(mm, 10) - 1 &&
+            today.getDate() === parseInt(dd, 10)
+
+          if (isToday) {
+            fetchedSlots = fetchedSlots.map((s: Slot) => {
+              const [time, modifier] = s.slot.split(' ')
+              let [hours, minutes] = time.split(':')
+              let hoursNum = parseInt(hours, 10)
+              
+              if (modifier === 'PM' && hoursNum < 12) hoursNum += 12
+              if (modifier === 'AM' && hoursNum === 12) hoursNum = 0
+              
+              const slotTime = new Date()
+              slotTime.setHours(hoursNum, parseInt(minutes, 10), 0, 0)
+              
+              if (slotTime < today) {
+                return { ...s, available: false }
+              }
+              return s
+            })
+          }
+          
+          setSlots(fetchedSlots)
+        }
+      })
+      .catch(() => { if (active) setSlots([]) })
+      .finally(() => { if (active) setSlotsLoading(false) })
+    return () => { active = false }
+  }, [selectedDocId, selectedDate])
+
   const canGoNext = () => {
     if (step === 0) return !!selectedDept
     if (step === 1) return !!selectedDocId
@@ -138,6 +191,7 @@ export default function Appointment() {
         email: patientEmail,
         doctor_id: selectedDocId,
         appointment_date: selectedDate, // Backend handles date string
+        time_slot: selectedSlot,
         reason: reason || `${selectedSlot} slot request`,
       }
 
@@ -217,7 +271,6 @@ export default function Appointment() {
         title="Book a consultation in under a minute."
         subtitle="Choose in-person or video. You will get an SMS confirmation with preparation notes."
         tag="Appointments"
-        breadcrumb={[{ label: 'Home' }, { label: 'Book Appointment' }]}
       />
 
       <Section bg="ivory">
@@ -339,18 +392,28 @@ export default function Appointment() {
                   <div>
                     <span className="block text-sm font-semibold text-foreground mb-2">Available Slots</span>
                     <div className="grid grid-cols-2 gap-2">
-                      {TIME_SLOTS.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setSelectedSlot(s)}
-                          className={`rounded-xl border py-2 text-xs font-semibold transition-all ${selectedSlot === s
-                            ? 'bg-teal-700 text-white border-teal-700 shadow-sm'
-                            : 'border-border text-muted-foreground hover:border-border bg-card'
+                      {slotsLoading ? (
+                        <div className="col-span-2 py-4 text-center text-xs text-muted-foreground">Checking availability...</div>
+                      ) : slots.length === 0 ? (
+                        <div className="col-span-2 py-4 text-center text-xs text-muted-foreground">Select a date above to see opening times.</div>
+                      ) : (
+                        slots.map((s) => (
+                          <button
+                            key={s.slot}
+                            disabled={!s.available}
+                            onClick={() => setSelectedSlot(s.slot)}
+                            className={`rounded-xl border py-2 text-xs font-semibold transition-all ${
+                              selectedSlot === s.slot
+                                ? 'bg-teal-700 text-white border-teal-700 shadow-sm'
+                                : s.available
+                                  ? 'border-border text-muted-foreground hover:border-border bg-card'
+                                  : 'border-border text-slate-300 bg-muted/30 cursor-not-allowed line-through'
                             }`}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                          >
+                            {s.slot}
+                          </button>
+                        ))
+                      )}
                     </div>
                   </div>
                 </motion.div>

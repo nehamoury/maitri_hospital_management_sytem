@@ -39,7 +39,7 @@ func NewRepository(db *gorm.DB) Repository {
 
 func (r *repository) FindPatientByUhidMobile(uhid, mobile string) (*models.Patient, error) {
 	var p models.Patient
-	err := r.db.First(&p, "uh_id = ? AND mobile = ? AND is_active = ?", uhid, mobile, true).Error
+	err := r.db.First(&p, "uhid = ? AND mobile = ? AND is_active = ?", uhid, mobile, true).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrInvalidCredentials
 	}

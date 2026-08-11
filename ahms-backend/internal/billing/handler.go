@@ -182,3 +182,39 @@ func (h *Handler) AddPayment(c *gin.Context) {
 		_ = h.audit.Log(c, "billing.payment", "bill", id.String())
 	}
 }
+
+// RefundPayment godoc
+// @Summary      Refund a payment against a bill
+// @Tags         billing
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path string true "Bill ID"
+// @Param        request body RefundRequest true "Refund"
+// @Success      200 {object} utils.APIResponse{data=BillResponse}
+// @Router       /bills/{id}/refunds [post]
+func (h *Handler) RefundPayment(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid bill id")
+		return
+	}
+	var req RefundRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid request payload: "+err.Error())
+		return
+	}
+	bill, err := h.service.RefundPayment(id, req, currentUserID(c))
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			utils.Fail(c, http.StatusNotFound, "bill not found")
+			return
+		}
+		utils.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	utils.Success(c, http.StatusOK, "refund recorded", toBillResponse(bill))
+	if h.audit != nil {
+		_ = h.audit.Log(c, "billing.refund", "bill", id.String())
+	}
+}

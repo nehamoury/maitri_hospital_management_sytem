@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api, errorMessage } from '../../lib/api'
 import { Can } from '../../lib/can'
 import { Card, CardHeader, Badge, Table, EmptyState, Spinner, PageHeader, Button, Input, Select, Field } from '../../components/ui'
@@ -29,7 +30,6 @@ export default function Departments() {
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [viewingDeptId, setViewingDeptId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL')
@@ -101,7 +101,6 @@ export default function Departments() {
     setFormDescription(d.description || '')
     setFormIsActive(d.is_active)
     setShowForm(true)
-    setViewingDeptId(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -139,16 +138,7 @@ export default function Departments() {
     })
   }, [departments, doctors, searchQuery, statusFilter])
 
-  const viewingDept = useMemo(() => {
-    if (!viewingDeptId || !departments) return null
-    const dept = departments.find(d => d.id === viewingDeptId)
-    if (!dept) return null
-    const assignedDocs = doctors.filter(doc => doc.department_id === dept.id)
-    return {
-      ...dept,
-      doctorCount: assignedDocs.length
-    }
-  }, [departments, viewingDeptId, doctors])
+  const navigate = useNavigate()
 
   return (
     <div>
@@ -169,7 +159,6 @@ export default function Departments() {
                   setFormCode(`DEP-${String(nextNum).padStart(3, '0')}`)
                 }
                 setShowForm((v) => !v)
-                setViewingDeptId(null)
               }}
             >
               {showForm ? 'Close' : '+ Add Department'}
@@ -178,30 +167,6 @@ export default function Departments() {
         }
       />
       {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-
-      {/* Viewing Details Card */}
-      {viewingDept && (
-        <Card className="mb-6 max-w-xl border-teal-100 bg-teal-50/5">
-          <CardHeader
-            title="Department Details"
-            action={
-              <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={() => setViewingDeptId(null)}>
-                Close
-              </Button>
-            }
-          />
-          <div className="p-6 grid gap-4 sm:grid-cols-2 text-sm text-slate-700">
-            <p><strong>Department Name:</strong> {viewingDept.name}</p>
-            <p><strong>Department Code:</strong> <code className="bg-slate-100 px-2 py-0.5 border rounded font-semibold text-teal-700">{viewingDept.code || '—'}</code></p>
-            <p><strong>Department Type:</strong> {viewingDept.type || '—'}</p>
-            <p><strong>Default Consultation Fee:</strong> ₹{viewingDept.default_fee || 0}</p>
-            <p><strong>Assigned Doctors Count:</strong> {viewingDept.doctorCount}</p>
-            <p><strong>Status:</strong> <Badge color={viewingDept.is_active ? 'green' : 'red'}>{viewingDept.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge></p>
-            <p className="sm:col-span-2"><strong>Description:</strong> {viewingDept.description || '—'}</p>
-            <p><strong>Created At:</strong> {new Date(viewingDept.created_at).toLocaleString()}</p>
-          </div>
-        </Card>
-      )}
 
       {/* Add / Edit Form Card */}
       {showForm && (
@@ -295,7 +260,7 @@ export default function Departments() {
                   <Badge color={d.is_active ? 'green' : 'red'}>{d.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge>
                 </td>
                 <td className="px-4 py-3 flex gap-2">
-                  <Button variant="ghost" className="px-3 py-1.5 text-xs font-semibold" onClick={() => setViewingDeptId(d.id)}>
+                  <Button variant="ghost" className="px-3 py-1.5 text-xs font-semibold" onClick={() => navigate(`/admin/departments/${d.id}`)}>
                     View
                   </Button>
                   <Can permission="department.update">

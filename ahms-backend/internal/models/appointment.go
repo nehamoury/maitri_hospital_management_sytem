@@ -27,6 +27,7 @@ type Appointment struct {
 
 	AppointmentDate time.Time `gorm:"type:date;not null;index" json:"appointment_date"`
 	TokenNumber     int       `gorm:"not null" json:"token_number"`
+	TimeSlot        string    `gorm:"type:varchar(12)" json:"time_slot"`
 	Status          string    `gorm:"type:varchar(20);not null;default:'SCHEDULED'" json:"status"`
 	Reason          string    `gorm:"type:text" json:"reason"`
 

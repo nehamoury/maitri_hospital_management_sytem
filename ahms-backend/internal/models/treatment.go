@@ -114,6 +114,8 @@ type TreatmentSession struct {
 	TherapistUser   *User      `gorm:"foreignKey:TherapistUserID" json:"therapist_user,omitempty"`
 
 	Status         string     `gorm:"type:varchar(20);not null;default:'PENDING'" json:"status"`
+	Duration       int        `gorm:"not null;default:0" json:"duration_minutes"`
+	MaterialsUsed  string     `gorm:"type:text" json:"materials_used"`
 	BeforeCondition string    `gorm:"type:text" json:"before_condition"`
 	AfterCondition  string    `gorm:"type:text" json:"after_condition"`
 	Complications   string    `gorm:"type:text" json:"complications"`

@@ -49,7 +49,6 @@ export default function Blog() {
       <PageHero
         title="Ayurveda Insights"
         subtitle="Articles, health tips, and stories from our experts."
-        breadcrumb={[{ label: 'Home', to: '/' }, { label: 'Blog' }]}
       />
 
       <Section>

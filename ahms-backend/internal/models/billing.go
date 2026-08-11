@@ -9,6 +9,10 @@ const (
 	BillPaid    = "PAID"
 )
 
+// PaymentMethodRefund marks a refund ledger entry (stored as a negative
+// payment amount on the originating bill).
+const PaymentMethodRefund = "REFUND"
+
 // Bill service types for line items.
 const (
 	BillServiceOPD          = "OPD"

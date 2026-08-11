@@ -59,6 +59,7 @@ type PortalAppointmentResponse struct {
 	DoctorName      string `json:"doctor_name"`
 	AppointmentDate string `json:"appointment_date"`
 	TokenNumber     int    `json:"token_number"`
+	TimeSlot        string `json:"time_slot,omitempty"`
 	Status          string `json:"status"`
 	Reason          string `json:"reason"`
 }
@@ -70,6 +71,7 @@ func toAppointment(a *models.Appointment) PortalAppointmentResponse {
 		DoctorName:      a.Doctor.User.FullName,
 		AppointmentDate: a.AppointmentDate.Format("2006-01-02"),
 		TokenNumber:     a.TokenNumber,
+		TimeSlot:        a.TimeSlot,
 		Status:          a.Status,
 		Reason:          a.Reason,
 	}
@@ -80,6 +82,7 @@ type BookAppointmentRequest struct {
 	DoctorID        string `json:"doctor_id" binding:"required,uuid"`
 	AppointmentDate string `json:"appointment_date" binding:"required,datetime=2006-01-02"`
 	Reason          string `json:"reason" binding:"max=500"`
+	TimeSlot        string `json:"time_slot" binding:"max=12"`
 }
 
 // PortalPrescriptionItemResponse is one medicine line in a patient's own prescription.

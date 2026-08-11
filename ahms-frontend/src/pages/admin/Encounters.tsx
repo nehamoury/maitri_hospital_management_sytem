@@ -182,7 +182,7 @@ export default function Encounters() {
                 <td className="px-4 py-3 font-mono text-xs">{e.token_number}</td>
                 <td className="px-4 py-3">
                   <Link to={`/admin/patients/${e.patient_id}`} className="font-medium text-slate-800 hover:text-emerald-700">
-                    {e.patient_name}
+                    {e.patient_name?.trim() ? e.patient_name : <span className="italic text-slate-400">Unnamed Patient</span>}
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{e.department_name}</td>

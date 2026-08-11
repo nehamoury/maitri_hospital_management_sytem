@@ -37,7 +37,7 @@ func (f *fakeRepo) CreateWithUHID(patient *models.Patient) error {
 	return nil
 }
 
-func (f *fakeRepo) FindAll(search string) ([]models.Patient, error) {
+func (f *fakeRepo) FindAll(search string, scope *models.DataScope) ([]models.Patient, error) {
 	return nil, nil
 }
 

@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, errorMessage } from '../../lib/api'
 import { Can } from '../../lib/can'
 import { Badge, Spinner, PageHeader, Button, Input, Field } from '../../components/ui'
 import { User, Activity, ChevronDown, ChevronRight, Stethoscope, FileText, ClipboardList, ArrowLeftRight } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Diagnosis {
   id: string
@@ -140,6 +141,7 @@ function Accordion({ title, icon, children, defaultOpen = false }: { title: stri
 
 export default function Consultation() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [existing, setExisting] = useState<Consultation | null>(null)
   const [encounter, setEncounter] = useState<Encounter | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -278,6 +280,10 @@ export default function Consultation() {
       }
       const res = await api.post<{ data: Consultation }>(`/encounters/${id}/consultation`, payload)
       setExisting(res.data.data)
+      toast.success('Consultation saved successfully!')
+      if (encounter?.patient_id) {
+        navigate(`/admin/patients/${encounter.patient_id}`)
+      }
     } catch (err) {
       setError(errorMessage(err, 'Failed to save consultation'))
     } finally {

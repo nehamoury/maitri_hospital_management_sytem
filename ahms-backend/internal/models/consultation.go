@@ -31,6 +31,20 @@ type Consultation struct {
 	// Ashtavidha/Dashavidha pariksha results.
 	AyurvedaFields JSONB `gorm:"type:jsonb" json:"ayurveda_fields"`
 
+	// Typed Ayurvedic scalar assessments. These mirror the "ayurveda_fields"
+	// JSONB map so the clinical record is queryable and the API contract is
+	// explicit. The map continues to carry the nested ashtavidha/dashavidha
+	// assessments.
+	Prakriti string `gorm:"type:varchar(120)" json:"prakriti"`
+	Vikriti  string `gorm:"type:varchar(120)" json:"vikriti"`
+	Dosha    string `gorm:"type:varchar(120)" json:"dosha"`
+	Agni     string `gorm:"type:varchar(120)" json:"agni"`
+	Nadi     string `gorm:"type:varchar(120)" json:"nadi"`
+	Mala     string `gorm:"type:varchar(120)" json:"mala"`
+	Mutra    string `gorm:"type:varchar(120)" json:"mutra"`
+	Jihva    string `gorm:"type:varchar(120)" json:"jihva"`
+	Nidra    string `gorm:"type:varchar(120)" json:"nidra"`
+
 	FollowUpDate *time.Time `json:"follow_up_date"`
 
 	Diagnoses []Diagnosis `gorm:"foreignKey:ConsultationID" json:"diagnoses,omitempty"`

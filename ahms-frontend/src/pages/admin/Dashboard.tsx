@@ -53,6 +53,12 @@ interface Bill {
   created_at: string
 }
 
+interface EncounterLight {
+  id: string
+  encounter_type: string
+  status: string
+}
+
 const CHART_COLORS = ['#0F766E', '#14B8A6', '#C8A14D', '#6366F1', '#F59E0B', '#EC4899']
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'HOSPITAL_ADMIN']
@@ -66,8 +72,12 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [medicines, setMedicines] = useState<Medicine[]>([])
   const [bills, setBills] = useState<Bill[]>([])
+  const [encounters, setEncounters] = useState<EncounterLight[]>([])
   const [error, setError] = useState('')
   const navigate = useNavigate()
+
+  const d = new Date()
+  const todayISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
   useEffect(() => {
     api
@@ -84,7 +94,10 @@ export default function Dashboard() {
     if (role === 'BILLING_ACCOUNTS' || isAdmin) {
       api.get<{ data: Bill[] }>('/bills').then((r) => setBills(r.data.data)).catch(() => {})
     }
-  }, [role, isAdmin])
+    if (isAdmin || role === 'RECEPTIONIST' || role === 'DOCTOR' || role === 'PANCHAKARMA_DOCTOR') {
+      api.get<{ data: EncounterLight[] }>(`/encounters?date=${todayISO}`).then((r) => setEncounters(r.data.data)).catch(() => {})
+    }
+  }, [role, isAdmin, todayISO])
 
   if (error) return (
     <div className="flex items-center justify-center py-20">
@@ -100,6 +113,9 @@ export default function Dashboard() {
     s === 'COMPLETED' ? 'text-emerald-600 bg-emerald-50' : s === 'CANCELLED' ? 'text-red-600 bg-red-50' : s === 'IN_CONSULTATION' ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'
 
   const lowStockMeds = medicines.filter((m) => m.low_stock && !m.is_expired)
+  const waitingCount = encounters.filter((e) => e.status === 'REGISTERED' || e.status === 'WAITING').length
+  const inConsultCount = encounters.filter((e) => e.status === 'IN_CONSULTATION').length
+  const completedTodayCount = encounters.filter((e) => e.status === 'COMPLETED').length
   const pendingBills = bills.filter((b) => b.status === 'PENDING' || b.status === 'PARTIAL')
   const todayBills = bills.filter((b) => {
     const d = new Date(b.created_at)
@@ -136,6 +152,12 @@ export default function Dashboard() {
             <AdminStatCard title="Appointments" value={data.todays_appointments_count} icon={<Calendar className="h-6 w-6" />} color="blue" subtitle="Scheduled today" />
             <AdminStatCard title="Departments" value={data.department_count} icon={<Building2 className="h-6 w-6" />} color="amber" subtitle="Active departments" />
             <AdminStatCard title="Active Doctors" value={data.active_doctors_count} icon={<Stethoscope className="h-6 w-6" />} color="purple" subtitle="Available today" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <AdminStatCard title="Today's Revenue" value={`₹${todayRevenue.toLocaleString('en-IN')}`} icon={<Banknote className="h-6 w-6" />} color="emerald" subtitle="Collected today" />
+            <AdminStatCard title="Pending Bills" value={pendingBills.length} icon={<CreditCard className="h-6 w-6" />} color="amber" subtitle="Awaiting payment" />
+            <AdminStatCard title="In Consultation" value={inConsultCount} icon={<Activity className="h-6 w-6" />} color="blue" subtitle="Currently with doctor" />
+            <AdminStatCard title="Completed Today" value={completedTodayCount} icon={<UserCheck className="h-6 w-6" />} color="purple" subtitle="OPD visits finished" />
           </div>
           <AdminSectionHeader title="Quick Actions" subtitle="Frequently used actions" />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -355,12 +377,13 @@ export default function Dashboard() {
             </div>
             <div className="space-y-4">
               <AdminAlertCard
-                title="System Status"
-                icon={<TrendingUp className="h-4 w-4" />}
+                title="Today's OPD Queue"
+                icon={<Activity className="h-4 w-4" />}
                 color="blue"
                 items={[
-                  { label: 'Database', value: 'Healthy', color: 'text-emerald-600' },
-                  { label: 'Backend', value: 'Running', color: 'text-emerald-600' },
+                  { label: 'Waiting', value: String(waitingCount), color: 'text-amber-600' },
+                  { label: 'In Consultation', value: String(inConsultCount), color: 'text-blue-600' },
+                  { label: 'Completed', value: String(completedTodayCount), color: 'text-emerald-600' },
                 ]}
               />
             </div>

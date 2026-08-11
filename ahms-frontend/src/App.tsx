@@ -5,6 +5,7 @@ import { getPortalToken } from './lib/api'
 import { AdminLayout, AdminProtected } from './components/AdminLayout'
 import { PublicPage, PortalShell } from './components/PublicLayout'
 import { PermissionGate } from './lib/can'
+import { Toaster } from 'sonner'
 
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -13,6 +14,7 @@ const PatientNew = lazy(() => import('./pages/admin/PatientNew'))
 const PatientDetail = lazy(() => import('./pages/admin/PatientDetail'))
 const Appointments = lazy(() => import('./pages/admin/Appointments'))
 const Encounters = lazy(() => import('./pages/admin/Encounters'))
+const TokenBoard = lazy(() => import('./pages/admin/TokenBoard'))
 const Consultation = lazy(() => import('./pages/admin/Consultation'))
 const Prescriptions = lazy(() => import('./pages/admin/Prescriptions'))
 const Referrals = lazy(() => import('./pages/admin/Referrals'))
@@ -23,7 +25,11 @@ const Pharmacy = lazy(() => import('./pages/admin/Pharmacy'))
 const Billing = lazy(() => import('./pages/admin/Billing'))
 const Doctors = lazy(() => import('./pages/admin/Doctors'))
 const Departments = lazy(() => import('./pages/admin/Departments'))
+const DepartmentDetail = lazy(() => import('./pages/admin/DepartmentDetail'))
 const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'))
+const Users = lazy(() => import('./pages/admin/Users'))
+const Roles = lazy(() => import('./pages/admin/Roles'))
+const Profile = lazy(() => import('./pages/admin/Profile'))
 
 const Home = lazy(() => import('./pages/public/Home'))
 const PublicDepartments = lazy(() => import('./pages/public/Departments'))
@@ -85,6 +91,7 @@ export default function App() {
       <BrowserRouter>
         <ScrollToTop />
         <AuthProvider>
+          <Toaster position="top-right" richColors />
           <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/login" element={<AdminLogin />} />
@@ -96,6 +103,7 @@ export default function App() {
               <Route path="patients/:id" element={<PermissionGate permission="patient.view"><PatientDetail /></PermissionGate>} />
               <Route path="appointments" element={<PermissionGate permission="appointment.view"><Appointments /></PermissionGate>} />
               <Route path="encounters" element={<PermissionGate permission="encounter.view"><Encounters /></PermissionGate>} />
+              <Route path="token-board" element={<PermissionGate permission="encounter.view"><TokenBoard /></PermissionGate>} />
               <Route path="encounters/:id/consultation" element={<PermissionGate permission="consultation.view"><Consultation /></PermissionGate>} />
               <Route path="encounters/:id/prescriptions" element={<PermissionGate permission="prescription.view"><Prescriptions /></PermissionGate>} />
               <Route path="referrals" element={<PermissionGate permission="referral.view"><Referrals /></PermissionGate>} />
@@ -106,7 +114,11 @@ export default function App() {
               <Route path="billing" element={<PermissionGate permission="billing.view"><Billing /></PermissionGate>} />
               <Route path="doctors" element={<PermissionGate permission="doctor.view"><Doctors /></PermissionGate>} />
               <Route path="departments" element={<PermissionGate permission="department.view"><Departments /></PermissionGate>} />
+              <Route path="departments/:id" element={<PermissionGate permission="department.view"><DepartmentDetail /></PermissionGate>} />
               <Route path="audit" element={<PermissionGate permission="audit.view"><AuditLogs /></PermissionGate>} />
+              <Route path="users" element={<PermissionGate permission="user.view"><Users /></PermissionGate>} />
+              <Route path="roles" element={<PermissionGate permission="role.manage"><Roles /></PermissionGate>} />
+              <Route path="profile" element={<Profile />} />
             </Route>
 
             <Route path="/portal/login" element={<PublicPage><PatientLogin /></PublicPage>} />

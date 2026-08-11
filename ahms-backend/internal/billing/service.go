@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"errors"
 	"time"
 
 	"github.com/ahms/backend/internal/models"
@@ -15,6 +16,7 @@ type Service interface {
 	ListBills(status, query string) ([]models.Bill, error)
 	ListBillsByPatient(patientID uuid.UUID) ([]models.Bill, error)
 	AddPayment(id uuid.UUID, req PaymentRequest, userID uuid.UUID) (*models.Bill, error)
+	RefundPayment(id uuid.UUID, req RefundRequest, userID uuid.UUID) (*models.Bill, error)
 }
 
 type service struct {
@@ -102,4 +104,12 @@ func (s *service) ListBillsByPatient(patientID uuid.UUID) ([]models.Bill, error)
 
 func (s *service) AddPayment(id uuid.UUID, req PaymentRequest, userID uuid.UUID) (*models.Bill, error) {
 	return s.repo.ApplyPayment(id, *req.Amount, req.Method, req.Reference, userID)
+}
+
+// RefundPayment validates the refund amount and reverses a collection.
+func (s *service) RefundPayment(id uuid.UUID, req RefundRequest, userID uuid.UUID) (*models.Bill, error) {
+	if req.Amount == nil || *req.Amount <= 0 {
+		return nil, errors.New("refund amount must be greater than zero")
+	}
+	return s.repo.ApplyRefund(id, *req.Amount, req.Reason, userID)
 }

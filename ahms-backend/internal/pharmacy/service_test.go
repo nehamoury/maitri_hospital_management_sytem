@@ -22,7 +22,7 @@ func (f *fakeRepo) CreateMedicine(m *models.Medicine) error {
 	return nil
 }
 
-func (f *fakeRepo) FindAllMedicines(search string, lowStock bool, nearExpiry bool, expired bool) ([]models.Medicine, error) {
+func (f *fakeRepo) FindAllMedicines(search string, lowStock bool, outOfStock bool, nearExpiry bool, expired bool) ([]models.Medicine, error) {
 	return nil, nil
 }
 
@@ -63,6 +63,15 @@ func (f *fakeRepo) DispenseItems(rx *models.Prescription, updates []dispenseUpda
 }
 
 func (f *fakeRepo) FindDoctorOrStaffRoleName(userID uuid.UUID) (string, error) { return "", nil }
+
+func (f *fakeRepo) ReturnStock(m *models.Medicine, qty float64, batchNumber string, notes string, userID uuid.UUID) error {
+	f.medicine.StockQty += qty
+	return nil
+}
+
+func (f *fakeRepo) ListTransactions(medicineID uuid.UUID) ([]models.InventoryTransaction, error) {
+	return nil, nil
+}
 
 func newTestService(f *fakeRepo) Service {
 	return NewService(f)

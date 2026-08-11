@@ -29,7 +29,7 @@ type Repository interface {
 	CreateWithItems(p *models.Prescription, items []models.PrescriptionItem) error
 	UpdateStatus(id uuid.UUID, status string) (*models.Prescription, error)
 	FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error)
-	EncounterExists(id uuid.UUID) (bool, error)
+	FindEncounterByID(id uuid.UUID) (*models.Encounter, error)
 }
 
 type repository struct {
@@ -114,7 +114,7 @@ func (r *repository) List(in ListInput) ([]models.Prescription, error) {
 	if in.Search != "" {
 		like := "%" + in.Search + "%"
 		q = q.Where(
-			"EXISTS (SELECT 1 FROM encounters e JOIN patients p ON p.id = e.patient_id WHERE e.id = prescriptions.encounter_id AND (p.full_name ILIKE ? OR p.uh_id ILIKE ?))",
+			"EXISTS (SELECT 1 FROM encounters e JOIN patients p ON p.id = e.patient_id WHERE e.id = prescriptions.encounter_id AND (p.full_name ILIKE ? OR p.uhid ILIKE ?))",
 			like, like,
 		)
 	}
@@ -144,8 +144,11 @@ func (r *repository) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error
 	return &doctor, err
 }
 
-func (r *repository) EncounterExists(id uuid.UUID) (bool, error) {
-	var count int64
-	err := r.db.Model(&models.Encounter{}).Where("id = ?", id).Count(&count).Error
-	return count > 0, err
+func (r *repository) FindEncounterByID(id uuid.UUID) (*models.Encounter, error) {
+	var enc models.Encounter
+	err := r.db.First(&enc, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	return &enc, err
 }

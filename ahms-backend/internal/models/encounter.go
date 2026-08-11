@@ -28,8 +28,9 @@ const (
 
 // Payment statuses.
 const (
-	PaymentUnpaid = "UNPAID"
-	PaymentPaid   = "PAID"
+	PaymentUnpaid   = "UNPAID"
+	PaymentPartial  = "PARTIAL"
+	PaymentPaid     = "PAID"
 )
 
 // Encounter is the core entity of the Patient → Encounter → Clinical

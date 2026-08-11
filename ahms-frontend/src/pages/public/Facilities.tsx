@@ -1,6 +1,7 @@
 import { PageHero, Section, FeatureCards, CTASection } from '../../design-system/Layout'
 import { Link } from 'react-router-dom'
 import { SEO } from '../../components/SEO'
+import hospitalImg from '../../assets/hero-hospital.jpg'
 
 export default function Facilities() {
   const facilities = [
@@ -46,10 +47,10 @@ export default function Facilities() {
       <PageHero
         title="Our Facilities"
         subtitle="A healing environment designed for your comfort and recovery."
-        breadcrumb={[{ label: 'Home', to: '/' }, { label: 'Facilities' }]}
+        bgImage={hospitalImg}
       />
 
-      <Section bg="ivory">
+      <Section bg="ivory" className="pt-24 pb-12">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>Infrastructure & Amenities</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">

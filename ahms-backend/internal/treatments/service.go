@@ -90,9 +90,21 @@ func (s *service) CreatePlan(req CreatePlanRequest, doctorUserID uuid.UUID) (*mo
 	if !procOK {
 		return nil, ErrNotFound
 	}
-	doctor, err := s.repo.FindDoctorByUserID(doctorUserID)
-	if err != nil {
-		return nil, err
+	var doctor *models.Doctor
+	if req.DoctorID != "" {
+		docID, err := parseUUID(req.DoctorID)
+		if err != nil {
+			return nil, err
+		}
+		doctor, err = s.repo.FindDoctorByID(docID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		doctor, err = s.repo.FindDoctorByUserID(doctorUserID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var therapistID *uuid.UUID
@@ -309,6 +321,9 @@ func (s *service) StartSession(id uuid.UUID, req StartSessionRequest, therapistU
 	now := time.Now()
 	session.Status = models.SessionInProgress
 	session.BeforeCondition = req.BeforeCondition
+	if req.Duration > 0 {
+		session.Duration = req.Duration
+	}
 	session.Notes = req.Notes
 	session.StartedAt = &now
 
@@ -346,6 +361,12 @@ func (s *service) CompleteSession(id uuid.UUID, req CompleteSessionRequest, ther
 	session.AfterCondition = req.AfterCondition
 	session.Complications = req.Complications
 	session.Observations = req.Observations
+	if req.Duration > 0 {
+		session.Duration = req.Duration
+	}
+	if req.MaterialsUsed != "" {
+		session.MaterialsUsed = req.MaterialsUsed
+	}
 	if req.Notes != "" {
 		session.Notes = req.Notes
 	}

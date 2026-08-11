@@ -104,6 +104,7 @@ func (s *service) BookAppointment(patientID uuid.UUID, req BookAppointmentReques
 		DoctorID:        doctorID,
 		AppointmentDate: date,
 		Reason:          req.Reason,
+		TimeSlot:        req.TimeSlot,
 	}
 	if err := s.repo.CreateAppointmentWithToken(appt); err != nil {
 		return nil, err

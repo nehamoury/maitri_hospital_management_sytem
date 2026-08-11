@@ -11,10 +11,12 @@ import (
 // Service contains pharmacy business logic.
 type Service interface {
 	CreateMedicine(req CreateMedicineRequest) (*models.Medicine, error)
-	ListMedicines(search string, lowStock bool, nearExpiry bool, expired bool) ([]models.Medicine, error)
+	ListMedicines(search string, lowStock bool, outOfStock bool, nearExpiry bool, expired bool) ([]models.Medicine, error)
 	GetMedicine(id uuid.UUID) (*models.Medicine, error)
 	UpdateMedicine(id uuid.UUID, req UpdateMedicineRequest) (*models.Medicine, error)
 	AdjustStock(id uuid.UUID, req StockAdjustRequest, userID uuid.UUID) (*models.Medicine, error)
+	ReturnStock(id uuid.UUID, req ReturnStockRequest, userID uuid.UUID) (*models.Medicine, error)
+	ListTransactions(id uuid.UUID) ([]models.InventoryTransaction, error)
 	Dispense(prescriptionID uuid.UUID, req DispenseRequest, userID uuid.UUID) (*models.Prescription, error)
 }
 
@@ -51,8 +53,8 @@ func (s *service) CreateMedicine(req CreateMedicineRequest) (*models.Medicine, e
 	return s.repo.FindMedicineByID(m.ID)
 }
 
-func (s *service) ListMedicines(search string, lowStock bool, nearExpiry bool, expired bool) ([]models.Medicine, error) {
-	return s.repo.FindAllMedicines(search, lowStock, nearExpiry, expired)
+func (s *service) ListMedicines(search string, lowStock bool, outOfStock bool, nearExpiry bool, expired bool) ([]models.Medicine, error) {
+	return s.repo.FindAllMedicines(search, lowStock, outOfStock, nearExpiry, expired)
 }
 
 func (s *service) GetMedicine(id uuid.UUID) (*models.Medicine, error) {
@@ -94,6 +96,21 @@ func (s *service) AdjustStock(id uuid.UUID, req StockAdjustRequest, userID uuid.
 		return nil, err
 	}
 	return s.repo.FindMedicineByID(id)
+}
+
+func (s *service) ReturnStock(id uuid.UUID, req ReturnStockRequest, userID uuid.UUID) (*models.Medicine, error) {
+	m, err := s.repo.FindMedicineByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.repo.ReturnStock(m, req.Quantity, req.BatchNumber, req.Notes, userID); err != nil {
+		return nil, err
+	}
+	return s.repo.FindMedicineByID(id)
+}
+
+func (s *service) ListTransactions(id uuid.UUID) ([]models.InventoryTransaction, error) {
+	return s.repo.ListTransactions(id)
 }
 
 func (s *service) Dispense(prescriptionID uuid.UUID, req DispenseRequest, userID uuid.UUID) (*models.Prescription, error) {

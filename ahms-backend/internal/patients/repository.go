@@ -20,7 +20,7 @@ type Repository interface {
 	FindActiveByMobile(mobile string) ([]models.Patient, error)
 	FindDuplicates(mobile, alternateMobile, email, fullName string, dob *time.Time) ([]models.Patient, error)
 	CreateWithUHID(patient *models.Patient) error
-	FindAll(search string) ([]models.Patient, error)
+	FindAll(search string, scope *models.DataScope) ([]models.Patient, error)
 	FindByID(id uuid.UUID) (*models.Patient, error)
 	Update(patient *models.Patient) error
 	Delete(id uuid.UUID) error
@@ -131,13 +131,18 @@ func (r *repository) CreateWithUHID(patient *models.Patient) error {
 	})
 }
 
-func (r *repository) FindAll(search string) ([]models.Patient, error) {
+func (r *repository) FindAll(search string, scope *models.DataScope) ([]models.Patient, error) {
 	var patientsList []models.Patient
 	query := r.db.Order("created_at desc")
 	if search != "" {
 		like := "%" + search + "%"
-		query = query.Where("full_name ILIKE ? OR mobile ILIKE ? OR uh_id ILIKE ?", like, like, like)
+		query = query.Where("full_name ILIKE ? OR mobile ILIKE ? OR uhid ILIKE ?", like, like, like)
 	}
+
+	if scope != nil && scope.DoctorID != nil {
+		query = query.Where("EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = patients.id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL)", *scope.DoctorID)
+	}
+
 	err := query.Find(&patientsList).Error
 	return patientsList, err
 }

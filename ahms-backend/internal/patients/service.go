@@ -17,7 +17,7 @@ var ErrDuplicateMobile = errors.New("one or more existing patients match this re
 // Service contains patient business logic.
 type Service interface {
 	Create(req CreatePatientRequest, registeredByUserID uuid.UUID) (*models.Patient, []models.Patient, error)
-	List(search string) ([]models.Patient, error)
+	List(search string, scope *models.DataScope) ([]models.Patient, error)
 	GetByID(id uuid.UUID) (*models.Patient, error)
 	Update(id uuid.UUID, req UpdatePatientRequest) (*models.Patient, error)
 	Delete(id uuid.UUID) error
@@ -112,8 +112,8 @@ func (s *service) Create(req CreatePatientRequest, registeredByUserID uuid.UUID)
 	return patient, nil, nil
 }
 
-func (s *service) List(search string) ([]models.Patient, error) {
-	return s.repo.FindAll(search)
+func (s *service) List(search string, scope *models.DataScope) ([]models.Patient, error) {
+	return s.repo.FindAll(search, scope)
 }
 
 func (s *service) GetByID(id uuid.UUID) (*models.Patient, error) {

@@ -90,7 +90,11 @@ func toResponse(p *models.Patient) PatientResponse {
 // @Router       /patients [get]
 func (h *Handler) List(c *gin.Context) {
 	search := c.Query("search")
-	patientsList, err := h.service.List(search)
+	var scope *models.DataScope
+	if s, exists := c.Get("data_scope"); exists {
+		scope = s.(*models.DataScope)
+	}
+	patientsList, err := h.service.List(search, scope)
 	if err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to fetch patients")
 		return

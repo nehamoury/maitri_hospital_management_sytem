@@ -25,22 +25,14 @@ func NewService(repo Repository) Service {
 }
 
 func (s *service) Create(encounterID uuid.UUID, req CreatePrescriptionRequest, doctorUserID uuid.UUID) (*models.Prescription, error) {
-	exists, err := s.repo.EncounterExists(encounterID)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, ErrNotFound
-	}
-
-	doctor, err := s.repo.FindDoctorByUserID(doctorUserID)
+	encounter, err := s.repo.FindEncounterByID(encounterID)
 	if err != nil {
 		return nil, err
 	}
 
 	p := &models.Prescription{
 		EncounterID: encounterID,
-		DoctorID:    doctor.ID,
+		DoctorID:    encounter.DoctorID,
 		Status:      models.PrescriptionPrescribed,
 		Notes:       req.Notes,
 	}

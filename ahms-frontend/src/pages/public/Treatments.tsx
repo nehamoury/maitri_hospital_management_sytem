@@ -31,7 +31,6 @@ export default function Treatments() {
       <PageHero
         title="Ayurvedic Treatments"
         subtitle="Holistic, personalized therapies to restore balance and vitality."
-        breadcrumb={[{ label: 'Home', to: '/' }, { label: 'Treatments' }]}
       />
 
       {/* Ayurveda Therapies */}
@@ -68,13 +67,13 @@ export default function Treatments() {
       >
         <Link
           to="/doctors"
-          className="px-8 py-4 rounded-2xl font-semibold text-white border-2 border-white/20 hover:bg-card/10 transition-colors"
+          className="px-8 py-4 rounded-full font-semibold text-primary-foreground border-2 border-primary-foreground/30 hover:bg-primary-foreground/10 transition-colors"
         >
           View Our Doctors
         </Link>
         <Link
           to="/appointment"
-          className="px-8 py-4 rounded-2xl font-semibold text-primary bg-card hover:bg-muted/30 transition-colors shadow-lg"
+          className="px-8 py-4 rounded-full font-bold text-primary bg-background hover:scale-105 transition-transform shadow-xl"
         >
           Consult a Vaidya
         </Link>

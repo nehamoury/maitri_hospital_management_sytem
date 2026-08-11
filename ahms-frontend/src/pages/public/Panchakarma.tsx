@@ -2,6 +2,8 @@ import { PageHero, Section, InfoSection, FeatureCards, CTASection } from '../../
 import { Link } from 'react-router-dom'
 import { panchakarmaTherapies } from '../../design-system/tokens'
 import { SEO } from '../../components/SEO'
+import panchakarmaImg from '../../assets/panchakarma.jpg'
+import herbsImg from '../../assets/herbs.jpg'
 
 export default function Panchakarma() {
   const benefits = [
@@ -20,7 +22,6 @@ export default function Panchakarma() {
       <PageHero
         title="Panchakarma"
         subtitle="The ultimate Ayurvedic detoxification and rejuvenation program."
-        breadcrumb={[{ label: 'Home', to: '/' }, { label: 'Treatments', to: '/treatments' }, { label: 'Panchakarma' }]}
       />
 
       {/* Introduction */}
@@ -37,7 +38,7 @@ export default function Panchakarma() {
             </p>
           </>
         }
-        imageSrc="https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
+        imageSrc={panchakarmaImg}
       />
 
       {/* The Five Therapies */}
@@ -65,7 +66,7 @@ export default function Panchakarma() {
             </ul>
           </>
         }
-        imageSrc="https://images.unsplash.com/photo-1599824640103-60589bd1423c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
+        imageSrc={herbsImg}
       />
 
       {/* Benefits */}
@@ -82,7 +83,7 @@ export default function Panchakarma() {
       >
         <Link
           to="/appointment"
-          className="px-8 py-4 rounded-2xl font-semibold text-primary bg-card hover:bg-muted/30 transition-colors shadow-lg"
+          className="px-8 py-4 rounded-full font-bold text-primary bg-background hover:scale-105 transition-transform shadow-xl"
         >
           Book an Assessment
         </Link>

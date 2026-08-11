@@ -18,6 +18,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.Au
 		group.GET("/:id", permMW.RequirePermission(models.PermPharmacyView), handler.GetMedicine)
 		group.PUT("/:id", permMW.RequirePermission(models.PermPharmacyStock), handler.UpdateMedicine)
 		group.POST("/:id/stock", permMW.RequirePermission(models.PermPharmacyStock), handler.AdjustStock)
+		group.POST("/:id/return", permMW.RequirePermission(models.PermPharmacyStock), handler.ReturnStock)
+		group.GET("/:id/transactions", permMW.RequirePermission(models.PermPharmacyView), handler.ListTransactions)
 	}
 
 	rx := rg.Group("/prescriptions")

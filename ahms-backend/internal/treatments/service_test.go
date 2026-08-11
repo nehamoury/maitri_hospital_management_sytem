@@ -89,6 +89,13 @@ func (f *fakeRepo) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error) 
 	return f.doctor, nil
 }
 
+func (f *fakeRepo) FindDoctorByID(id uuid.UUID) (*models.Doctor, error) {
+	if f.doctor == nil {
+		return nil, ErrNotFound
+	}
+	return f.doctor, nil
+}
+
 func (f *fakeRepo) ProcedureTypeExists(id uuid.UUID) (bool, error) {
 	return f.procOK, nil
 }

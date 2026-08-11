@@ -69,6 +69,7 @@ func Migrate(db *gorm.DB) error {
 		&models.Department{},
 		&models.Doctor{},
 		&models.Patient{},
+		&models.PatientDocument{},
 		&models.UHIDCounter{},
 		&models.Appointment{},
 		&models.AuditLog{},
@@ -79,6 +80,7 @@ func Migrate(db *gorm.DB) error {
 		&models.PrescriptionItem{},
 		&models.Referral{},
 		&models.ReferralCounter{},
+		&models.ReferralAttachment{},
 		&models.Medicine{},
 		&models.InventoryTransaction{},
 		&models.Bill{},
@@ -225,6 +227,7 @@ func SeedPermissions(db *gorm.DB) error {
 	treatmentCreate := []string{
 		models.PermTreatmentCreate, models.PermTreatmentUpdate,
 		models.PermTreatmentApprove, models.PermTreatmentComplete,
+		models.PermTreatmentSession, // Allow admins/doctors to see and execute sessions
 	}
 	treatmentView := []string{models.PermTreatmentView}
 
@@ -418,14 +421,15 @@ type departmentMaster struct {
 	Type        string
 	Description string
 	Fee         float64
+	LegacyCodes []string // previous seed codes, migrated once to Code
 	LegacyNames []string
 }
 
 var departmentMasterRows = []departmentMaster{
 	{Code: "KAYA", Name: "Kayachikitsa", Type: models.DepartmentTypeOPD, Description: "Internal medicine and general disorders.", Fee: 500,
 		LegacyNames: []string{"Kaya chikitsa", "General Ayurveda Consultation"}},
-	{Code: "PANCHA", Name: "Panchakarma", Type: models.DepartmentTypeProcedure, Description: "Detoxification and rejuvenation therapies.", Fee: 800},
-	{Code: "SHALYA", Name: "Shalya Tantra", Type: models.DepartmentTypeOPD, Description: "Ayurvedic surgical and para-surgical procedures.", Fee: 700},
+	{Code: "PANCH", Name: "Panchakarma", Type: models.DepartmentTypeProcedure, Description: "Detoxification and rejuvenation therapies.", Fee: 800, LegacyCodes: []string{"PANCHA"}},
+	{Code: "SALYA", Name: "Shalya Tantra", Type: models.DepartmentTypeOPD, Description: "Ayurvedic surgical and para-surgical procedures.", Fee: 700, LegacyCodes: []string{"SHALYA"}},
 	{Code: "SHALAKYA", Name: "Shalakya Tantra", Type: models.DepartmentTypeOPD, Description: "Specialised therapies for the eye, ear, nose and throat.", Fee: 600},
 	{Code: "PRASUTI", Name: "Prasuti Tantra Evam Stri Roga", Type: models.DepartmentTypeOPD, Description: "Holistic women's health, obstetrics and gynaecology.", Fee: 700},
 	{Code: "KAUMAR", Name: "Kaumarbhritya (Bal Roga)", Type: models.DepartmentTypeOPD, Description: "Child-focused Ayurveda from newborn care to adolescent wellness.", Fee: 500},
@@ -441,12 +445,15 @@ func normalizeDeptName(s string) string {
 
 // SyncDepartmentMaster aligns the departments table with the canonical
 // Department Master. It is idempotent and safe to run on every startup:
-//   - rows already carrying a master Code are updated in place,
-//   - legacy rows (matched by name/alias) are renamed and enriched,
+//   - a row already carrying the canonical master Code is left untouched, so
+//     admin-edited name/type/description/fee/active flags survive restarts,
+//   - legacy rows (matched by name/alias or a previous seed code such as
+//     PANCHA/SHALYA) have their Code migrated to the SOW canonical code,
+//   - missing master rows are created with the master defaults,
 //   - the merged "General Ayurveda Consultation" doctors move to KAYA and
 //     the obsolete row is deactivated, and
 //   - any other non-master row (e.g. "Nadi Pariksha") is deactivated so the
-//     public site only surfaces the curated 10 departments.
+//     public site only surfaces the curated departments.
 func SyncDepartmentMaster(db *gorm.DB) error {
 	var existing []models.Department
 	if err := db.Find(&existing).Error; err != nil {
@@ -482,18 +489,39 @@ func SyncDepartmentMaster(db *gorm.DB) error {
 			}
 		}
 		if target == nil {
-			target = &models.Department{BaseModel: models.BaseModel{ID: uuid.New()}}
+			for _, legacy := range m.LegacyCodes {
+				for i := range existing {
+					if existing[i].Code == legacy {
+						target = &existing[i]
+						break
+					}
+				}
+				if target != nil {
+					break
+				}
+			}
+		}
+		if target == nil {
+			target = &models.Department{
+				BaseModel:   models.BaseModel{ID: uuid.New()},
+				Code:        m.Code,
+				Name:        m.Name,
+				Type:        m.Type,
+				Description: m.Description,
+				DefaultFee:  m.Fee,
+				IsActive:    true,
+			}
+			if err := db.Create(target).Error; err != nil {
+				return fmt.Errorf("database: failed to create department %s (%s): %w", m.Code, m.Name, err)
+			}
+		} else if target.Code != m.Code {
+			// Code migration only (e.g. PANCHA -> PANCH, SHALYA -> SALYA):
+			// existing columns are never overwritten at startup.
+			if err := db.Model(&models.Department{}).Where("id = ?", target.ID).Update("code", m.Code).Error; err != nil {
+				return fmt.Errorf("database: failed to migrate department code to %s: %w", m.Code, err)
+			}
 		}
 		consumed[target.ID.String()] = true
-		target.Code = m.Code
-		target.Name = m.Name
-		target.Type = m.Type
-		target.Description = m.Description
-		target.DefaultFee = m.Fee
-		target.IsActive = true
-		if err := db.Save(target).Error; err != nil {
-			return fmt.Errorf("database: failed to sync department %s (%s): %w", m.Code, m.Name, err)
-		}
 		if m.Code == "KAYA" {
 			kayID = target
 		}

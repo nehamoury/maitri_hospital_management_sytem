@@ -24,6 +24,10 @@ type Repository interface {
 	UpdateStatus(id uuid.UUID, status string) (*models.Referral, error)
 	FindEncounterWithHistory(id uuid.UUID) (*models.Encounter, error)
 	FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error)
+	AttachFile(att *models.ReferralAttachment) error
+	FindAttachmentsByReferralID(referralID uuid.UUID) ([]models.ReferralAttachment, error)
+	FindAttachmentByID(id uuid.UUID) (*models.ReferralAttachment, error)
+	DeleteAttachment(id uuid.UUID) error
 }
 
 type repository struct {
@@ -109,6 +113,7 @@ func (r *repository) FindByID(id uuid.UUID) (*models.Referral, error) {
 		Preload("ToDepartment").
 		Preload("PreferredDoctor.User").
 		Preload("ReferredBy").
+		Preload("Attachments.UploadedBy").
 		Preload("SourceEncounter.Department").
 		Preload("SourceEncounter.Doctor.User").
 		Preload("SourceEncounter.Consultations.Diagnoses").
@@ -154,4 +159,37 @@ func (r *repository) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error
 		return nil, ErrNotFound
 	}
 	return &doctor, err
+}
+
+func (r *repository) AttachFile(att *models.ReferralAttachment) error {
+	return r.db.Create(att).Error
+}
+
+func (r *repository) FindAttachmentsByReferralID(referralID uuid.UUID) ([]models.ReferralAttachment, error) {
+	var list []models.ReferralAttachment
+	err := r.db.Preload("UploadedBy").
+		Where("referral_id = ?", referralID).
+		Order("created_at desc").
+		Find(&list).Error
+	return list, err
+}
+
+func (r *repository) FindAttachmentByID(id uuid.UUID) (*models.ReferralAttachment, error) {
+	var att models.ReferralAttachment
+	err := r.db.First(&att, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	return &att, err
+}
+
+func (r *repository) DeleteAttachment(id uuid.UUID) error {
+	result := r.db.Delete(&models.ReferralAttachment{}, "id = ?", id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

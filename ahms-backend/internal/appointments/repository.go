@@ -23,6 +23,7 @@ type Repository interface {
 	CountOnDate(day time.Time) (int64, error)
 	FindOrCreatePatient(fullName, mobile, email string) (*models.Patient, error)
 	GetSystemUserID() (uuid.UUID, error)
+	CountSlotsOnDay(doctorID uuid.UUID, dayStart, dayEnd time.Time) (map[string]int64, error)
 }
 
 type repository struct {
@@ -163,4 +164,29 @@ func (r *repository) GetSystemUserID() (uuid.UUID, error) {
 		return uuid.Nil, fmt.Errorf("system user not found")
 	}
 	return user.ID, nil
+}
+
+// CountSlotsOnDay returns how many non-cancelled appointments each time
+// slot carries for a doctor on a single day. Slots with no bookings are
+// simply absent from the map (their count is treated as zero).
+func (r *repository) CountSlotsOnDay(doctorID uuid.UUID, dayStart, dayEnd time.Time) (map[string]int64, error) {
+	type slotRow struct {
+		Slot string
+		C    int64
+	}
+	var rows []slotRow
+	err := r.db.Model(&models.Appointment{}).
+		Select("time_slot AS slot, COUNT(*) AS c").
+		Where("doctor_id = ? AND appointment_date >= ? AND appointment_date < ? AND status != ? AND time_slot <> ''",
+			doctorID, dayStart, dayEnd, models.AppointmentCancelled).
+		Group("time_slot").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	counts := make(map[string]int64, len(rows))
+	for _, row := range rows {
+		counts[row.Slot] = row.C
+	}
+	return counts, nil
 }

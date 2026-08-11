@@ -120,3 +120,81 @@ func (h *Handler) Me(c *gin.Context) {
 
 	utils.Success(c, http.StatusOK, "current user", resp)
 }
+
+// UpdateProfile godoc
+// @Summary      Update the current user's profile
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body UpdateProfileRequest true "Profile"
+// @Success      200 {object} utils.APIResponse{data=UserResponse}
+// @Failure      400 {object} utils.APIResponse
+// @Router       /auth/me [put]
+func (h *Handler) UpdateProfile(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid request payload: "+err.Error())
+		return
+	}
+
+	resp, err := h.service.UpdateProfile(userID.(string), req)
+	if err != nil {
+		if errors.Is(err, ErrDuplicateEmail) {
+			utils.Fail(c, http.StatusBadRequest, "email is already in use")
+			return
+		}
+		if errors.Is(err, ErrUserNotFound) {
+			utils.Fail(c, http.StatusUnauthorized, "session no longer valid")
+			return
+		}
+		utils.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "profile updated", resp)
+	if h.audit != nil {
+		if id, perr := uuid.Parse(userID.(string)); perr == nil {
+			_ = h.audit.LogWithUser(c, id, "auth.profile_update", "user", resp.ID)
+		}
+	}
+}
+
+// ChangePassword godoc
+// @Summary      Change the current user's password
+// @Description  Verifies the current password before applying the new one.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body ChangePasswordRequest true "Passwords"
+// @Success      200 {object} utils.APIResponse
+// @Failure      400 {object} utils.APIResponse
+// @Router       /auth/change-password [post]
+func (h *Handler) ChangePassword(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+
+	var req ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid request payload: "+err.Error())
+		return
+	}
+
+	if err := h.service.ChangePassword(userID.(string), req.OldPassword, req.NewPassword); err != nil {
+		if errors.Is(err, ErrInvalidCredentials) {
+			utils.Fail(c, http.StatusBadRequest, "current password is incorrect")
+			return
+		}
+		utils.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "password updated", nil)
+	if h.audit != nil {
+		if id, perr := uuid.Parse(userID.(string)); perr == nil {
+			_ = h.audit.LogWithUser(c, id, "auth.password_change", "user", userID.(string))
+		}
+	}
+}

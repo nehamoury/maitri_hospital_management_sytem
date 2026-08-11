@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { api, errorMessage } from '../../lib/api'
 import { Can } from '../../lib/can'
 import { Card, CardHeader, Badge, Table, EmptyState, Spinner, PageHeader, Button, Select, Input, Field } from '../../components/ui'
@@ -46,16 +46,20 @@ const statusColor = (s: string) =>
   s === 'COMPLETED' ? 'green' : s === 'REJECTED' || s === 'CANCELLED' ? 'red' : s === 'ACCEPTED' || s === 'CONSULTATION_STARTED' ? 'blue' : 'amber'
 
 export default function Referrals() {
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [incoming, setIncoming] = useState<ReferralItem[] | null>(null)
   const [patients, setPatients] = useState<Patient[]>([])
   const [encounters, setEncounters] = useState<Encounter[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [error, setError] = useState('')
-  const [tab, setTab] = useState<'incoming' | 'create'>('incoming')
+  
+  const initialTab = searchParams.get('tab') === 'create' ? 'create' : 'incoming'
+  const [tab, setTab] = useState<'incoming' | 'create'>(initialTab)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    patient_id: '',
-    source_encounter_id: '',
+    patient_id: searchParams.get('patient_id') || '',
+    source_encounter_id: searchParams.get('encounter_id') || '',
     to_department_id: '',
     reason: '',
     clinical_notes: '',
@@ -89,7 +93,7 @@ export default function Referrals() {
       setForm({ ...form, patient_id: '', source_encounter_id: '', to_department_id: '', reason: '', clinical_notes: '', recommended_treatment: '', diagnosis: '' })
       setTab('incoming')
       loadIncoming()
-      window.location.href = `/admin/referrals/${res.data.data.id}`
+      navigate(`/admin/referrals/${res.data.data.id}`)
     } catch (err) {
       setError(errorMessage(err, 'Failed to create referral'))
     } finally {

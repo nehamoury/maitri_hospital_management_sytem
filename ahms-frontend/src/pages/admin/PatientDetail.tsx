@@ -196,6 +196,21 @@ interface Bill {
   payments: Payment[]
 }
 
+interface PatientDocument {
+  id: string
+  patient_id: string
+  doc_type: string
+  notes?: string
+  file_name: string
+  file_path: string
+  file_type: string
+  file_size: number
+  uploaded_by: string
+  created_at: string
+}
+
+const DOC_TYPES = ['REPORT', 'ID_PROOF', 'CONSENT', 'REFERRAL', 'DISCHARGE', 'OTHER']
+
 type TabKey = 'personal' | 'timeline' | 'appointments' | 'prescriptions' | 'bills' | 'documents'
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -250,6 +265,12 @@ export default function PatientDetail() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [prescriptions, setPrescriptions] = useState<PrescriptionBadge[]>([])
   const [bills, setBills] = useState<Bill[]>([])
+  const [docs, setDocs] = useState<PatientDocument[]>([])
+  const [docError, setDocError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [selFile, setSelFile] = useState<File | null>(null)
+  const [docType, setDocType] = useState('REPORT')
+  const [docNotes, setDocNotes] = useState('')
 
   // Edit Form Fields State
   const [form, setForm] = useState({
@@ -292,18 +313,20 @@ export default function PatientDetail() {
     setLoading(true)
     setError('')
     Promise.all([
-      api.get<{ data: Timeline }>(`/patients/${id}/timeline`),
+      api.get<{ data: Timeline }>(`/patients/${id}/timeline`).catch(() => ({ data: { data: { patient_id: '', uhid: '', patient_name: '', gender: '', age: 0, mobile: '', encounters: [], treatment_plans: [] } } })),
       api.get<{ data: PatientRecord }>(`/patients/${id}`),
-      api.get<{ data: Appointment[] }>(`/appointments?patient_id=${id}`),
-      api.get<{ data: PrescriptionBadge[] }>(`/prescriptions?patient_id=${id}`),
-      api.get<{ data: Bill[] }>(`/bills?patient_id=${id}`),
+      api.get<{ data: Appointment[] }>(`/appointments?patient_id=${id}`).catch(() => ({ data: { data: [] } })),
+      api.get<{ data: PrescriptionBadge[] }>(`/prescriptions?patient_id=${id}`).catch(() => ({ data: { data: [] } })),
+      api.get<{ data: Bill[] }>(`/bills?patient_id=${id}`).catch(() => ({ data: { data: [] } })),
+      api.get<{ data: PatientDocument[] }>(`/patients/${id}/documents`).catch(() => ({ data: { data: [] } })),
     ])
-      .then(([tl, pat, appts, rx, bls]) => {
+      .then(([tl, pat, appts, rx, bls, dcs]) => {
         setData(tl.data.data)
         setPatient(pat.data.data)
         setAppointments(appts.data.data)
         setPrescriptions(rx.data.data)
         setBills(bls.data.data)
+        setDocs(dcs.data.data)
         // Populate edit form
         const p = pat.data.data
         setForm({
@@ -349,6 +372,58 @@ export default function PatientDetail() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  const uploadDoc = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selFile) return
+    setUploading(true)
+    setDocError('')
+    try {
+      const fd = new FormData()
+      fd.append('file', selFile)
+      fd.append('doc_type', docType)
+      if (docNotes.trim()) fd.append('notes', docNotes.trim())
+      const res = await api.post<{ data: PatientDocument }>(`/patients/${id}/documents`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setDocs((d) => [res.data.data, ...d])
+      setSelFile(null)
+      setDocNotes('')
+      setDocType('REPORT')
+    } catch (err) {
+      setDocError(errorMessage(err, 'Upload failed'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const downloadDoc = async (doc: PatientDocument) => {
+    setDocError('')
+    try {
+      const res = await api.get(`/patients/${id}/documents/${doc.id}`, { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data as Blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = doc.file_name
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setDocError(errorMessage(err, 'Download failed'))
+    }
+  }
+
+  const deleteDoc = async (doc: PatientDocument) => {
+    if (!window.confirm(`Delete "${doc.file_name}"?`)) return
+    setDocError('')
+    try {
+      await api.delete(`/patients/${id}/documents/${doc.id}`)
+      setDocs((d) => d.filter((x) => x.id !== doc.id))
+    } catch (err) {
+      setDocError(errorMessage(err, 'Delete failed'))
+    }
+  }
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -928,12 +1003,87 @@ export default function PatientDetail() {
       )}
 
       {activeTab === 'documents' && (
-        <Card>
-          <CardHeader title="Documents" />
-          <div className="p-5">
-            <EmptyState message="Documents feature is coming soon. Prescription slips can already be printed from the Prescriptions page." />
-          </div>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader title="Documents" subtitle="Reports, ID proofs, consents and other records" />
+            {docError && <div className="mx-5 mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{docError}</div>}
+            <Can permission="patient.update">
+              <form onSubmit={uploadDoc} className="space-y-4 p-5">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label="File (JPG/PNG/WEBP/PDF, max 10 MB) *">
+                    <Input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,application/pdf"
+                      onChange={(e) => setSelFile(e.target.files?.[0] ?? null)}
+                      required
+                    />
+                  </Field>
+                  <Field label="Document Type">
+                    <Select value={docType} onChange={(e) => setDocType(e.target.value)}>
+                      {DOC_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t.replace(/_/g, ' ')}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Notes">
+                    <Input value={docNotes} onChange={(e) => setDocNotes(e.target.value)} placeholder="Optional" />
+                  </Field>
+                </div>
+                <Button type="submit" disabled={uploading || !selFile}>
+                  {uploading ? 'Uploading...' : 'Upload Document'}
+                </Button>
+              </form>
+            </Can>
+          </Card>
+
+          <Card>
+            {docs.length === 0 ? (
+              <EmptyState message="No documents uploaded yet" />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm whitespace-nowrap">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-left">
+                      <th className="px-5 py-3 text-xs font-medium text-slate-500">File</th>
+                      <th className="px-5 py-3 text-xs font-medium text-slate-500">Type</th>
+                      <th className="px-5 py-3 text-xs font-medium text-slate-500">Size</th>
+                      <th className="px-5 py-3 text-xs font-medium text-slate-500">Uploaded By</th>
+                      <th className="px-5 py-3 text-xs font-medium text-slate-500">Date</th>
+                      <th className="px-5 py-3 text-xs font-medium text-slate-500"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {docs.map((d) => (
+                      <tr key={d.id} className="hover:bg-slate-50/60">
+                        <td className="px-5 py-3">
+                          <button onClick={() => downloadDoc(d)} className="font-medium text-slate-800 hover:text-emerald-700 hover:underline">
+                            {d.file_name}
+                          </button>
+                          {d.notes && <div className="text-xs text-slate-400">{d.notes}</div>}
+                        </td>
+                        <td className="px-5 py-3">
+                          <Badge color={d.doc_type === 'REPORT' ? 'blue' : d.doc_type === 'ID_PROOF' ? 'amber' : 'slate'}>{d.doc_type}</Badge>
+                        </td>
+                        <td className="px-5 py-3 text-slate-500">{(d.file_size / 1024).toFixed(1)} KB</td>
+                        <td className="px-5 py-3 text-slate-500">{d.uploaded_by}</td>
+                        <td className="px-5 py-3 text-slate-500">{new Date(d.created_at).toLocaleDateString()}</td>
+                        <td className="px-5 py-3 text-right">
+                          <Can permission="patient.update">
+                            <button onClick={() => deleteDoc(d)} className="text-xs font-semibold text-red-500 hover:text-red-700 hover:underline">
+                              Delete
+                            </button>
+                          </Can>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
       )}
     </div>
   )

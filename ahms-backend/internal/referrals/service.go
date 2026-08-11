@@ -11,6 +11,10 @@ type Service interface {
 	Incoming(departmentID string, userID uuid.UUID) ([]models.Referral, error)
 	GetByID(id uuid.UUID) (*models.Referral, error)
 	UpdateStatus(id uuid.UUID, status string) (*models.Referral, error)
+	AttachFile(referralID uuid.UUID, fileName, filePath, fileType string, fileSize int64, userID uuid.UUID) (*models.ReferralAttachment, error)
+	ListAttachments(referralID uuid.UUID) ([]models.ReferralAttachment, error)
+	GetAttachment(id uuid.UUID) (*models.ReferralAttachment, error)
+	DeleteAttachment(id uuid.UUID) error
 }
 
 type service struct {
@@ -112,4 +116,34 @@ func (s *service) GetByID(id uuid.UUID) (*models.Referral, error) {
 
 func (s *service) UpdateStatus(id uuid.UUID, status string) (*models.Referral, error) {
 	return s.repo.UpdateStatus(id, status)
+}
+
+func (s *service) AttachFile(referralID uuid.UUID, fileName, filePath, fileType string, fileSize int64, userID uuid.UUID) (*models.ReferralAttachment, error) {
+	if _, err := s.repo.FindByID(referralID); err != nil {
+		return nil, err
+	}
+	att := &models.ReferralAttachment{
+		ReferralID:       referralID,
+		FileName:         fileName,
+		FilePath:         filePath,
+		FileType:         fileType,
+		FileSize:         fileSize,
+		UploadedByUserID: userID,
+	}
+	if err := s.repo.AttachFile(att); err != nil {
+		return nil, err
+	}
+	return att, nil
+}
+
+func (s *service) ListAttachments(referralID uuid.UUID) ([]models.ReferralAttachment, error) {
+	return s.repo.FindAttachmentsByReferralID(referralID)
+}
+
+func (s *service) DeleteAttachment(id uuid.UUID) error {
+	return s.repo.DeleteAttachment(id)
+}
+
+func (s *service) GetAttachment(id uuid.UUID) (*models.ReferralAttachment, error) {
+	return s.repo.FindAttachmentByID(id)
 }

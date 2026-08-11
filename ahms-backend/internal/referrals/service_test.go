@@ -62,6 +62,23 @@ func (f *fakeRepo) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error) 
 	return f.doctor, nil
 }
 
+func (f *fakeRepo) AttachFile(att *models.ReferralAttachment) error {
+	att.ID = uuid.New()
+	return nil
+}
+
+func (f *fakeRepo) FindAttachmentsByReferralID(referralID uuid.UUID) ([]models.ReferralAttachment, error) {
+	return []models.ReferralAttachment{}, nil
+}
+
+func (f *fakeRepo) FindAttachmentByID(id uuid.UUID) (*models.ReferralAttachment, error) {
+	return nil, ErrNotFound
+}
+
+func (f *fakeRepo) DeleteAttachment(id uuid.UUID) error {
+	return nil
+}
+
 func newTestService(f *fakeRepo) Service {
 	return NewService(f)
 }

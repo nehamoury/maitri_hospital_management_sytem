@@ -1,4 +1,4 @@
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { Menu, Phone, X, Leaf, ChevronDown, Stethoscope, Building2, FlaskConical, Image, BookOpen, Layers3, UserCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -90,8 +90,6 @@ function MoreDropdown({ scrolled }: { scrolled: boolean }) {
 
 // ─── Main Navbar ──────────────────────────────────────────────────────────────
 export function Navbar() {
-  const location = useLocation()
-  const isHomePage = location.pathname === '/'
   const [hasScrolled, setHasScrolled] = useState(false)
   const [open, setOpen] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -107,7 +105,7 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const scrolled = hasScrolled || !isHomePage
+  const scrolled = hasScrolled
 
   // Close drawer on resize to desktop
   useEffect(() => {
@@ -196,10 +194,10 @@ export function Navbar() {
           >
             <Phone className="h-3 w-3" /> Emergency
           </a>
-          <ThemeToggle />
           <Button asChild size="sm" className="rounded-full text-xs">
             <Link to="/appointment">Book Appointment</Link>
           </Button>
+          <ThemeToggle />
         </div>
 
         {/* Tablet Right Actions (md only) */}
@@ -221,7 +219,6 @@ export function Navbar() {
           >
             <Phone className="h-3 w-3" />
           </a>
-          <ThemeToggle />
           <Button asChild size="sm" className="rounded-full text-xs px-3">
             <Link to="/appointment">Book</Link>
           </Button>
@@ -237,11 +234,11 @@ export function Navbar() {
           >
             {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </Button>
+          <ThemeToggle />
         </div>
 
         {/* Mobile Hamburger */}
         <div className="flex md:hidden items-center gap-1.5">
-          <ThemeToggle />
           <a 
             href="tel:+911800123456" 
             className="p-1.5 transition-colors text-red-500 hover:text-red-600"
@@ -260,6 +257,7 @@ export function Navbar() {
           >
             {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </Button>
+          <ThemeToggle />
         </div>
       </div>
 
