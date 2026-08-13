@@ -32,9 +32,10 @@ func RegisterRoutes(
 	handler *Handler,
 	auth AuthMiddleware,
 	perm PermissionMiddleware,
+	scopeMW gin.HandlerFunc,
 ) {
 	lab := router.Group("/lab")
-	lab.Use(auth.RequireAuth())
+	lab.Use(auth.RequireAuth(), scopeMW)
 
 	// ── View (lab.view) ──────────────────────────────────────────────────────
 	view := lab.Group("")
@@ -77,6 +78,7 @@ func RegisterRoutes(
 	// ── Patient timeline (registered on /patients/:id/lab-orders) ────────────
 	router.GET("/patients/:id/lab-orders",
 		auth.RequireAuth(),
+		scopeMW,
 		perm.RequirePermission(permLabView),
 		handler.PatientOrders,
 	)

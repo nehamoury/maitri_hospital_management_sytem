@@ -18,9 +18,9 @@ var ErrDuplicateMobile = errors.New("one or more existing patients match this re
 type Service interface {
 	Create(req CreatePatientRequest, registeredByUserID uuid.UUID) (*models.Patient, []models.Patient, error)
 	List(search string, scope *models.DataScope) ([]models.Patient, error)
-	GetByID(id uuid.UUID) (*models.Patient, error)
-	Update(id uuid.UUID, req UpdatePatientRequest) (*models.Patient, error)
-	Delete(id uuid.UUID) error
+	GetByID(id uuid.UUID, scope *models.DataScope) (*models.Patient, error)
+	Update(id uuid.UUID, req UpdatePatientRequest, scope *models.DataScope) (*models.Patient, error)
+	Delete(id uuid.UUID, scope *models.DataScope) error
 }
 
 type service struct {
@@ -116,12 +116,12 @@ func (s *service) List(search string, scope *models.DataScope) ([]models.Patient
 	return s.repo.FindAll(search, scope)
 }
 
-func (s *service) GetByID(id uuid.UUID) (*models.Patient, error) {
-	return s.repo.FindByID(id)
+func (s *service) GetByID(id uuid.UUID, scope *models.DataScope) (*models.Patient, error) {
+	return s.repo.FindByID(id, scope)
 }
 
-func (s *service) Update(id uuid.UUID, req UpdatePatientRequest) (*models.Patient, error) {
-	patient, err := s.repo.FindByID(id)
+func (s *service) Update(id uuid.UUID, req UpdatePatientRequest, scope *models.DataScope) (*models.Patient, error) {
+	patient, err := s.repo.FindByID(id, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -189,8 +189,8 @@ func (s *service) Update(id uuid.UUID, req UpdatePatientRequest) (*models.Patien
 	return patient, nil
 }
 
-func (s *service) Delete(id uuid.UUID) error {
-	return s.repo.Delete(id)
+func (s *service) Delete(id uuid.UUID, scope *models.DataScope) error {
+	return s.repo.Delete(id, scope)
 }
 
 // ageFromDOB computes the patient's age in whole years from their birth

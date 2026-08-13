@@ -24,9 +24,10 @@ func RegisterRoutes(
 	handler *Handler,
 	auth AuthMiddleware,
 	perm PermissionMiddleware,
+	scopeMW gin.HandlerFunc,
 ) {
 	diet := router.Group("/diet")
-	diet.Use(auth.RequireAuth())
+	diet.Use(auth.RequireAuth(), scopeMW)
 
 	// Active and List Plans are open for anyone with read access (we check authentication)
 	diet.GET("/plans/active", handler.GetActiveDietPlan)

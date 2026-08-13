@@ -8,13 +8,13 @@ import (
 // Service contains referral business logic.
 type Service interface {
 	Create(req CreateReferralRequest, referredByUserID uuid.UUID) (*models.Referral, error)
-	Incoming(departmentID string, userID uuid.UUID) ([]models.Referral, error)
-	GetByID(id uuid.UUID) (*models.Referral, error)
-	UpdateStatus(id uuid.UUID, status string) (*models.Referral, error)
-	AttachFile(referralID uuid.UUID, fileName, filePath, fileType string, fileSize int64, userID uuid.UUID) (*models.ReferralAttachment, error)
-	ListAttachments(referralID uuid.UUID) ([]models.ReferralAttachment, error)
-	GetAttachment(id uuid.UUID) (*models.ReferralAttachment, error)
-	DeleteAttachment(id uuid.UUID) error
+	Incoming(departmentID string, userID uuid.UUID, scope *models.DataScope) ([]models.Referral, error)
+	GetByID(id uuid.UUID, scope *models.DataScope) (*models.Referral, error)
+	UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Referral, error)
+	AttachFile(referralID uuid.UUID, fileName, filePath, fileType string, fileSize int64, userID uuid.UUID, scope *models.DataScope) (*models.ReferralAttachment, error)
+	ListAttachments(referralID uuid.UUID, scope *models.DataScope) ([]models.ReferralAttachment, error)
+	GetAttachment(id uuid.UUID, scope *models.DataScope) (*models.ReferralAttachment, error)
+	DeleteAttachment(id uuid.UUID, scope *models.DataScope) error
 }
 
 type service struct {
@@ -77,7 +77,7 @@ func (s *service) Create(req CreateReferralRequest, referredByUserID uuid.UUID) 
 	if err := s.repo.CreateWithNumber(referral); err != nil {
 		return nil, err
 	}
-	return s.repo.FindByID(referral.ID)
+	return s.repo.FindByID(referral.ID, nil)
 }
 
 // Incoming returns referrals for the destination department. When the
@@ -85,7 +85,7 @@ func (s *service) Create(req CreateReferralRequest, referredByUserID uuid.UUID) 
 // own department is used so the dashboard is scoped automatically. Users
 // without a doctor record (and without an explicit department_id) get an
 // empty list rather than an error.
-func (s *service) Incoming(departmentID string, userID uuid.UUID) ([]models.Referral, error) {
+func (s *service) Incoming(departmentID string, userID uuid.UUID, scope *models.DataScope) ([]models.Referral, error) {
 	var toDept uuid.UUID
 	if departmentID != "" {
 		id, err := uuid.Parse(departmentID)
@@ -107,19 +107,19 @@ func (s *service) Incoming(departmentID string, userID uuid.UUID) ([]models.Refe
 		models.ReferralAccepted,
 		models.ReferralConsultationStarted,
 	}
-	return s.repo.FindIncoming(toDept, statuses)
+	return s.repo.FindIncoming(toDept, statuses, scope)
 }
 
-func (s *service) GetByID(id uuid.UUID) (*models.Referral, error) {
-	return s.repo.FindByID(id)
+func (s *service) GetByID(id uuid.UUID, scope *models.DataScope) (*models.Referral, error) {
+	return s.repo.FindByID(id, scope)
 }
 
-func (s *service) UpdateStatus(id uuid.UUID, status string) (*models.Referral, error) {
-	return s.repo.UpdateStatus(id, status)
+func (s *service) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Referral, error) {
+	return s.repo.UpdateStatus(id, status, scope)
 }
 
-func (s *service) AttachFile(referralID uuid.UUID, fileName, filePath, fileType string, fileSize int64, userID uuid.UUID) (*models.ReferralAttachment, error) {
-	if _, err := s.repo.FindByID(referralID); err != nil {
+func (s *service) AttachFile(referralID uuid.UUID, fileName, filePath, fileType string, fileSize int64, userID uuid.UUID, scope *models.DataScope) (*models.ReferralAttachment, error) {
+	if _, err := s.repo.FindByID(referralID, scope); err != nil {
 		return nil, err
 	}
 	att := &models.ReferralAttachment{
@@ -136,14 +136,14 @@ func (s *service) AttachFile(referralID uuid.UUID, fileName, filePath, fileType 
 	return att, nil
 }
 
-func (s *service) ListAttachments(referralID uuid.UUID) ([]models.ReferralAttachment, error) {
-	return s.repo.FindAttachmentsByReferralID(referralID)
+func (s *service) ListAttachments(referralID uuid.UUID, scope *models.DataScope) ([]models.ReferralAttachment, error) {
+	return s.repo.FindAttachmentsByReferralID(referralID, scope)
 }
 
-func (s *service) DeleteAttachment(id uuid.UUID) error {
-	return s.repo.DeleteAttachment(id)
+func (s *service) DeleteAttachment(id uuid.UUID, scope *models.DataScope) error {
+	return s.repo.DeleteAttachment(id, scope)
 }
 
-func (s *service) GetAttachment(id uuid.UUID) (*models.ReferralAttachment, error) {
-	return s.repo.FindAttachmentByID(id)
+func (s *service) GetAttachment(id uuid.UUID, scope *models.DataScope) (*models.ReferralAttachment, error) {
+	return s.repo.FindAttachmentByID(id, scope)
 }

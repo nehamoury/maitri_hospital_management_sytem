@@ -29,22 +29,22 @@ type Service interface {
 
 	// Orders
 	CreateOrder(req CreateOrderRequest, orderedByUserID uuid.UUID) (*OrderResponse, error)
-	GetOrder(id uuid.UUID) (*OrderResponse, error)
-	ListOrders(f ListOrdersFilter) ([]OrderListItem, int64, error)
-	CancelOrder(id uuid.UUID, cancelledByUserID uuid.UUID, req CancelOrderRequest) error
+	GetOrder(id uuid.UUID, scope *models.DataScope) (*OrderResponse, error)
+	ListOrders(f ListOrdersFilter, scope *models.DataScope) ([]OrderListItem, int64, error)
+	CancelOrder(id uuid.UUID, cancelledByUserID uuid.UUID, req CancelOrderRequest, scope *models.DataScope) error
 
 	// Workflow transitions
-	CollectSample(orderID uuid.UUID, collectedByUserID uuid.UUID, req CollectSampleRequest) error
-	MarkProcessing(orderID uuid.UUID) error
-	EnterResults(orderID uuid.UUID, resultedByUserID uuid.UUID, req EnterResultsRequest) error
-	VerifyResults(orderID uuid.UUID, verifiedByUserID uuid.UUID) error
-	DoctorReview(orderID uuid.UUID, doctorUserID uuid.UUID, req DoctorReviewRequest) error
+	CollectSample(orderID uuid.UUID, collectedByUserID uuid.UUID, req CollectSampleRequest, scope *models.DataScope) error
+	MarkProcessing(orderID uuid.UUID, scope *models.DataScope) error
+	EnterResults(orderID uuid.UUID, resultedByUserID uuid.UUID, req EnterResultsRequest, scope *models.DataScope) error
+	VerifyResults(orderID uuid.UUID, verifiedByUserID uuid.UUID, scope *models.DataScope) error
+	DoctorReview(orderID uuid.UUID, doctorUserID uuid.UUID, req DoctorReviewRequest, scope *models.DataScope) error
 
 	// Print report
-	PrintReport(orderID uuid.UUID) (string, error)
+	PrintReport(orderID uuid.UUID, scope *models.DataScope) (string, error)
 
 	// Patient timeline
-	PatientOrders(patientID uuid.UUID) ([]OrderListItem, error)
+	PatientOrders(patientID uuid.UUID, scope *models.DataScope) ([]OrderListItem, error)
 }
 
 type service struct {
@@ -289,7 +289,7 @@ func (s *service) CreateOrder(req CreateOrderRequest, orderedByUserID uuid.UUID)
 		return nil, err
 	}
 
-	full, err := s.repo.GetOrder(order.ID)
+	full, err := s.repo.GetOrder(order.ID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -297,8 +297,8 @@ func (s *service) CreateOrder(req CreateOrderRequest, orderedByUserID uuid.UUID)
 	return &resp, nil
 }
 
-func (s *service) GetOrder(id uuid.UUID) (*OrderResponse, error) {
-	order, err := s.repo.GetOrder(id)
+func (s *service) GetOrder(id uuid.UUID, scope *models.DataScope) (*OrderResponse, error) {
+	order, err := s.repo.GetOrder(id, scope)
 	if err != nil {
 		return nil, ErrNotFound
 	}
@@ -306,8 +306,8 @@ func (s *service) GetOrder(id uuid.UUID) (*OrderResponse, error) {
 	return &resp, nil
 }
 
-func (s *service) ListOrders(f ListOrdersFilter) ([]OrderListItem, int64, error) {
-	orders, total, err := s.repo.ListOrders(f)
+func (s *service) ListOrders(f ListOrdersFilter, scope *models.DataScope) ([]OrderListItem, int64, error) {
+	orders, total, err := s.repo.ListOrders(f, scope)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -345,8 +345,8 @@ func (s *service) ListOrders(f ListOrdersFilter) ([]OrderListItem, int64, error)
 	return out, total, nil
 }
 
-func (s *service) CancelOrder(id uuid.UUID, cancelledByUserID uuid.UUID, req CancelOrderRequest) error {
-	order, err := s.repo.GetOrder(id)
+func (s *service) CancelOrder(id uuid.UUID, cancelledByUserID uuid.UUID, req CancelOrderRequest, scope *models.DataScope) error {
+	order, err := s.repo.GetOrder(id, scope)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -363,8 +363,8 @@ func (s *service) CancelOrder(id uuid.UUID, cancelledByUserID uuid.UUID, req Can
 
 // ─── Workflow Transitions ─────────────────────────────────────────────────────
 
-func (s *service) CollectSample(orderID uuid.UUID, collectedByUserID uuid.UUID, req CollectSampleRequest) error {
-	order, err := s.repo.GetOrder(orderID)
+func (s *service) CollectSample(orderID uuid.UUID, collectedByUserID uuid.UUID, req CollectSampleRequest, scope *models.DataScope) error {
+	order, err := s.repo.GetOrder(orderID, scope)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -396,8 +396,8 @@ func (s *service) CollectSample(orderID uuid.UUID, collectedByUserID uuid.UUID, 
 	return s.repo.UpdateOrder(order)
 }
 
-func (s *service) MarkProcessing(orderID uuid.UUID) error {
-	order, err := s.repo.GetOrder(orderID)
+func (s *service) MarkProcessing(orderID uuid.UUID, scope *models.DataScope) error {
+	order, err := s.repo.GetOrder(orderID, scope)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -417,8 +417,8 @@ func (s *service) MarkProcessing(orderID uuid.UUID) error {
 	return s.repo.UpdateOrder(order)
 }
 
-func (s *service) EnterResults(orderID uuid.UUID, resultedByUserID uuid.UUID, req EnterResultsRequest) error {
-	order, err := s.repo.GetOrder(orderID)
+func (s *service) EnterResults(orderID uuid.UUID, resultedByUserID uuid.UUID, req EnterResultsRequest, scope *models.DataScope) error {
+	order, err := s.repo.GetOrder(orderID, scope)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -473,8 +473,8 @@ func (s *service) EnterResults(orderID uuid.UUID, resultedByUserID uuid.UUID, re
 	return nil
 }
 
-func (s *service) VerifyResults(orderID uuid.UUID, verifiedByUserID uuid.UUID) error {
-	order, err := s.repo.GetOrder(orderID)
+func (s *service) VerifyResults(orderID uuid.UUID, verifiedByUserID uuid.UUID, scope *models.DataScope) error {
+	order, err := s.repo.GetOrder(orderID, scope)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -501,8 +501,8 @@ func (s *service) VerifyResults(orderID uuid.UUID, verifiedByUserID uuid.UUID) e
 	return s.repo.UpdateOrder(order)
 }
 
-func (s *service) DoctorReview(orderID uuid.UUID, doctorUserID uuid.UUID, req DoctorReviewRequest) error {
-	order, err := s.repo.GetOrder(orderID)
+func (s *service) DoctorReview(orderID uuid.UUID, doctorUserID uuid.UUID, req DoctorReviewRequest, scope *models.DataScope) error {
+	order, err := s.repo.GetOrder(orderID, scope)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -520,8 +520,8 @@ func (s *service) DoctorReview(orderID uuid.UUID, doctorUserID uuid.UUID, req Do
 
 // ─── Print Report ─────────────────────────────────────────────────────────────
 
-func (s *service) PrintReport(orderID uuid.UUID) (string, error) {
-	order, err := s.repo.GetOrder(orderID)
+func (s *service) PrintReport(orderID uuid.UUID, scope *models.DataScope) (string, error) {
+	order, err := s.repo.GetOrder(orderID, scope)
 	if err != nil {
 		return "", ErrNotFound
 	}
@@ -530,8 +530,8 @@ func (s *service) PrintReport(orderID uuid.UUID) (string, error) {
 
 // ─── Patient Timeline ─────────────────────────────────────────────────────────
 
-func (s *service) PatientOrders(patientID uuid.UUID) ([]OrderListItem, error) {
-	orders, err := s.repo.ListOrdersByPatient(patientID)
+func (s *service) PatientOrders(patientID uuid.UUID, scope *models.DataScope) ([]OrderListItem, error) {
+	orders, err := s.repo.ListOrdersByPatient(patientID, scope)
 	if err != nil {
 		return nil, err
 	}

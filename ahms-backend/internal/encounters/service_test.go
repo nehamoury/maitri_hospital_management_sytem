@@ -37,7 +37,7 @@ func (f *fakeRepo) FindByID(id uuid.UUID, scope *models.DataScope) (*models.Enco
 	return nil, ErrNotFound
 }
 
-func (f *fakeRepo) UpdateStatus(id uuid.UUID, status string) (*models.Encounter, error) {
+func (f *fakeRepo) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Encounter, error) {
 	if f.updateErr != nil {
 		return nil, f.updateErr
 	}
@@ -142,7 +142,7 @@ func TestEncounterUpdateStatusNotFound(t *testing.T) {
 	repo := &fakeRepo{}
 	svc := newTestService(repo)
 
-	_, err := svc.UpdateStatus(uuid.New(), models.EncounterCompleted)
+	_, err := svc.UpdateStatus(uuid.New(), models.EncounterCompleted, nil)
 	if err == nil {
 		t.Fatal("updating a missing encounter must return ErrNotFound")
 	}
@@ -153,7 +153,7 @@ func TestEncounterUpdateStatusHappyPath(t *testing.T) {
 	repo := &fakeRepo{byID: existing}
 	svc := newTestService(repo)
 
-	e, err := svc.UpdateStatus(existing.ID, models.EncounterCompleted)
+	e, err := svc.UpdateStatus(existing.ID, models.EncounterCompleted, nil)
 	if err != nil {
 		t.Fatalf("update should succeed, got %v", err)
 	}

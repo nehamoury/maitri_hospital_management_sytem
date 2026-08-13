@@ -23,21 +23,21 @@ func (f *fakeRepo) CreateBill(bill *models.Bill, items []models.BillItem) (*mode
 	return bill, nil
 }
 
-func (f *fakeRepo) FindBillByID(id uuid.UUID) (*models.Bill, error) {
+func (f *fakeRepo) FindBillByID(id uuid.UUID, scope *models.DataScope) (*models.Bill, error) {
 	if f.notFound || f.bill == nil {
 		return nil, ErrNotFound
 	}
 	return f.bill, nil
 }
 
-func (f *fakeRepo) FindBillByNo(no string) (*models.Bill, error) {
+func (f *fakeRepo) FindBillByNo(no string, scope *models.DataScope) (*models.Bill, error) {
 	if f.bill != nil && f.bill.BillNo == no {
 		return f.bill, nil
 	}
 	return nil, ErrNotFound
 }
 
-func (f *fakeRepo) ListBills(filter BillFilter) ([]models.Bill, error) {
+func (f *fakeRepo) ListBills(filter BillFilter, scope *models.DataScope) ([]models.Bill, error) {
 	return nil, nil
 }
 
@@ -252,7 +252,7 @@ func TestGetBillByNo(t *testing.T) {
 	repo := &fakeRepo{bill: bill}
 	svc := newTestService(repo)
 
-	got, err := svc.GetBillByNo("BILL-2026-000010")
+	got, err := svc.GetBillByNo("BILL-2026-000010", nil)
 	if err != nil {
 		t.Fatalf("lookup should succeed, got %v", err)
 	}
@@ -260,7 +260,7 @@ func TestGetBillByNo(t *testing.T) {
 		t.Fatalf("unexpected bill: %s", got.BillNo)
 	}
 
-	_, err = svc.GetBillByNo("BILL-2026-999999")
+	_, err = svc.GetBillByNo("BILL-2026-999999", nil)
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}

@@ -23,7 +23,7 @@ func (f *fakeRepo) Create(doc *models.PatientDocument) error {
 	return nil
 }
 
-func (f *fakeRepo) ListByPatient(patientID uuid.UUID) ([]models.PatientDocument, error) {
+func (f *fakeRepo) ListByPatient(patientID uuid.UUID, scope *models.DataScope) ([]models.PatientDocument, error) {
 	var out []models.PatientDocument
 	for _, d := range f.docs {
 		if d.PatientID == patientID {
@@ -33,7 +33,7 @@ func (f *fakeRepo) ListByPatient(patientID uuid.UUID) ([]models.PatientDocument,
 	return out, nil
 }
 
-func (f *fakeRepo) FindByID(id uuid.UUID) (*models.PatientDocument, error) {
+func (f *fakeRepo) FindByID(id uuid.UUID, scope *models.DataScope) (*models.PatientDocument, error) {
 	if f.findErr != nil {
 		return nil, f.findErr
 	}
@@ -45,7 +45,7 @@ func (f *fakeRepo) FindByID(id uuid.UUID) (*models.PatientDocument, error) {
 	return nil, ErrNotFound
 }
 
-func (f *fakeRepo) DeleteByID(id uuid.UUID) error {
+func (f *fakeRepo) DeleteByID(id uuid.UUID, scope *models.DataScope) error {
 	if f.deleteErr != nil {
 		return f.deleteErr
 	}
@@ -100,7 +100,7 @@ func TestListFiltersByPatient(t *testing.T) {
 	_, _ = svc.Add(p2, "b.pdf", "/b.pdf", "application/pdf", 1, "", "", uuid.New())
 	_, _ = svc.Add(p1, "c.pdf", "/c.pdf", "application/pdf", 1, "", "", uuid.New())
 
-	list, err := svc.List(p1)
+	list, err := svc.List(p1, nil)
 	if err != nil {
 		t.Fatalf("list should succeed, got %v", err)
 	}
@@ -113,7 +113,7 @@ func TestDeleteNotFound(t *testing.T) {
 	repo := &fakeRepo{}
 	svc := NewService(repo)
 
-	err := svc.Delete(uuid.New())
+	err := svc.Delete(uuid.New(), nil)
 	if err != ErrNotFound {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}

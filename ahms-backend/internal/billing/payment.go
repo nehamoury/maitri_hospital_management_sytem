@@ -73,7 +73,7 @@ func (r *repository) ApplyPayment(id uuid.UUID, amount float64, method, ref stri
 	if err != nil {
 		return nil, err
 	}
-	return r.FindBillByID(id)
+	return r.FindBillByID(id, nil)
 }
 
 // ApplyRefund reverses a previously collected payment: it validates that
@@ -127,5 +127,5 @@ func (r *repository) ApplyRefund(id uuid.UUID, amount float64, reason string, us
 	if err != nil {
 		return nil, err
 	}
-	return r.FindBillByID(id)
+	return r.FindBillByID(id, nil)
 }

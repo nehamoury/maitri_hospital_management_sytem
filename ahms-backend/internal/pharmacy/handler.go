@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ahms/backend/internal/audit"
+	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -23,6 +24,18 @@ func NewHandler(service Service) *Handler {
 
 // SetAuditRecorder attaches the audit recorder used to log data changes.
 func (h *Handler) SetAuditRecorder(r *audit.Recorder) { h.audit = r }
+
+func pharmacyScope(c *gin.Context) *models.DataScope {
+	raw, ok := c.Get("data_scope")
+	if !ok {
+		return nil
+	}
+	scope, ok := raw.(*models.DataScope)
+	if !ok {
+		return nil
+	}
+	return scope
+}
 
 // CreateMedicine godoc
 // @Summary      Create a medicine (stock master)
@@ -264,7 +277,7 @@ func (h *Handler) Dispense(c *gin.Context) {
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
 
-	rx, err := h.service.Dispense(id, req, userID)
+	rx, err := h.service.Dispense(id, req, userID, pharmacyScope(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "prescription not found")

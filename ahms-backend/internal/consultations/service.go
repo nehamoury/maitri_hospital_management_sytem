@@ -9,10 +9,10 @@ import (
 
 // Service contains consultation business logic.
 type Service interface {
-	Create(encounterID uuid.UUID, req CreateConsultationRequest, doctorUserID uuid.UUID) (*models.Consultation, error)
-	GetByEncounterID(encounterID uuid.UUID) (*models.Consultation, error)
-	GetByID(id uuid.UUID) (*models.Consultation, error)
-	Update(id uuid.UUID, req UpdateConsultationRequest) (*models.Consultation, error)
+	Create(encounterID uuid.UUID, req CreateConsultationRequest, doctorUserID uuid.UUID, scope *models.DataScope) (*models.Consultation, error)
+	GetByEncounterID(encounterID uuid.UUID, scope *models.DataScope) (*models.Consultation, error)
+	GetByID(id uuid.UUID, scope *models.DataScope) (*models.Consultation, error)
+	Update(id uuid.UUID, req UpdateConsultationRequest, scope *models.DataScope) (*models.Consultation, error)
 }
 
 type service struct {
@@ -89,8 +89,8 @@ func scalarInputUpdate(req UpdateConsultationRequest) [9]string {
 	return [9]string{req.Prakriti, req.Vikriti, req.Dosha, req.Agni, req.Nadi, req.Mala, req.Mutra, req.Jihva, req.Nidra}
 }
 
-func (s *service) Create(encounterID uuid.UUID, req CreateConsultationRequest, doctorUserID uuid.UUID) (*models.Consultation, error) {
-	encounter, err := s.repo.FindEncounterByID(encounterID)
+func (s *service) Create(encounterID uuid.UUID, req CreateConsultationRequest, doctorUserID uuid.UUID, scope *models.DataScope) (*models.Consultation, error) {
+	encounter, err := s.repo.FindEncounterByID(encounterID, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -120,24 +120,25 @@ func (s *service) Create(encounterID uuid.UUID, req CreateConsultationRequest, d
 		return nil, err
 	}
 
-	// A saved consultation means the consultation is done — complete the encounter.
-	if err := s.repo.CompleteEncounter(encounterID); err != nil {
+	// Save the consultation then complete the encounter — only when the
+	// doctor actually owns the encounter (scope already enforced above).
+	if err := s.repo.CompleteEncounter(encounterID, scope); err != nil {
 		return nil, err
 	}
 
-	return s.repo.FindByID(c.ID)
+	return s.repo.FindByID(c.ID, scope)
 }
 
-func (s *service) GetByEncounterID(encounterID uuid.UUID) (*models.Consultation, error) {
-	return s.repo.FindByEncounterID(encounterID)
+func (s *service) GetByEncounterID(encounterID uuid.UUID, scope *models.DataScope) (*models.Consultation, error) {
+	return s.repo.FindByEncounterID(encounterID, scope)
 }
 
-func (s *service) GetByID(id uuid.UUID) (*models.Consultation, error) {
-	return s.repo.FindByID(id)
+func (s *service) GetByID(id uuid.UUID, scope *models.DataScope) (*models.Consultation, error) {
+	return s.repo.FindByID(id, scope)
 }
 
-func (s *service) Update(id uuid.UUID, req UpdateConsultationRequest) (*models.Consultation, error) {
-	c, err := s.repo.FindByID(id)
+func (s *service) Update(id uuid.UUID, req UpdateConsultationRequest, scope *models.DataScope) (*models.Consultation, error) {
+	c, err := s.repo.FindByID(id, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +163,7 @@ func (s *service) Update(id uuid.UUID, req UpdateConsultationRequest) (*models.C
 	if err := s.repo.UpdateWithDiagnoses(c, diagnoses); err != nil {
 		return nil, err
 	}
-	return s.repo.FindByID(c.ID)
+	return s.repo.FindByID(c.ID, scope)
 }
 
 func buildDiagnoses(encounterID, doctorID uuid.UUID, inputs []DiagnosisInput) []models.Diagnosis {

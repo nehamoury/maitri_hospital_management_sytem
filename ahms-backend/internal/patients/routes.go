@@ -9,9 +9,10 @@ import (
 // RegisterRoutes mounts every /patients/* endpoint. Viewing requires
 // patient.view; registration and edits require their respective
 // permissions (front-desk roles).
-func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.AuthMiddleware, permMW *middleware.PermissionMiddleware) {
+func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.AuthMiddleware, permMW *middleware.PermissionMiddleware, scopeMW gin.HandlerFunc) {
 	group := rg.Group("/patients")
 	group.Use(authMW.RequireAuth())
+	group.Use(scopeMW)
 	{
 		group.GET("", permMW.RequirePermission(models.PermPatientView), handler.List)
 		group.GET("/:id", permMW.RequirePermission(models.PermPatientView), handler.Get)

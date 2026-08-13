@@ -41,8 +41,8 @@ type Repository interface {
 	// Admissions.
 	NextAdmissionNumber(year int) (string, error)
 	CreateAdmissionWithEncounter(a *models.Admission, alloc *models.AdmissionBed, enc *models.Encounter) error
-	FindAdmissionByID(id uuid.UUID) (*models.Admission, error)
-	ListAdmissions(f AdmissionFilter) ([]models.Admission, error)
+	FindAdmissionByID(id uuid.UUID, scope *models.DataScope) (*models.Admission, error)
+	ListAdmissions(f AdmissionFilter, scope *models.DataScope) ([]models.Admission, error)
 	UpdateAdmission(a *models.Admission) error
 	TransferBed(admissionID, newBedID uuid.UUID, reason string, userID uuid.UUID) error
 	ReleaseBed(admissionID uuid.UUID) error
@@ -228,9 +228,9 @@ func assignEncounterToken(tx *gorm.DB, e *models.Encounter) error {
 	return nil
 }
 
-func (r *repository) FindAdmissionByID(id uuid.UUID) (*models.Admission, error) {
+func (r *repository) FindAdmissionByID(id uuid.UUID, scope *models.DataScope) (*models.Admission, error) {
 	var a models.Admission
-	err := r.db.Preload("Patient").
+	query := r.db.Preload("Patient").
 		Preload("Department").
 		Preload("Doctor.User").
 		Preload("Bed.Ward").
@@ -242,11 +242,17 @@ func (r *repository) FindAdmissionByID(id uuid.UUID) (*models.Admission, error) 
 		Preload("BedHistory.Bed.Ward").
 		Preload("BedHistory.ChangedBy").
 		Preload("Discharge").
-		First(&a, "id = ?", id).Error
+		Where("id = ?", id)
+	if scope != nil && scope.DoctorID != nil {
+		// A doctor may only access admissions where they are the treating
+		// doctor.
+		query = query.Where("doctor_id = ?", *scope.DoctorID)
+	}
+	err := query.First(&a).Error
 	return &a, wrapErr(err)
 }
 
-func (r *repository) ListAdmissions(f AdmissionFilter) ([]models.Admission, error) {
+func (r *repository) ListAdmissions(f AdmissionFilter, scope *models.DataScope) ([]models.Admission, error) {
 	q := r.db.Model(&models.Admission{}).
 		Preload("Patient").
 		Preload("Department").
@@ -256,6 +262,9 @@ func (r *repository) ListAdmissions(f AdmissionFilter) ([]models.Admission, erro
 		Order("created_at DESC").
 		Limit(200)
 
+	if scope != nil && scope.DoctorID != nil {
+		q = q.Where("doctor_id = ?", *scope.DoctorID)
+	}
 	if f.Status != "" {
 		q = q.Where("status = ?", f.Status)
 	}

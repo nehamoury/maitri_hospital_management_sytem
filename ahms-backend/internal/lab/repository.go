@@ -26,8 +26,8 @@ type Repository interface {
 	// Orders
 	NextOrderNumber(year int) (string, error)
 	CreateOrder(order *models.InvestigationOrder, items []models.InvestigationOrderItem) error
-	GetOrder(id uuid.UUID) (*models.InvestigationOrder, error)
-	ListOrders(f ListOrdersFilter) ([]models.InvestigationOrder, int64, error)
+	GetOrder(id uuid.UUID, scope *models.DataScope) (*models.InvestigationOrder, error)
+	ListOrders(f ListOrdersFilter, scope *models.DataScope) ([]models.InvestigationOrder, int64, error)
 	UpdateOrder(order *models.InvestigationOrder) error
 
 	// Sample
@@ -39,7 +39,7 @@ type Repository interface {
 	UpdateOrderItems(items []models.InvestigationOrderItem) error
 
 	// Patient timeline
-	ListOrdersByPatient(patientID uuid.UUID) ([]models.InvestigationOrder, error)
+	ListOrdersByPatient(patientID uuid.UUID, scope *models.DataScope) ([]models.InvestigationOrder, error)
 }
 
 type repository struct {
@@ -107,6 +107,17 @@ func (r *repository) ListTests(categoryID string, activeOnly bool) ([]models.Inv
 	return tests, q.Find(&tests).Error
 }
 
+// applyDoctorScope restricts a query to records belonging to patients the
+// given doctor has treated. A nil scope or a scope without a DoctorID leaves
+// the query unscoped (non-doctor staff get full access).
+func applyDoctorScope(q *gorm.DB, scope *models.DataScope, patientCol string) *gorm.DB {
+	if scope == nil || scope.DoctorID == nil {
+		return q
+	}
+	return q.Where("EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = "+patientCol+
+		" AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL)", *scope.DoctorID)
+}
+
 // ─── Order Number ─────────────────────────────────────────────────────────────
 
 // NextOrderNumber atomically increments the counter and returns the next
@@ -155,9 +166,9 @@ func (r *repository) CreateOrder(order *models.InvestigationOrder, items []model
 	})
 }
 
-func (r *repository) GetOrder(id uuid.UUID) (*models.InvestigationOrder, error) {
+func (r *repository) GetOrder(id uuid.UUID, scope *models.DataScope) (*models.InvestigationOrder, error) {
 	var order models.InvestigationOrder
-	err := r.db.
+	query := r.db.
 		Preload("Patient").
 		Preload("OrderedByUser").
 		Preload("ReviewedByUser").
@@ -169,19 +180,21 @@ func (r *repository) GetOrder(id uuid.UUID) (*models.InvestigationOrder, error) 
 		Preload("Items.VerifiedByUser").
 		Preload("Sample").
 		Preload("Sample.CollectedByUser").
-		First(&order, "id = ?", id).Error
-	if err != nil {
+		Where("investigation_orders.id = ?", id)
+	applyDoctorScope(query, scope, "investigation_orders.patient_id")
+	if err := query.First(&order).Error; err != nil {
 		return nil, err
 	}
 	return &order, nil
 }
 
-func (r *repository) ListOrders(f ListOrdersFilter) ([]models.InvestigationOrder, int64, error) {
+func (r *repository) ListOrders(f ListOrdersFilter, scope *models.DataScope) ([]models.InvestigationOrder, int64, error) {
 	q := r.db.
 		Preload("Patient").
 		Preload("OrderedByUser").
 		Preload("Items").
 		Where("investigation_orders.deleted_at IS NULL")
+	applyDoctorScope(q, scope, "investigation_orders.patient_id")
 
 	if f.PatientID != "" {
 		q = q.Where("patient_id = ?", f.PatientID)
@@ -258,12 +271,14 @@ func (r *repository) UpdateOrderItems(items []models.InvestigationOrderItem) err
 
 // ─── Patient Timeline ─────────────────────────────────────────────────────────
 
-func (r *repository) ListOrdersByPatient(patientID uuid.UUID) ([]models.InvestigationOrder, error) {
+func (r *repository) ListOrdersByPatient(patientID uuid.UUID, scope *models.DataScope) ([]models.InvestigationOrder, error) {
 	var orders []models.InvestigationOrder
-	err := r.db.
+	query := r.db.
 		Preload("Items").
 		Preload("Items.Test").
-		Where("patient_id = ? AND deleted_at IS NULL", patientID).
+		Where("patient_id = ? AND investigation_orders.deleted_at IS NULL", patientID)
+	applyDoctorScope(query, scope, "investigation_orders.patient_id")
+	err := query.
 		Order("created_at DESC").
 		Find(&orders).Error
 	return orders, err

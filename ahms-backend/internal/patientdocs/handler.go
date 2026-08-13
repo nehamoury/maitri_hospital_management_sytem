@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/ahms/backend/internal/audit"
+	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -61,6 +62,16 @@ func uploadedByName(u string) string {
 		return "Unknown"
 	}
 	return u
+}
+
+// scopeFromContext extracts the DataScope injected by DataScopeMiddleware.
+func scopeFromContext(c *gin.Context) *models.DataScope {
+	if s, exists := c.Get("data_scope"); exists {
+		if scope, ok := s.(*models.DataScope); ok {
+			return scope
+		}
+	}
+	return nil
 }
 
 // UploadDocument godoc
@@ -139,7 +150,7 @@ func (h *Handler) Upload(c *gin.Context) {
 	}
 	
 	// Refetch to populate UploadedBy
-	loadedDoc, err := h.service.Get(doc.ID)
+	loadedDoc, err := h.service.Get(doc.ID, scopeFromContext(c))
 	if err == nil {
 		doc = loadedDoc
 	}
@@ -164,7 +175,7 @@ func (h *Handler) List(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid patient id")
 		return
 	}
-	list, err := h.service.List(patientID)
+	list, err := h.service.List(patientID, scopeFromContext(c))
 	if err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to list documents")
 		return
@@ -196,7 +207,7 @@ func (h *Handler) Download(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid document id")
 		return
 	}
-	doc, err := h.service.Get(docID)
+	doc, err := h.service.Get(docID, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "document not found")
@@ -237,7 +248,7 @@ func (h *Handler) Delete(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid document id")
 		return
 	}
-	doc, err := h.service.Get(docID)
+	doc, err := h.service.Get(docID, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "document not found")
@@ -250,7 +261,7 @@ func (h *Handler) Delete(c *gin.Context) {
 		utils.Fail(c, http.StatusForbidden, "document does not belong to this patient")
 		return
 	}
-	if err := h.service.Delete(docID); err != nil {
+	if err := h.service.Delete(docID, scopeFromContext(c)); err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to delete document")
 		return
 	}

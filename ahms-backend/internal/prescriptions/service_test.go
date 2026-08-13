@@ -15,25 +15,25 @@ type fakeRepo struct {
 	doctorErr       error
 }
 
-func (f *fakeRepo) FindByEncounterID(encounterID uuid.UUID) (*models.Prescription, error) {
+func (f *fakeRepo) FindByEncounterID(encounterID uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
 	return nil, ErrNotFound
 }
 
-func (f *fakeRepo) FindByID(id uuid.UUID) (*models.Prescription, error) {
+func (f *fakeRepo) FindByID(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
 	if f.saved != nil && f.saved.ID == id {
 		return f.saved, nil
 	}
 	return nil, ErrNotFound
 }
 
-func (f *fakeRepo) FindByIDForPrint(id uuid.UUID) (*models.Prescription, error) {
+func (f *fakeRepo) FindByIDForPrint(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
 	if f.saved != nil && f.saved.ID == id {
 		return f.saved, nil
 	}
 	return nil, ErrNotFound
 }
 
-func (f *fakeRepo) List(in ListInput) ([]models.Prescription, error) {
+func (f *fakeRepo) List(in ListInput, scope *models.DataScope) ([]models.Prescription, error) {
 	if f.saved == nil {
 		return nil, nil
 	}
@@ -47,7 +47,7 @@ func (f *fakeRepo) CreateWithItems(p *models.Prescription, items []models.Prescr
 	return nil
 }
 
-func (f *fakeRepo) UpdateStatus(id uuid.UUID, status string) (*models.Prescription, error) {
+func (f *fakeRepo) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Prescription, error) {
 	if f.saved != nil && f.saved.ID == id {
 		f.saved.Status = status
 		return f.saved, nil
@@ -62,7 +62,7 @@ func (f *fakeRepo) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error) 
 	return f.doctor, nil
 }
 
-func (f *fakeRepo) FindEncounterByID(id uuid.UUID) (*models.Encounter, error) {
+func (f *fakeRepo) FindEncounterByID(id uuid.UUID, scope *models.DataScope) (*models.Encounter, error) {
 	if !f.encounterExists {
 		return nil, ErrNotFound
 	}
@@ -87,7 +87,7 @@ func TestPrescriptionCreateHappyPath(t *testing.T) {
 		Items: []PrescriptionItemInput{
 			{Medicine: "Chyawanprash", Dose: "10gm", Frequency: "2x daily", Quantity: 30},
 		},
-	}, uuid.New())
+	}, uuid.New(), nil)
 
 	if err != nil {
 		t.Fatalf("create should succeed, got %v", err)
@@ -110,7 +110,7 @@ func TestPrescriptionCreateRejectsMissingEncounter(t *testing.T) {
 
 	_, err := svc.Create(uuid.New(), CreatePrescriptionRequest{
 		Items: []PrescriptionItemInput{{Medicine: "Chyawanprash"}},
-	}, uuid.New())
+	}, uuid.New(), nil)
 
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
@@ -124,7 +124,7 @@ func TestPrescriptionCreateUsesEncounterDoctor(t *testing.T) {
 
 	p, err := svc.Create(uuid.New(), CreatePrescriptionRequest{
 		Items: []PrescriptionItemInput{{Medicine: "Chyawanprash"}},
-	}, uuid.New())
+	}, uuid.New(), nil)
 
 	if err != nil {
 		t.Fatalf("create should succeed, got %v", err)
@@ -139,7 +139,7 @@ func TestPrescriptionUpdateStatusHappyPath(t *testing.T) {
 	repo := &fakeRepo{encounterExists: true, saved: rx}
 	svc := newTestService(repo)
 
-	p, err := svc.UpdateStatus(rx.ID, models.PrescriptionDispensed)
+	p, err := svc.UpdateStatus(rx.ID, models.PrescriptionDispensed, nil)
 	if err != nil {
 		t.Fatalf("update should succeed, got %v", err)
 	}
@@ -152,7 +152,7 @@ func TestPrescriptionUpdateStatusNotFound(t *testing.T) {
 	repo := &fakeRepo{encounterExists: true}
 	svc := newTestService(repo)
 
-	_, err := svc.UpdateStatus(uuid.New(), models.PrescriptionDispensed)
+	_, err := svc.UpdateStatus(uuid.New(), models.PrescriptionDispensed, nil)
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}

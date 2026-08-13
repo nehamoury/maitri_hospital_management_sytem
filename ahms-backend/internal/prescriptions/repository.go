@@ -22,14 +22,14 @@ var ErrNotFound = errors.New("prescription not found")
 
 // Repository is the data-access layer for prescriptions.
 type Repository interface {
-	FindByEncounterID(encounterID uuid.UUID) (*models.Prescription, error)
-	FindByID(id uuid.UUID) (*models.Prescription, error)
-	FindByIDForPrint(id uuid.UUID) (*models.Prescription, error)
-	List(in ListInput) ([]models.Prescription, error)
+	FindByEncounterID(encounterID uuid.UUID, scope *models.DataScope) (*models.Prescription, error)
+	FindByID(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error)
+	FindByIDForPrint(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error)
+	List(in ListInput, scope *models.DataScope) ([]models.Prescription, error)
 	CreateWithItems(p *models.Prescription, items []models.PrescriptionItem) error
-	UpdateStatus(id uuid.UUID, status string) (*models.Prescription, error)
+	UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Prescription, error)
 	FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error)
-	FindEncounterByID(id uuid.UUID) (*models.Encounter, error)
+	FindEncounterByID(id uuid.UUID, scope *models.DataScope) (*models.Encounter, error)
 }
 
 type repository struct {
@@ -41,20 +41,33 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) FindByEncounterID(encounterID uuid.UUID) (*models.Prescription, error) {
+// doctorScope restricts prescriptions to the ones written by the given
+// doctor (via the encounter's treating doctor). No-op for non-doctors.
+func doctorScope(query *gorm.DB, scope *models.DataScope) *gorm.DB {
+	if scope != nil && scope.DoctorID != nil {
+		return query.Where("EXISTS (SELECT 1 FROM encounters e WHERE e.id = prescriptions.encounter_id AND e.doctor_id = ? AND e.deleted_at IS NULL)", *scope.DoctorID)
+	}
+	return query
+}
+
+func (r *repository) FindByEncounterID(encounterID uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
 	var p models.Prescription
-	err := r.db.Preload("Doctor.User").Preload("Items").
-		First(&p, "encounter_id = ?", encounterID).Error
+	query := r.db.Preload("Doctor.User").Preload("Items").
+		Where("encounter_id = ?", encounterID)
+	query = doctorScope(query, scope)
+	err := query.First(&p).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
 	return &p, err
 }
 
-func (r *repository) FindByID(id uuid.UUID) (*models.Prescription, error) {
+func (r *repository) FindByID(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
 	var p models.Prescription
-	err := r.db.Preload("Doctor.User").Preload("Items").
-		First(&p, "id = ?", id).Error
+	query := r.db.Preload("Doctor.User").Preload("Items").
+		Where("id = ?", id)
+	query = doctorScope(query, scope)
+	err := query.First(&p).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
@@ -63,15 +76,17 @@ func (r *repository) FindByID(id uuid.UUID) (*models.Prescription, error) {
 
 // FindByIDForPrint loads a prescription with everything the printable
 // slip needs: patient, department, doctor and each medicine line.
-func (r *repository) FindByIDForPrint(id uuid.UUID) (*models.Prescription, error) {
+func (r *repository) FindByIDForPrint(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
 	var p models.Prescription
-	err := r.db.
+	query := r.db.
 		Preload("Encounter.Patient").
 		Preload("Encounter.Department").
 		Preload("Encounter.Doctor.User").
 		Preload("Doctor.User").
 		Preload("Items").
-		First(&p, "id = ?", id).Error
+		Where("prescriptions.id = ?", id)
+	query = doctorScope(query, scope)
+	err := query.First(&p).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
@@ -96,12 +111,13 @@ func (r *repository) CreateWithItems(p *models.Prescription, items []models.Pres
 // List returns prescriptions for the pharmacy dispensing queue, newest
 // first. Optional search matches patient full name or UHID; optional status
 // narrows to PRESCRIBED / PARTIALLY_DISPENSED / DISPENSED.
-func (r *repository) List(in ListInput) ([]models.Prescription, error) {
+func (r *repository) List(in ListInput, scope *models.DataScope) ([]models.Prescription, error) {
 	var list []models.Prescription
 	q := r.db.Model(&models.Prescription{}).
 		Preload("Encounter.Patient").
 		Preload("Doctor.User").
 		Preload("Items")
+	q = doctorScope(q, scope)
 	if in.Status != "" {
 		q = q.Where("status = ?", in.Status)
 	}
@@ -124,15 +140,17 @@ func (r *repository) List(in ListInput) ([]models.Prescription, error) {
 	return list, nil
 }
 
-func (r *repository) UpdateStatus(id uuid.UUID, status string) (*models.Prescription, error) {
-	result := r.db.Model(&models.Prescription{}).Where("id = ?", id).Update("status", status)
+func (r *repository) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Prescription, error) {
+	query := r.db.Model(&models.Prescription{})
+	query = doctorScope(query, scope)
+	result := query.Where("id = ?", id).Update("status", status)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	if result.RowsAffected == 0 {
 		return nil, ErrNotFound
 	}
-	return r.FindByID(id)
+	return r.FindByID(id, scope)
 }
 
 func (r *repository) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error) {
@@ -144,9 +162,13 @@ func (r *repository) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error
 	return &doctor, err
 }
 
-func (r *repository) FindEncounterByID(id uuid.UUID) (*models.Encounter, error) {
+func (r *repository) FindEncounterByID(id uuid.UUID, scope *models.DataScope) (*models.Encounter, error) {
 	var enc models.Encounter
-	err := r.db.First(&enc, "id = ?", id).Error
+	query := r.db.Where("id = ?", id)
+	if scope != nil && scope.DoctorID != nil {
+		query = query.Where("doctor_id = ?", *scope.DoctorID)
+	}
+	err := query.First(&enc).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ahms/backend/internal/audit"
+	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -29,6 +30,18 @@ func (h *Handler) SetAuditRecorder(r *audit.Recorder) {
 func dietCurrentUserID(c *gin.Context) (uuid.UUID, error) {
 	raw, _ := c.Get("user_id")
 	return uuid.Parse(raw.(string))
+}
+
+func dietScope(c *gin.Context) *models.DataScope {
+	raw, ok := c.Get("data_scope")
+	if !ok {
+		return nil
+	}
+	scope, ok := raw.(*models.DataScope)
+	if !ok {
+		return nil
+	}
+	return scope
 }
 
 func dietFail(c *gin.Context, err error) {
@@ -62,7 +75,7 @@ func (h *Handler) CreateDietPlan(c *gin.Context) {
 		return
 	}
 
-	plan, err := h.service.CreateDietPlan(req, userID)
+	plan, err := h.service.CreateDietPlan(req, userID, dietScope(c))
 	if err != nil {
 		dietFail(c, err)
 		return
@@ -88,7 +101,7 @@ func (h *Handler) GetActiveDietPlan(c *gin.Context) {
 		return
 	}
 
-	plan, err := h.service.GetActiveDietPlan(admID)
+	plan, err := h.service.GetActiveDietPlan(admID, dietScope(c))
 	if err != nil {
 		dietFail(c, err)
 		return
@@ -108,7 +121,7 @@ func (h *Handler) ListDietPlans(c *gin.Context) {
 		return
 	}
 
-	plans, err := h.service.ListDietPlans(admID)
+	plans, err := h.service.ListDietPlans(admID, dietScope(c))
 	if err != nil {
 		dietFail(c, err)
 		return
@@ -128,7 +141,7 @@ func (h *Handler) CancelDietPlan(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.CancelDietPlan(id); err != nil {
+	if err := h.service.CancelDietPlan(id, dietScope(c)); err != nil {
 		dietFail(c, err)
 		return
 	}

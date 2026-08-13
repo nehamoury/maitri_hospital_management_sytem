@@ -17,7 +17,7 @@ type Service interface {
 	AdjustStock(id uuid.UUID, req StockAdjustRequest, userID uuid.UUID) (*models.Medicine, error)
 	ReturnStock(id uuid.UUID, req ReturnStockRequest, userID uuid.UUID) (*models.Medicine, error)
 	ListTransactions(id uuid.UUID) ([]models.InventoryTransaction, error)
-	Dispense(prescriptionID uuid.UUID, req DispenseRequest, userID uuid.UUID) (*models.Prescription, error)
+	Dispense(prescriptionID uuid.UUID, req DispenseRequest, userID uuid.UUID, scope *models.DataScope) (*models.Prescription, error)
 }
 
 type service struct {
@@ -113,8 +113,8 @@ func (s *service) ListTransactions(id uuid.UUID) ([]models.InventoryTransaction,
 	return s.repo.ListTransactions(id)
 }
 
-func (s *service) Dispense(prescriptionID uuid.UUID, req DispenseRequest, userID uuid.UUID) (*models.Prescription, error) {
-	rx, err := s.repo.FindPrescriptionWithItems(prescriptionID)
+func (s *service) Dispense(prescriptionID uuid.UUID, req DispenseRequest, userID uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
+	rx, err := s.repo.FindPrescriptionWithItems(prescriptionID, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -142,5 +142,5 @@ func (s *service) Dispense(prescriptionID uuid.UUID, req DispenseRequest, userID
 		}
 		return nil, err
 	}
-	return s.repo.FindPrescriptionWithItems(prescriptionID)
+	return s.repo.FindPrescriptionWithItems(prescriptionID, scope)
 }

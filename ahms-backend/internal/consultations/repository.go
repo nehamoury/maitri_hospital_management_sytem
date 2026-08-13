@@ -13,13 +13,13 @@ var ErrNotFound = errors.New("consultation not found")
 
 // Repository is the data-access layer for consultations.
 type Repository interface {
-	FindByEncounterID(encounterID uuid.UUID) (*models.Consultation, error)
-	FindByID(id uuid.UUID) (*models.Consultation, error)
+	FindByEncounterID(encounterID uuid.UUID, scope *models.DataScope) (*models.Consultation, error)
+	FindByID(id uuid.UUID, scope *models.DataScope) (*models.Consultation, error)
 	CreateWithDiagnoses(c *models.Consultation, diagnoses []models.Diagnosis) error
 	UpdateWithDiagnoses(c *models.Consultation, diagnoses []models.Diagnosis) error
 	FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error)
-	FindEncounterByID(id uuid.UUID) (*models.Encounter, error)
-	CompleteEncounter(encounterID uuid.UUID) error
+	FindEncounterByID(id uuid.UUID, scope *models.DataScope) (*models.Encounter, error)
+	CompleteEncounter(encounterID uuid.UUID, scope *models.DataScope) error
 }
 
 type repository struct {
@@ -31,20 +31,34 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) FindByEncounterID(encounterID uuid.UUID) (*models.Consultation, error) {
+// doctorScope restricts a consultation to one a (doctor) user actually owns.
+// The consultation's DoctorID mirrors Encounter.DoctorID at save time, so a
+// doctor can only ever resolve/act on consultations they authored.
+func doctorScope(query *gorm.DB, scope *models.DataScope) *gorm.DB {
+	if scope != nil && scope.DoctorID != nil {
+		return query.Where("consultations.doctor_id = ?", *scope.DoctorID)
+	}
+	return query
+}
+
+func (r *repository) FindByEncounterID(encounterID uuid.UUID, scope *models.DataScope) (*models.Consultation, error) {
 	var c models.Consultation
-	err := r.db.Preload("Doctor.User").Preload("Diagnoses").
-		First(&c, "encounter_id = ?", encounterID).Error
+	query := r.db.Preload("Doctor.User").Preload("Diagnoses").
+		Where("encounter_id = ?", encounterID)
+	query = doctorScope(query, scope)
+	err := query.First(&c).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
 	return &c, err
 }
 
-func (r *repository) FindByID(id uuid.UUID) (*models.Consultation, error) {
+func (r *repository) FindByID(id uuid.UUID, scope *models.DataScope) (*models.Consultation, error) {
 	var c models.Consultation
-	err := r.db.Preload("Doctor.User").Preload("Diagnoses").
-		First(&c, "id = ?", id).Error
+	query := r.db.Preload("Doctor.User").Preload("Diagnoses").
+		Where("id = ?", id)
+	query = doctorScope(query, scope)
+	err := query.First(&c).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
@@ -95,17 +109,24 @@ func (r *repository) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error
 	return &doctor, err
 }
 
-func (r *repository) FindEncounterByID(id uuid.UUID) (*models.Encounter, error) {
+func (r *repository) FindEncounterByID(id uuid.UUID, scope *models.DataScope) (*models.Encounter, error) {
 	var enc models.Encounter
-	err := r.db.First(&enc, "id = ?", id).Error
+	query := r.db.Where("id = ?", id)
+	if scope != nil && scope.DoctorID != nil {
+		// A doctor may only consult on encounters they are the treating doctor for.
+		query = query.Where("doctor_id = ?", *scope.DoctorID)
+	}
+	err := query.First(&enc).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
 	return &enc, err
 }
 
-func (r *repository) CompleteEncounter(encounterID uuid.UUID) error {
-	return r.db.Model(&models.Encounter{}).
-		Where("id = ?", encounterID).
-		Update("status", models.EncounterCompleted).Error
+func (r *repository) CompleteEncounter(encounterID uuid.UUID, scope *models.DataScope) error {
+	query := r.db.Model(&models.Encounter{}).Where("id = ?", encounterID)
+	if scope != nil && scope.DoctorID != nil {
+		query = query.Where("doctor_id = ?", *scope.DoctorID)
+	}
+	return query.Update("status", models.EncounterCompleted).Error
 }

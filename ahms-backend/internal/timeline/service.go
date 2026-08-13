@@ -1,12 +1,13 @@
 package timeline
 
 import (
+	"github.com/ahms/backend/internal/models"
 	"github.com/google/uuid"
 )
 
 // Service contains timeline business logic.
 type Service interface {
-	GetPatientTimeline(patientID uuid.UUID) (TimelineResponse, error)
+	GetPatientTimeline(patientID uuid.UUID, scope *models.DataScope) (TimelineResponse, error)
 }
 
 type service struct {
@@ -18,8 +19,8 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) GetPatientTimeline(patientID uuid.UUID) (TimelineResponse, error) {
-	patient, err := s.repo.FindPatient(patientID)
+func (s *service) GetPatientTimeline(patientID uuid.UUID, scope *models.DataScope) (TimelineResponse, error) {
+	patient, err := s.repo.FindPatient(patientID, scope)
 	if err != nil {
 		return TimelineResponse{}, err
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -17,6 +18,16 @@ type Handler struct {
 // NewHandler builds a Handler.
 func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
+}
+
+// scopeFromContext extracts the DataScope injected by DataScopeMiddleware.
+func scopeFromContext(c *gin.Context) *models.DataScope {
+	if s, exists := c.Get("data_scope"); exists {
+		if scope, ok := s.(*models.DataScope); ok {
+			return scope
+		}
+	}
+	return nil
 }
 
 // Get godoc
@@ -35,7 +46,7 @@ func (h *Handler) Get(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid patient id")
 		return
 	}
-	timeline, err := h.service.GetPatientTimeline(id)
+	timeline, err := h.service.GetPatientTimeline(id, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrPatientNotFound) {
 			utils.Fail(c, http.StatusNotFound, "patient not found")

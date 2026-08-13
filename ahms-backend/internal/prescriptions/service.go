@@ -7,12 +7,12 @@ import (
 
 // Service contains prescription business logic.
 type Service interface {
-	Create(encounterID uuid.UUID, req CreatePrescriptionRequest, doctorUserID uuid.UUID) (*models.Prescription, error)
-	GetByEncounterID(encounterID uuid.UUID) (*models.Prescription, error)
-	GetByID(id uuid.UUID) (*models.Prescription, error)
-	GetByIDForPrint(id uuid.UUID) (*models.Prescription, error)
-	List(in ListInput) ([]models.Prescription, error)
-	UpdateStatus(id uuid.UUID, status string) (*models.Prescription, error)
+	Create(encounterID uuid.UUID, req CreatePrescriptionRequest, doctorUserID uuid.UUID, scope *models.DataScope) (*models.Prescription, error)
+	GetByEncounterID(encounterID uuid.UUID, scope *models.DataScope) (*models.Prescription, error)
+	GetByID(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error)
+	GetByIDForPrint(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error)
+	List(in ListInput, scope *models.DataScope) ([]models.Prescription, error)
+	UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Prescription, error)
 }
 
 type service struct {
@@ -24,8 +24,8 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) Create(encounterID uuid.UUID, req CreatePrescriptionRequest, doctorUserID uuid.UUID) (*models.Prescription, error) {
-	encounter, err := s.repo.FindEncounterByID(encounterID)
+func (s *service) Create(encounterID uuid.UUID, req CreatePrescriptionRequest, doctorUserID uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
+	encounter, err := s.repo.FindEncounterByID(encounterID, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -55,25 +55,25 @@ func (s *service) Create(encounterID uuid.UUID, req CreatePrescriptionRequest, d
 	if err := s.repo.CreateWithItems(p, items); err != nil {
 		return nil, err
 	}
-	return s.repo.FindByID(p.ID)
+	return s.repo.FindByID(p.ID, scope)
 }
 
-func (s *service) GetByEncounterID(encounterID uuid.UUID) (*models.Prescription, error) {
-	return s.repo.FindByEncounterID(encounterID)
+func (s *service) GetByEncounterID(encounterID uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
+	return s.repo.FindByEncounterID(encounterID, scope)
 }
 
-func (s *service) GetByID(id uuid.UUID) (*models.Prescription, error) {
-	return s.repo.FindByID(id)
+func (s *service) GetByID(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
+	return s.repo.FindByID(id, scope)
 }
 
-func (s *service) GetByIDForPrint(id uuid.UUID) (*models.Prescription, error) {
-	return s.repo.FindByIDForPrint(id)
+func (s *service) GetByIDForPrint(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
+	return s.repo.FindByIDForPrint(id, scope)
 }
 
-func (s *service) List(in ListInput) ([]models.Prescription, error) {
-	return s.repo.List(in)
+func (s *service) List(in ListInput, scope *models.DataScope) ([]models.Prescription, error) {
+	return s.repo.List(in, scope)
 }
 
-func (s *service) UpdateStatus(id uuid.UUID, status string) (*models.Prescription, error) {
-	return s.repo.UpdateStatus(id, status)
+func (s *service) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Prescription, error) {
+	return s.repo.UpdateStatus(id, status, scope)
 }

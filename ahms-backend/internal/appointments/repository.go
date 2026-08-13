@@ -17,9 +17,9 @@ var ErrNotFound = errors.New("appointment not found")
 // Repository is the data-access layer for appointments.
 type Repository interface {
 	CreateWithToken(appt *models.Appointment) error
-	FindAll(doctorID, patientID *uuid.UUID, date *time.Time) ([]models.Appointment, error)
-	FindByID(id uuid.UUID) (*models.Appointment, error)
-	UpdateStatus(id uuid.UUID, status string) (*models.Appointment, error)
+	FindAll(doctorID, patientID *uuid.UUID, date *time.Time, scope *models.DataScope) ([]models.Appointment, error)
+	FindByID(id uuid.UUID, scope *models.DataScope) (*models.Appointment, error)
+	UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Appointment, error)
 	CountOnDate(day time.Time) (int64, error)
 	FindOrCreatePatient(fullName, mobile, email string) (*models.Patient, error)
 	GetSystemUserID() (uuid.UUID, error)
@@ -75,8 +75,12 @@ func (r *repository) CreateWithToken(appt *models.Appointment) error {
 	})
 }
 
-func (r *repository) FindAll(doctorID, patientID *uuid.UUID, date *time.Time) ([]models.Appointment, error) {
+func (r *repository) FindAll(doctorID, patientID *uuid.UUID, date *time.Time, scope *models.DataScope) ([]models.Appointment, error) {
 	query := r.db.Preload("Patient").Preload("Doctor.User").Order("appointment_date desc, token_number asc")
+	if scope != nil && scope.DoctorID != nil {
+		// A doctor only ever sees their own appointment queue.
+		query = query.Where("appointments.doctor_id = ?", *scope.DoctorID)
+	}
 	if doctorID != nil {
 		query = query.Where("doctor_id = ?", *doctorID)
 	}
@@ -93,25 +97,32 @@ func (r *repository) FindAll(doctorID, patientID *uuid.UUID, date *time.Time) ([
 	return appts, err
 }
 
-func (r *repository) FindByID(id uuid.UUID) (*models.Appointment, error) {
+func (r *repository) FindByID(id uuid.UUID, scope *models.DataScope) (*models.Appointment, error) {
 	var appt models.Appointment
-	err := r.db.Preload("Patient").Preload("Doctor.User").First(&appt, "id = ?", id).Error
+	query := r.db.Preload("Patient").Preload("Doctor.User").Where("id = ?", id)
+	if scope != nil && scope.DoctorID != nil {
+		query = query.Where("doctor_id = ?", *scope.DoctorID)
+	}
+	err := query.First(&appt).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
 	return &appt, err
 }
 
-func (r *repository) UpdateStatus(id uuid.UUID, status string) (*models.Appointment, error) {
-	appt, err := r.FindByID(id)
-	if err != nil {
-		return nil, err
+func (r *repository) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Appointment, error) {
+	query := r.db.Model(&models.Appointment{}).Where("id = ?", id)
+	if scope != nil && scope.DoctorID != nil {
+		query = query.Where("doctor_id = ?", *scope.DoctorID)
 	}
-	appt.Status = status
-	if err := r.db.Model(&models.Appointment{}).Where("id = ?", id).Update("status", status).Error; err != nil {
-		return nil, err
+	result := query.Update("status", status)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	return appt, nil
+	if result.RowsAffected == 0 {
+		return nil, ErrNotFound
+	}
+	return r.FindByID(id, scope)
 }
 
 func (r *repository) CountOnDate(day time.Time) (int64, error) {

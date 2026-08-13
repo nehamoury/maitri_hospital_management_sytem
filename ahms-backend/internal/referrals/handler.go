@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/ahms/backend/internal/audit"
+	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -45,6 +46,18 @@ func (h *Handler) SetAuditRecorder(r *audit.Recorder) { h.audit = r }
 
 // SetUploadDir sets the base directory used to persist referral attachments.
 func (h *Handler) SetUploadDir(dir string) { h.uploadDir = dir }
+
+func referralScope(c *gin.Context) *models.DataScope {
+	raw, ok := c.Get("data_scope")
+	if !ok {
+		return nil
+	}
+	scope, ok := raw.(*models.DataScope)
+	if !ok {
+		return nil
+	}
+	return scope
+}
 
 // Create godoc
 // @Summary      Create an inter-department referral
@@ -102,7 +115,7 @@ func (h *Handler) Incoming(c *gin.Context) {
 		return
 	}
 
-	list, err := h.service.Incoming(c.Query("department_id"), userID)
+	list, err := h.service.Incoming(c.Query("department_id"), userID, referralScope(c))
 	if err != nil {
 		utils.Fail(c, http.StatusBadRequest, err.Error())
 		return
@@ -130,7 +143,7 @@ func (h *Handler) Get(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid referral id")
 		return
 	}
-	referral, err := h.service.GetByID(id)
+	referral, err := h.service.GetByID(id, referralScope(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "referral not found")
@@ -165,7 +178,7 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	referral, err := h.service.UpdateStatus(id, req.Status)
+	referral, err := h.service.UpdateStatus(id, req.Status, referralScope(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "referral not found")
@@ -197,7 +210,7 @@ func (h *Handler) UploadAttachment(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid referral id")
 		return
 	}
-	if _, err := h.service.GetByID(id); err != nil {
+	if _, err := h.service.GetByID(id, referralScope(c)); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "referral not found")
 			return
@@ -255,7 +268,7 @@ func (h *Handler) UploadAttachment(c *gin.Context) {
 		return
 	}
 
-	att, err := h.service.AttachFile(id, header.Filename, "/uploads/"+referralUploadDir+"/"+name, contentType, int64(len(buf)), userID)
+	att, err := h.service.AttachFile(id, header.Filename, "/uploads/"+referralUploadDir+"/"+name, contentType, int64(len(buf)), userID, referralScope(c))
 	if err != nil {
 		os.Remove(path)
 		utils.Fail(c, http.StatusInternalServerError, "failed to record attachment")
@@ -281,7 +294,7 @@ func (h *Handler) ListAttachments(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid referral id")
 		return
 	}
-	list, err := h.service.ListAttachments(id)
+	list, err := h.service.ListAttachments(id, referralScope(c))
 	if err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to list attachments")
 		return
@@ -313,7 +326,7 @@ func (h *Handler) DownloadAttachment(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid attachment id")
 		return
 	}
-	att, err := h.service.GetAttachment(attID)
+	att, err := h.service.GetAttachment(attID, referralScope(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "attachment not found")
@@ -354,7 +367,7 @@ func (h *Handler) DeleteAttachment(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid attachment id")
 		return
 	}
-	att, err := h.service.GetAttachment(attID)
+	att, err := h.service.GetAttachment(attID, referralScope(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "attachment not found")
@@ -367,7 +380,7 @@ func (h *Handler) DeleteAttachment(c *gin.Context) {
 		utils.Fail(c, http.StatusForbidden, "attachment does not belong to this referral")
 		return
 	}
-	if err := h.service.DeleteAttachment(attID); err != nil {
+	if err := h.service.DeleteAttachment(attID, referralScope(c)); err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to delete attachment")
 		return
 	}

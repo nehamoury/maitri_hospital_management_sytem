@@ -85,6 +85,16 @@ func toResponse(p *models.Patient) PatientResponse {
 	}
 }
 
+// scopeFromContext extracts the DataScope injected by DataScopeMiddleware.
+func scopeFromContext(c *gin.Context) *models.DataScope {
+	if s, exists := c.Get("data_scope"); exists {
+		if scope, ok := s.(*models.DataScope); ok {
+			return scope
+		}
+	}
+	return nil
+}
+
 // List godoc
 // @Summary      List / search patients
 // @Description  Optional ?search= matches full name, mobile, or UHID.
@@ -96,11 +106,7 @@ func toResponse(p *models.Patient) PatientResponse {
 // @Router       /patients [get]
 func (h *Handler) List(c *gin.Context) {
 	search := c.Query("search")
-	var scope *models.DataScope
-	if s, exists := c.Get("data_scope"); exists {
-		scope = s.(*models.DataScope)
-	}
-	patientsList, err := h.service.List(search, scope)
+	patientsList, err := h.service.List(search, scopeFromContext(c))
 	if err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to fetch patients")
 		return
@@ -127,7 +133,7 @@ func (h *Handler) Get(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid patient id")
 		return
 	}
-	patient, err := h.service.GetByID(id)
+	patient, err := h.service.GetByID(id, scopeFromContext(c))
 	if err != nil {
 		utils.Fail(c, http.StatusNotFound, "patient not found")
 		return
@@ -152,7 +158,7 @@ func (h *Handler) Photo(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid patient id")
 		return
 	}
-	patient, err := h.service.GetByID(id)
+	patient, err := h.service.GetByID(id, scopeFromContext(c))
 	if err != nil {
 		utils.Fail(c, http.StatusNotFound, "patient not found")
 		return
@@ -247,7 +253,7 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 
-	patient, err := h.service.Update(id, req)
+	patient, err := h.service.Update(id, req, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "patient not found")
@@ -277,7 +283,7 @@ func (h *Handler) Delete(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid patient id")
 		return
 	}
-	if err := h.service.Delete(id); err != nil {
+	if err := h.service.Delete(id, scopeFromContext(c)); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "patient not found")
 			return

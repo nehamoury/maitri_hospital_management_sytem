@@ -32,6 +32,16 @@ func (h *Handler) SetAuditRecorder(r *audit.Recorder) { h.audit = r }
 // SetWebSocketHub sets the websocket hub for broadcasting messages.
 func (h *Handler) SetWebSocketHub(hub *websocket.Hub) { h.wsHub = hub }
 
+// scopeFromContext extracts the DataScope injected by DataScopeMiddleware.
+func scopeFromContext(c *gin.Context) *models.DataScope {
+	if s, exists := c.Get("data_scope"); exists {
+		if scope, ok := s.(*models.DataScope); ok {
+			return scope
+		}
+	}
+	return nil
+}
+
 func toResponse(a *models.Appointment) AppointmentResponse {
 	return AppointmentResponse{
 		ID:              a.ID.String(),
@@ -88,7 +98,7 @@ func (h *Handler) List(c *gin.Context) {
 		date = &d
 	}
 
-	appts, err := h.service.List(doctorID, patientID, date)
+	appts, err := h.service.List(doctorID, patientID, date, scopeFromContext(c))
 	if err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to fetch appointments")
 		return
@@ -115,7 +125,7 @@ func (h *Handler) Get(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid appointment id")
 		return
 	}
-	appt, err := h.service.GetByID(id)
+	appt, err := h.service.GetByID(id, scopeFromContext(c))
 	if err != nil {
 		utils.Fail(c, http.StatusNotFound, "appointment not found")
 		return
@@ -194,7 +204,7 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	appt, err := h.service.UpdateStatus(id, req.Status)
+	appt, err := h.service.UpdateStatus(id, req.Status, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "appointment not found")

@@ -9,9 +9,9 @@ import (
 // RegisterRoutes mounts pharmacy endpoints. Medicine master + stock
 // adjustments require inventory.manage (pharmacists); dispensing against a
 // prescription requires pharmacy.dispense.
-func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.AuthMiddleware, permMW *middleware.PermissionMiddleware) {
+func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.AuthMiddleware, permMW *middleware.PermissionMiddleware, scopeMW gin.HandlerFunc) {
 	group := rg.Group("/medicines")
-	group.Use(authMW.RequireAuth())
+	group.Use(authMW.RequireAuth(), scopeMW)
 	{
 		group.POST("", permMW.RequirePermission(models.PermPharmacyStock), handler.CreateMedicine)
 		group.GET("", permMW.RequirePermission(models.PermPharmacyView), handler.ListMedicines)
@@ -23,7 +23,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.Au
 	}
 
 	rx := rg.Group("/prescriptions")
-	rx.Use(authMW.RequireAuth())
+	rx.Use(authMW.RequireAuth(), scopeMW)
 	{
 		rx.POST("/:id/dispense", permMW.RequirePermission(models.PermPharmacyDispense), handler.Dispense)
 	}

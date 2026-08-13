@@ -170,7 +170,12 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	encounter, err := h.service.UpdateStatus(id, req.Status)
+	var scope *models.DataScope
+	if scopeVal, exists := c.Get("data_scope"); exists {
+		scope = scopeVal.(*models.DataScope)
+	}
+
+	encounter, err := h.service.UpdateStatus(id, req.Status, scope)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "encounter not found")

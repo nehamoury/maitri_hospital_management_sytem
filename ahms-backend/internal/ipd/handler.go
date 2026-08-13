@@ -48,6 +48,18 @@ func serverErr(c *gin.Context, msg string, err error) {
 	utils.Fail(c, http.StatusInternalServerError, msg)
 }
 
+func scopeFromContext(c *gin.Context) *models.DataScope {
+	raw, ok := c.Get("data_scope")
+	if !ok {
+		return nil
+	}
+	scope, ok := raw.(*models.DataScope)
+	if !ok {
+		return nil
+	}
+	return scope
+}
+
 // ---------------------------------------------------------------------------
 // Response builders
 // ---------------------------------------------------------------------------
@@ -447,7 +459,7 @@ func (h *Handler) ListAdmissions(c *gin.Context) {
 		Ward:       c.Query("ward_id"),
 		Search:     c.Query("q"),
 	}
-	list, err := h.service.ListAdmissions(f)
+	list, err := h.service.ListAdmissions(f, scopeFromContext(c))
 	if err != nil {
 		serverErr(c, "failed to fetch admissions", err)
 		return
@@ -465,7 +477,7 @@ func (h *Handler) ListAdmissions(c *gin.Context) {
 // @Param        id path string true "Admission ID"
 // @Router       /admissions/{id} [get]
 func (h *Handler) GetAdmission(c *gin.Context) {
-	a, err := h.service.GetAdmission(c.Param("id"))
+	a, err := h.service.GetAdmission(c.Param("id"), scopeFromContext(c))
 	if err != nil {
 		serverErr(c, "failed to fetch admission", err)
 		return
@@ -513,7 +525,7 @@ func (h *Handler) UpdateAdmission(c *gin.Context) {
 		utils.Fail(c, http.StatusUnauthorized, "invalid session")
 		return
 	}
-	a, err := h.service.UpdateAdmission(c.Param("id"), req, userID)
+	a, err := h.service.UpdateAdmission(c.Param("id"), req, userID, scopeFromContext(c))
 	if err != nil {
 		serverErr(c, "failed to update admission", err)
 		return
@@ -538,7 +550,7 @@ func (h *Handler) TransferBed(c *gin.Context) {
 		utils.Fail(c, http.StatusUnauthorized, "invalid session")
 		return
 	}
-	a, err := h.service.TransferBed(c.Param("id"), req, userID)
+	a, err := h.service.TransferBed(c.Param("id"), req, userID, scopeFromContext(c))
 	if err != nil {
 		serverErr(c, "failed to transfer bed", err)
 		return
@@ -563,7 +575,7 @@ func (h *Handler) AddNote(c *gin.Context) {
 		utils.Fail(c, http.StatusUnauthorized, "invalid session")
 		return
 	}
-	n, err := h.service.AddNote(c.Param("id"), req, userID)
+	n, err := h.service.AddNote(c.Param("id"), req, userID, scopeFromContext(c))
 	if err != nil {
 		serverErr(c, "failed to add note", err)
 		return
@@ -588,7 +600,7 @@ func (h *Handler) AddOrder(c *gin.Context) {
 		utils.Fail(c, http.StatusUnauthorized, "invalid session")
 		return
 	}
-	o, err := h.service.AddOrder(c.Param("id"), req, userID)
+	o, err := h.service.AddOrder(c.Param("id"), req, userID, scopeFromContext(c))
 	if err != nil {
 		serverErr(c, "failed to add order", err)
 		return
@@ -609,7 +621,7 @@ func (h *Handler) UpdateOrderStatus(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid request payload: "+err.Error())
 		return
 	}
-	o, err := h.service.UpdateOrderStatus(c.Param("id"), c.Param("oid"), req)
+	o, err := h.service.UpdateOrderStatus(c.Param("id"), c.Param("oid"), req, scopeFromContext(c))
 	if err != nil {
 		serverErr(c, "failed to update order", err)
 		return
@@ -634,7 +646,7 @@ func (h *Handler) AddDiet(c *gin.Context) {
 		utils.Fail(c, http.StatusUnauthorized, "invalid session")
 		return
 	}
-	d, err := h.service.AddDiet(c.Param("id"), req, userID)
+	d, err := h.service.AddDiet(c.Param("id"), req, userID, scopeFromContext(c))
 	if err != nil {
 		serverErr(c, "failed to add diet order", err)
 		return
@@ -659,7 +671,7 @@ func (h *Handler) Discharge(c *gin.Context) {
 		utils.Fail(c, http.StatusUnauthorized, "invalid session")
 		return
 	}
-	a, err := h.service.Discharge(c.Param("id"), req, userID)
+	a, err := h.service.Discharge(c.Param("id"), req, userID, scopeFromContext(c))
 	if err != nil {
 		serverErr(c, "failed to discharge patient", err)
 		return

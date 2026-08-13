@@ -25,7 +25,7 @@ type Repository interface {
 	AdjustStock(m *models.Medicine, qty float64, batchNumber string, notes string, userID uuid.UUID) error
 	ReturnStock(m *models.Medicine, qty float64, batchNumber string, notes string, userID uuid.UUID) error
 	ListTransactions(medicineID uuid.UUID) ([]models.InventoryTransaction, error)
-	FindPrescriptionWithItems(id uuid.UUID) (*models.Prescription, error)
+	FindPrescriptionWithItems(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error)
 	DispenseItems(rx *models.Prescription, updates []dispenseUpdate, userID uuid.UUID) error
 	FindDoctorOrStaffRoleName(userID uuid.UUID) (string, error)
 }
@@ -43,6 +43,16 @@ type repository struct {
 // NewRepository builds a Repository backed by GORM/PostgreSQL.
 func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
+}
+
+// applyDoctorScope restricts prescription queries to prescriptions written by
+// the given doctor. A nil scope or a scope without a DoctorID leaves the
+// query unscoped (pharmacy staff get full access).
+func applyDoctorScope(q *gorm.DB, scope *models.DataScope) *gorm.DB {
+	if scope == nil || scope.DoctorID == nil {
+		return q
+	}
+	return q.Where("prescriptions.doctor_id = ?", *scope.DoctorID)
 }
 
 func (r *repository) CreateMedicine(m *models.Medicine) error {
@@ -160,9 +170,11 @@ func (r *repository) ListTransactions(medicineID uuid.UUID) ([]models.InventoryT
 	return list, err
 }
 
-func (r *repository) FindPrescriptionWithItems(id uuid.UUID) (*models.Prescription, error) {
+func (r *repository) FindPrescriptionWithItems(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
 	var p models.Prescription
-	err := r.db.Preload("Doctor.User").Preload("Items").First(&p, "id = ?", id).Error
+	query := r.db.Preload("Doctor.User").Preload("Items").Where("prescriptions.id = ?", id)
+	applyDoctorScope(query, scope)
+	err := query.First(&p).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}

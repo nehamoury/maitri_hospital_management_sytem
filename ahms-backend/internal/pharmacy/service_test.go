@@ -46,7 +46,7 @@ func (f *fakeRepo) AdjustStock(m *models.Medicine, qty float64, batchNumber stri
 	return nil
 }
 
-func (f *fakeRepo) FindPrescriptionWithItems(id uuid.UUID) (*models.Prescription, error) {
+func (f *fakeRepo) FindPrescriptionWithItems(id uuid.UUID, scope *models.DataScope) (*models.Prescription, error) {
 	if f.prescription == nil {
 		return nil, ErrNotFound
 	}
@@ -131,7 +131,7 @@ func TestDispenseHappyPath(t *testing.T) {
 		Items: []DispenseItem{
 			{PrescriptionItemID: item.ID.String(), Quantity: 30, MedicineID: medID.String()},
 		},
-	}, uuid.New())
+	}, uuid.New(), nil)
 
 	if err != nil {
 		t.Fatalf("dispense should succeed, got %v", err)
@@ -155,7 +155,7 @@ func TestDispenseRejectsInsufficientStock(t *testing.T) {
 		Items: []DispenseItem{
 			{PrescriptionItemID: item.ID.String(), Quantity: 12, MedicineID: uuid.NewString()},
 		},
-	}, uuid.New())
+	}, uuid.New(), nil)
 
 	if !errors.Is(err, ErrInsufficientStock) {
 		t.Fatalf("expected ErrInsufficientStock, got %v", err)
@@ -173,7 +173,7 @@ func TestDispenseRejectsInvalidItemID(t *testing.T) {
 
 	_, err := svc.Dispense(rx.ID, DispenseRequest{
 		Items: []DispenseItem{{PrescriptionItemID: "not-a-uuid", Quantity: 10}},
-	}, uuid.New())
+	}, uuid.New(), nil)
 
 	if err == nil {
 		t.Fatal("invalid item id must return an error")
@@ -186,7 +186,7 @@ func TestDispenseRejectsMissingPrescription(t *testing.T) {
 
 	_, err := svc.Dispense(uuid.New(), DispenseRequest{
 		Items: []DispenseItem{{PrescriptionItemID: uuid.NewString(), Quantity: 1}},
-	}, uuid.New())
+	}, uuid.New(), nil)
 
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)

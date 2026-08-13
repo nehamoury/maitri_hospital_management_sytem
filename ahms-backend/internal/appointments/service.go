@@ -11,9 +11,9 @@ import (
 type Service interface {
 	Book(req CreateAppointmentRequest, bookedByUserID uuid.UUID) (*models.Appointment, error)
 	PublicBook(req PublicAppointmentRequest) (*models.Appointment, error)
-	List(doctorID, patientID *uuid.UUID, date *time.Time) ([]models.Appointment, error)
-	GetByID(id uuid.UUID) (*models.Appointment, error)
-	UpdateStatus(id uuid.UUID, status string) (*models.Appointment, error)
+	List(doctorID, patientID *uuid.UUID, date *time.Time, scope *models.DataScope) ([]models.Appointment, error)
+	GetByID(id uuid.UUID, scope *models.DataScope) (*models.Appointment, error)
+	UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Appointment, error)
 	Slots(doctorID uuid.UUID, day time.Time) ([]SlotAvailability, error)
 }
 
@@ -53,7 +53,7 @@ func (s *service) Book(req CreateAppointmentRequest, bookedByUserID uuid.UUID) (
 		return nil, err
 	}
 
-	return s.repo.FindByID(appt.ID)
+	return s.repo.FindByID(appt.ID, nil)
 }
 
 func (s *service) PublicBook(req PublicAppointmentRequest) (*models.Appointment, error) {
@@ -89,19 +89,19 @@ func (s *service) PublicBook(req PublicAppointmentRequest) (*models.Appointment,
 		return nil, err
 	}
 
-	return s.repo.FindByID(appt.ID)
+	return s.repo.FindByID(appt.ID, nil)
 }
 
-func (s *service) List(doctorID, patientID *uuid.UUID, date *time.Time) ([]models.Appointment, error) {
-	return s.repo.FindAll(doctorID, patientID, date)
+func (s *service) List(doctorID, patientID *uuid.UUID, date *time.Time, scope *models.DataScope) ([]models.Appointment, error) {
+	return s.repo.FindAll(doctorID, patientID, date, scope)
 }
 
-func (s *service) GetByID(id uuid.UUID) (*models.Appointment, error) {
-	return s.repo.FindByID(id)
+func (s *service) GetByID(id uuid.UUID, scope *models.DataScope) (*models.Appointment, error) {
+	return s.repo.FindByID(id, scope)
 }
 
-func (s *service) UpdateStatus(id uuid.UUID, status string) (*models.Appointment, error) {
-	return s.repo.UpdateStatus(id, status)
+func (s *service) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Appointment, error) {
+	return s.repo.UpdateStatus(id, status, scope)
 }
 
 // Slots returns the standard OPD grid with live availability for the

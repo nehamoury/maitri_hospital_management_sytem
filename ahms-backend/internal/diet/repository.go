@@ -10,10 +10,11 @@ import (
 
 type Repository interface {
 	CreateDietPlan(plan *models.DietPlan) error
-	GetDietPlan(id uuid.UUID) (*models.DietPlan, error)
-	GetActiveDietPlanForAdmission(admissionID uuid.UUID) (*models.DietPlan, error)
-	ListDietPlansForAdmission(admissionID uuid.UUID) ([]models.DietPlan, error)
+	GetDietPlan(id uuid.UUID, scope *models.DataScope) (*models.DietPlan, error)
+	GetActiveDietPlanForAdmission(admissionID uuid.UUID, scope *models.DataScope) (*models.DietPlan, error)
+	ListDietPlansForAdmission(admissionID uuid.UUID, scope *models.DataScope) ([]models.DietPlan, error)
 	DeactivatePlansForAdmission(admissionID uuid.UUID) error
+	DoctorOwnsAdmission(admissionID, doctorID uuid.UUID) error
 
 	// Meal orders
 	CreateMealOrders(meals []models.MealOrder) error
@@ -33,25 +34,39 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
+// applyDoctorScope restricts diet queries to plans on admissions the given
+// doctor is the treating doctor for. A nil scope or a scope without a
+// DoctorID leaves the query unscoped (kitchen/nursing staff get full access).
+func applyDoctorScope(q *gorm.DB, scope *models.DataScope) *gorm.DB {
+	if scope == nil || scope.DoctorID == nil {
+		return q
+	}
+	return q.Where("EXISTS (SELECT 1 FROM admissions WHERE admissions.id = diet_plans.admission_id AND admissions.doctor_id = ? AND admissions.deleted_at IS NULL)", *scope.DoctorID)
+}
+
 // ─── Diet Plans ───────────────────────────────────────────────────────────────
 
 func (r *repository) CreateDietPlan(plan *models.DietPlan) error {
 	return r.db.Create(plan).Error
 }
 
-func (r *repository) GetDietPlan(id uuid.UUID) (*models.DietPlan, error) {
+func (r *repository) GetDietPlan(id uuid.UUID, scope *models.DataScope) (*models.DietPlan, error) {
 	var plan models.DietPlan
-	if err := r.db.Preload("OrderedByUser").First(&plan, "id = ?", id).Error; err != nil {
+	query := r.db.Preload("OrderedByUser").Where("diet_plans.id = ?", id)
+	applyDoctorScope(query, scope)
+	if err := query.First(&plan).Error; err != nil {
 		return nil, err
 	}
 	return &plan, nil
 }
 
-func (r *repository) GetActiveDietPlanForAdmission(admissionID uuid.UUID) (*models.DietPlan, error) {
+func (r *repository) GetActiveDietPlanForAdmission(admissionID uuid.UUID, scope *models.DataScope) (*models.DietPlan, error) {
 	var plan models.DietPlan
-	err := r.db.Preload("OrderedByUser").
-		Where("admission_id = ? AND is_active = ?", admissionID, true).
-		Order("created_at DESC").
+	query := r.db.Preload("OrderedByUser").
+		Where("diet_plans.admission_id = ? AND diet_plans.is_active = ?", admissionID, true)
+	applyDoctorScope(query, scope)
+	err := query.
+		Order("diet_plans.created_at DESC").
 		First(&plan).Error
 	if err != nil {
 		return nil, err
@@ -59,11 +74,13 @@ func (r *repository) GetActiveDietPlanForAdmission(admissionID uuid.UUID) (*mode
 	return &plan, nil
 }
 
-func (r *repository) ListDietPlansForAdmission(admissionID uuid.UUID) ([]models.DietPlan, error) {
+func (r *repository) ListDietPlansForAdmission(admissionID uuid.UUID, scope *models.DataScope) ([]models.DietPlan, error) {
 	var plans []models.DietPlan
-	err := r.db.Preload("OrderedByUser").
-		Where("admission_id = ?", admissionID).
-		Order("created_at DESC").
+	query := r.db.Preload("OrderedByUser").
+		Where("diet_plans.admission_id = ?", admissionID)
+	applyDoctorScope(query, scope)
+	err := query.
+		Order("diet_plans.created_at DESC").
 		Find(&plans).Error
 	return plans, err
 }
@@ -72,6 +89,20 @@ func (r *repository) DeactivatePlansForAdmission(admissionID uuid.UUID) error {
 	return r.db.Model(&models.DietPlan{}).
 		Where("admission_id = ? AND is_active = ?", admissionID, true).
 		Update("is_active", false).Error
+}
+
+func (r *repository) DoctorOwnsAdmission(admissionID, doctorID uuid.UUID) error {
+	var count int64
+	err := r.db.Model(&models.Admission{}).
+		Where("id = ? AND doctor_id = ? AND deleted_at IS NULL", admissionID, doctorID).
+		Count(&count).Error
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 // ─── Meal Orders ──────────────────────────────────────────────────────────────

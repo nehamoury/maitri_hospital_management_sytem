@@ -17,11 +17,11 @@ var (
 )
 
 type Service interface {
-	CreateDietPlan(req CreateDietPlanRequest, orderedByUserID uuid.UUID) (*DietPlanResponse, error)
-	GetDietPlan(id uuid.UUID) (*DietPlanResponse, error)
-	GetActiveDietPlan(admissionID uuid.UUID) (*DietPlanResponse, error)
-	ListDietPlans(admissionID uuid.UUID) ([]DietPlanResponse, error)
-	CancelDietPlan(id uuid.UUID) error
+	CreateDietPlan(req CreateDietPlanRequest, orderedByUserID uuid.UUID, scope *models.DataScope) (*DietPlanResponse, error)
+	GetDietPlan(id uuid.UUID, scope *models.DataScope) (*DietPlanResponse, error)
+	GetActiveDietPlan(admissionID uuid.UUID, scope *models.DataScope) (*DietPlanResponse, error)
+	ListDietPlans(admissionID uuid.UUID, scope *models.DataScope) ([]DietPlanResponse, error)
+	CancelDietPlan(id uuid.UUID, scope *models.DataScope) error
 
 	// Daily generation and operations
 	GenerateDailyMeals(t time.Time) (int, error)
@@ -40,7 +40,7 @@ func NewService(repo Repository, db *gorm.DB) Service {
 
 // ─── Diet Plans ───────────────────────────────────────────────────────────────
 
-func (s *service) CreateDietPlan(req CreateDietPlanRequest, orderedByUserID uuid.UUID) (*DietPlanResponse, error) {
+func (s *service) CreateDietPlan(req CreateDietPlanRequest, orderedByUserID uuid.UUID, scope *models.DataScope) (*DietPlanResponse, error) {
 	admID, err := uuid.Parse(req.AdmissionID)
 	if err != nil {
 		return nil, errors.New("invalid admission_id")
@@ -48,6 +48,13 @@ func (s *service) CreateDietPlan(req CreateDietPlanRequest, orderedByUserID uuid
 	patID, err := uuid.Parse(req.PatientID)
 	if err != nil {
 		return nil, errors.New("invalid patient_id")
+	}
+	if scope != nil && scope.DoctorID != nil {
+		// Write-side ownership: a doctor may only prescribe diet for their own
+		// admissions.
+		if err := s.repo.DoctorOwnsAdmission(admID, *scope.DoctorID); err != nil {
+			return nil, ErrNotFound
+		}
 	}
 	sd, err := time.Parse("2006-01-02", req.StartDate)
 	if err != nil {
@@ -80,7 +87,7 @@ func (s *service) CreateDietPlan(req CreateDietPlanRequest, orderedByUserID uuid
 		return nil, err
 	}
 
-	full, err := s.repo.GetDietPlan(plan.ID)
+	full, err := s.repo.GetDietPlan(plan.ID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +95,8 @@ func (s *service) CreateDietPlan(req CreateDietPlanRequest, orderedByUserID uuid
 	return &resp, nil
 }
 
-func (s *service) GetDietPlan(id uuid.UUID) (*DietPlanResponse, error) {
-	plan, err := s.repo.GetDietPlan(id)
+func (s *service) GetDietPlan(id uuid.UUID, scope *models.DataScope) (*DietPlanResponse, error) {
+	plan, err := s.repo.GetDietPlan(id, scope)
 	if err != nil {
 		return nil, ErrNotFound
 	}
@@ -97,8 +104,8 @@ func (s *service) GetDietPlan(id uuid.UUID) (*DietPlanResponse, error) {
 	return &resp, nil
 }
 
-func (s *service) GetActiveDietPlan(admissionID uuid.UUID) (*DietPlanResponse, error) {
-	plan, err := s.repo.GetActiveDietPlanForAdmission(admissionID)
+func (s *service) GetActiveDietPlan(admissionID uuid.UUID, scope *models.DataScope) (*DietPlanResponse, error) {
+	plan, err := s.repo.GetActiveDietPlanForAdmission(admissionID, scope)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
@@ -109,8 +116,8 @@ func (s *service) GetActiveDietPlan(admissionID uuid.UUID) (*DietPlanResponse, e
 	return &resp, nil
 }
 
-func (s *service) ListDietPlans(admissionID uuid.UUID) ([]DietPlanResponse, error) {
-	plans, err := s.repo.ListDietPlansForAdmission(admissionID)
+func (s *service) ListDietPlans(admissionID uuid.UUID, scope *models.DataScope) ([]DietPlanResponse, error) {
+	plans, err := s.repo.ListDietPlansForAdmission(admissionID, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -121,8 +128,8 @@ func (s *service) ListDietPlans(admissionID uuid.UUID) ([]DietPlanResponse, erro
 	return out, nil
 }
 
-func (s *service) CancelDietPlan(id uuid.UUID) error {
-	plan, err := s.repo.GetDietPlan(id)
+func (s *service) CancelDietPlan(id uuid.UUID, scope *models.DataScope) error {
+	plan, err := s.repo.GetDietPlan(id, scope)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -144,7 +151,7 @@ func (s *service) GenerateDailyMeals(t time.Time) (int, error) {
 
 	for _, adm := range admissions {
 		// Find active diet plan
-		plan, err := s.repo.GetActiveDietPlanForAdmission(adm.ID)
+		plan, err := s.repo.GetActiveDietPlanForAdmission(adm.ID, nil)
 		if err != nil {
 			// No active diet plan, skip
 			continue

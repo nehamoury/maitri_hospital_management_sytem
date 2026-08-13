@@ -12,7 +12,7 @@ type Service interface {
 	Create(req CreateEncounterRequest, createdByUserID uuid.UUID) (*models.Encounter, error)
 	List(patientID, departmentID, doctorID, status string, date string, scope *models.DataScope) ([]models.Encounter, error)
 	GetByID(id uuid.UUID, scope *models.DataScope) (*models.Encounter, error)
-	UpdateStatus(id uuid.UUID, status string) (*models.Encounter, error)
+	UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Encounter, error)
 }
 
 type service struct {
@@ -125,12 +125,6 @@ func (s *service) GetByID(id uuid.UUID, scope *models.DataScope) (*models.Encoun
 	return s.repo.FindByID(id, scope)
 }
 
-func (s *service) UpdateStatus(id uuid.UUID, status string) (*models.Encounter, error) {
-	// For update, we might also want to enforce scope, but for now we just use FindByID first
-	// to see if the user can view it, then update.
-	_, err := s.repo.FindByID(id, nil) // we should really pass scope here too, but UpdateStatus doesn't take scope currently.
-	if err != nil {
-		// handle later if needed
-	}
-	return s.repo.UpdateStatus(id, status)
+func (s *service) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Encounter, error) {
+	return s.repo.UpdateStatus(id, status, scope)
 }

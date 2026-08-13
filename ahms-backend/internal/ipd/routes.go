@@ -9,7 +9,7 @@ import (
 // RegisterRoutes mounts every IPD endpoint. Ward/bed master routes require
 // ward permissions; admissions require the admission permission set; the
 // clinical chart (notes/orders/diet) is guarded per action.
-func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.AuthMiddleware, permMW *middleware.PermissionMiddleware) {
+func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.AuthMiddleware, permMW *middleware.PermissionMiddleware, scopeMW gin.HandlerFunc) {
 	wardGroup := rg.Group("/wards")
 	wardGroup.Use(authMW.RequireAuth())
 	{

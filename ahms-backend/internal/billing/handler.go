@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ahms/backend/internal/audit"
+	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -31,6 +32,18 @@ func currentUserID(c *gin.Context) uuid.UUID {
 		return uuid.Nil
 	}
 	return id
+}
+
+func billingScope(c *gin.Context) *models.DataScope {
+	raw, ok := c.Get("data_scope")
+	if !ok {
+		return nil
+	}
+	scope, ok := raw.(*models.DataScope)
+	if !ok {
+		return nil
+	}
+	return scope
 }
 
 // CreateBill godoc
@@ -76,7 +89,7 @@ func (h *Handler) ListBills(c *gin.Context) {
 			utils.Fail(c, http.StatusBadRequest, "invalid patient_id")
 			return
 		}
-		bills, err := h.service.ListBillsByPatient(id)
+		bills, err := h.service.ListBillsByPatient(id, billingScope(c))
 		if err != nil {
 			utils.Fail(c, http.StatusInternalServerError, "failed to fetch bills")
 			return
@@ -88,7 +101,7 @@ func (h *Handler) ListBills(c *gin.Context) {
 		utils.Success(c, http.StatusOK, "bills fetched", resp)
 		return
 	}
-	bills, err := h.service.ListBills(c.Query("status"), c.Query("query"))
+	bills, err := h.service.ListBills(c.Query("status"), c.Query("query"), billingScope(c))
 	if err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to fetch bills")
 		return
@@ -114,7 +127,7 @@ func (h *Handler) GetBill(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid bill id")
 		return
 	}
-	bill, err := h.service.GetBill(id)
+	bill, err := h.service.GetBill(id, billingScope(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "bill not found")
@@ -135,7 +148,7 @@ func (h *Handler) GetBill(c *gin.Context) {
 // @Success      200 {object} utils.APIResponse{data=BillResponse}
 // @Router       /bills/number/{bill_no} [get]
 func (h *Handler) GetBillByNo(c *gin.Context) {
-	bill, err := h.service.GetBillByNo(c.Param("bill_no"))
+	bill, err := h.service.GetBillByNo(c.Param("bill_no"), billingScope(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "bill not found")

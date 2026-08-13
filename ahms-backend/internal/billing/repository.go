@@ -14,9 +14,9 @@ var ErrNotFound = errors.New("record not found")
 // Repository is the data-access layer for billing.
 type Repository interface {
 	CreateBill(bill *models.Bill, items []models.BillItem) (*models.Bill, error)
-	FindBillByID(id uuid.UUID) (*models.Bill, error)
-	FindBillByNo(no string) (*models.Bill, error)
-	ListBills(filter BillFilter) ([]models.Bill, error)
+	FindBillByID(id uuid.UUID, scope *models.DataScope) (*models.Bill, error)
+	FindBillByNo(no string, scope *models.DataScope) (*models.Bill, error)
+	ListBills(filter BillFilter, scope *models.DataScope) ([]models.Bill, error)
 	NextBillNumber(year int) (string, error)
 	ApplyPayment(id uuid.UUID, amount float64, method, ref string, userID uuid.UUID) (*models.Bill, error)
 	ApplyRefund(id uuid.UUID, amount float64, reason string, userID uuid.UUID) (*models.Bill, error)
@@ -36,6 +36,16 @@ type repository struct {
 // NewRepository builds a billing Repository.
 func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
+}
+
+// applyDoctorScope restricts bill queries to bills on patients the given
+// doctor has treated. A nil scope or a scope without a DoctorID leaves the
+// query unscoped (billing desk gets full access).
+func applyDoctorScope(q *gorm.DB, scope *models.DataScope) *gorm.DB {
+	if scope == nil || scope.DoctorID == nil {
+		return q
+	}
+	return q.Where("EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = bills.patient_id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL)", *scope.DoctorID)
 }
 
 func (r *repository) CreateBill(bill *models.Bill, items []models.BillItem) (*models.Bill, error) {
@@ -59,7 +69,7 @@ func (r *repository) CreateBill(bill *models.Bill, items []models.BillItem) (*mo
 	if err != nil {
 		return nil, err
 	}
-	return r.FindBillByID(bill.ID)
+	return r.FindBillByID(bill.ID, nil)
 }
 
 // syncEncounterPayment recomputes an encounter's payment_status from all of
@@ -92,30 +102,35 @@ func (r *repository) syncEncounterPayment(tx *gorm.DB, encounterID uuid.UUID) er
 	return tx.Model(&models.Encounter{}).Where("id = ?", encounterID).Update("payment_status", status).Error
 }
 
-func (r *repository) FindBillByID(id uuid.UUID) (*models.Bill, error) {
+func (r *repository) FindBillByID(id uuid.UUID, scope *models.DataScope) (*models.Bill, error) {
 	var b models.Bill
-	err := r.db.Preload("Patient").Preload("Items").Preload("BilledBy").
+	query := r.db.Preload("Patient").Preload("Items").Preload("BilledBy").
 		Preload("Payments").
-		First(&b, "id = ?", id).Error
+		Where("bills.id = ?", id)
+	applyDoctorScope(query, scope)
+	err := query.First(&b).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
 	return &b, err
 }
 
-func (r *repository) FindBillByNo(no string) (*models.Bill, error) {
+func (r *repository) FindBillByNo(no string, scope *models.DataScope) (*models.Bill, error) {
 	var b models.Bill
-	err := r.db.Preload("Patient").Preload("Items").Preload("BilledBy").
+	query := r.db.Preload("Patient").Preload("Items").Preload("BilledBy").
 		Preload("Payments").
-		First(&b, "bill_no = ?", no).Error
+		Where("bills.bill_no = ?", no)
+	applyDoctorScope(query, scope)
+	err := query.First(&b).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
 	return &b, err
 }
 
-func (r *repository) ListBills(filter BillFilter) ([]models.Bill, error) {
-	query := r.db.Preload("Patient").Preload("Items").Preload("BilledBy").Order("created_at desc")
+func (r *repository) ListBills(filter BillFilter, scope *models.DataScope) ([]models.Bill, error) {
+	query := r.db.Preload("Patient").Preload("Items").Preload("BilledBy").Where("bills.deleted_at IS NULL").Order("bills.created_at desc")
+	applyDoctorScope(query, scope)
 	if filter.Status != "" {
 		query = query.Where("payment_status = ?", filter.Status)
 	}

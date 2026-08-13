@@ -22,7 +22,7 @@ type Repository interface {
 	CreateWithToken(e *models.Encounter) error
 	FindAll(patientID, departmentID, doctorID *uuid.UUID, status string, date *time.Time, scope *models.DataScope) ([]models.Encounter, error)
 	FindByID(id uuid.UUID, scope *models.DataScope) (*models.Encounter, error)
-	UpdateStatus(id uuid.UUID, status string) (*models.Encounter, error)
+	UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Encounter, error)
 	SetReferral(id uuid.UUID, referralID uuid.UUID) error
 }
 
@@ -139,15 +139,20 @@ func (r *repository) FindByID(id uuid.UUID, scope *models.DataScope) (*models.En
 	return &e, err
 }
 
-func (r *repository) UpdateStatus(id uuid.UUID, status string) (*models.Encounter, error) {
-	result := r.db.Model(&models.Encounter{}).Where("id = ?", id).Update("status", status)
+func (r *repository) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Encounter, error) {
+	query := r.db.Model(&models.Encounter{}).Where("id = ?", id)
+	if scope != nil && scope.DoctorID != nil {
+		// Doctors may only advance the status of their own encounters.
+		query = query.Where("doctor_id = ?", *scope.DoctorID)
+	}
+	result := query.Update("status", status)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	if result.RowsAffected == 0 {
 		return nil, ErrNotFound
 	}
-	return r.FindByID(id, nil)
+	return r.FindByID(id, scope)
 }
 
 func (r *repository) SetReferral(id uuid.UUID, referralID uuid.UUID) error {

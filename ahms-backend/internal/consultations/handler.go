@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ahms/backend/internal/audit"
+	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -23,6 +24,16 @@ func NewHandler(service Service) *Handler {
 
 // SetAuditRecorder attaches the audit recorder used to log data changes.
 func (h *Handler) SetAuditRecorder(r *audit.Recorder) { h.audit = r }
+
+// scopeFromContext extracts the DataScope injected by DataScopeMiddleware.
+func scopeFromContext(c *gin.Context) *models.DataScope {
+	if s, exists := c.Get("data_scope"); exists {
+		if scope, ok := s.(*models.DataScope); ok {
+			return scope
+		}
+	}
+	return nil
+}
 
 // Create godoc
 // @Summary      Create a consultation for an encounter (doctor saves clinical record)
@@ -54,7 +65,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	consultation, err := h.service.Create(encounterID, req, userID)
+	consultation, err := h.service.Create(encounterID, req, userID, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "encounter or doctor record not found")
@@ -84,7 +95,7 @@ func (h *Handler) GetByEncounter(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid encounter id")
 		return
 	}
-	consultation, err := h.service.GetByEncounterID(encounterID)
+	consultation, err := h.service.GetByEncounterID(encounterID, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "no consultation found for this encounter")
@@ -120,7 +131,7 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 
-	consultation, err := h.service.Update(id, req)
+	consultation, err := h.service.Update(id, req, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "consultation not found")

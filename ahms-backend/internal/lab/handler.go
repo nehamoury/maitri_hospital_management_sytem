@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -25,6 +26,18 @@ func NewHandler(service Service) *Handler {
 func labCurrentUserID(c *gin.Context) (uuid.UUID, error) {
 	raw, _ := c.Get("user_id")
 	return uuid.Parse(raw.(string))
+}
+
+func labScope(c *gin.Context) *models.DataScope {
+	raw, ok := c.Get("data_scope")
+	if !ok {
+		return nil
+	}
+	scope, ok := raw.(*models.DataScope)
+	if !ok {
+		return nil
+	}
+	return scope
 }
 
 func labFail(c *gin.Context, err error) {
@@ -191,7 +204,7 @@ func (h *Handler) ListOrders(c *gin.Context) {
 		f.PageSize = ps
 	}
 
-	orders, total, err := h.service.ListOrders(f)
+	orders, total, err := h.service.ListOrders(f, labScope(c))
 	if err != nil {
 		labFail(c, err)
 		return
@@ -238,7 +251,7 @@ func (h *Handler) GetOrder(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid id")
 		return
 	}
-	order, err := h.service.GetOrder(id)
+	order, err := h.service.GetOrder(id, labScope(c))
 	if err != nil {
 		labFail(c, err)
 		return
@@ -263,7 +276,7 @@ func (h *Handler) CancelOrder(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := h.service.CancelOrder(id, userID, req); err != nil {
+	if err := h.service.CancelOrder(id, userID, req, labScope(c)); err != nil {
 		labFail(c, err)
 		return
 	}
@@ -287,7 +300,7 @@ func (h *Handler) CollectSample(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := h.service.CollectSample(id, userID, req); err != nil {
+	if err := h.service.CollectSample(id, userID, req, labScope(c)); err != nil {
 		labFail(c, err)
 		return
 	}
@@ -305,7 +318,7 @@ func (h *Handler) MarkProcessing(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid id")
 		return
 	}
-	if err := h.service.MarkProcessing(id); err != nil {
+	if err := h.service.MarkProcessing(id, labScope(c)); err != nil {
 		labFail(c, err)
 		return
 	}
@@ -329,7 +342,7 @@ func (h *Handler) EnterResults(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := h.service.EnterResults(id, userID, req); err != nil {
+	if err := h.service.EnterResults(id, userID, req, labScope(c)); err != nil {
 		labFail(c, err)
 		return
 	}
@@ -348,7 +361,7 @@ func (h *Handler) VerifyResults(c *gin.Context) {
 		return
 	}
 	userID, _ := labCurrentUserID(c)
-	if err := h.service.VerifyResults(id, userID); err != nil {
+	if err := h.service.VerifyResults(id, userID, labScope(c)); err != nil {
 		labFail(c, err)
 		return
 	}
@@ -372,7 +385,7 @@ func (h *Handler) DoctorReview(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := h.service.DoctorReview(id, userID, req); err != nil {
+	if err := h.service.DoctorReview(id, userID, req, labScope(c)); err != nil {
 		labFail(c, err)
 		return
 	}
@@ -390,7 +403,7 @@ func (h *Handler) PrintReport(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid id")
 		return
 	}
-	html, err := h.service.PrintReport(id)
+	html, err := h.service.PrintReport(id, labScope(c))
 	if err != nil {
 		labFail(c, err)
 		return
@@ -410,7 +423,7 @@ func (h *Handler) PatientOrders(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid patient id")
 		return
 	}
-	orders, err := h.service.PatientOrders(patientID)
+	orders, err := h.service.PatientOrders(patientID, labScope(c))
 	if err != nil {
 		labFail(c, err)
 		return

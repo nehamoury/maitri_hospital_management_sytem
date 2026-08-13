@@ -26,11 +26,11 @@ func (f *fakeRepo) CreateWithNumber(r *models.Referral) error {
 	return nil
 }
 
-func (f *fakeRepo) FindIncoming(toDepartmentID uuid.UUID, statuses []string) ([]models.Referral, error) {
+func (f *fakeRepo) FindIncoming(toDepartmentID uuid.UUID, statuses []string, scope *models.DataScope) ([]models.Referral, error) {
 	return []models.Referral{}, nil
 }
 
-func (f *fakeRepo) FindByID(id uuid.UUID) (*models.Referral, error) {
+func (f *fakeRepo) FindByID(id uuid.UUID, scope *models.DataScope) (*models.Referral, error) {
 	if f.byID != nil {
 		return f.byID, nil
 	}
@@ -40,7 +40,7 @@ func (f *fakeRepo) FindByID(id uuid.UUID) (*models.Referral, error) {
 	return nil, ErrNotFound
 }
 
-func (f *fakeRepo) UpdateStatus(id uuid.UUID, status string) (*models.Referral, error) {
+func (f *fakeRepo) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Referral, error) {
 	if f.saved != nil && f.saved.ID == id {
 		f.saved.Status = status
 		return f.saved, nil
@@ -67,15 +67,15 @@ func (f *fakeRepo) AttachFile(att *models.ReferralAttachment) error {
 	return nil
 }
 
-func (f *fakeRepo) FindAttachmentsByReferralID(referralID uuid.UUID) ([]models.ReferralAttachment, error) {
+func (f *fakeRepo) FindAttachmentsByReferralID(referralID uuid.UUID, scope *models.DataScope) ([]models.ReferralAttachment, error) {
 	return []models.ReferralAttachment{}, nil
 }
 
-func (f *fakeRepo) FindAttachmentByID(id uuid.UUID) (*models.ReferralAttachment, error) {
+func (f *fakeRepo) FindAttachmentByID(id uuid.UUID, scope *models.DataScope) (*models.ReferralAttachment, error) {
 	return nil, ErrNotFound
 }
 
-func (f *fakeRepo) DeleteAttachment(id uuid.UUID) error {
+func (f *fakeRepo) DeleteAttachment(id uuid.UUID, scope *models.DataScope) error {
 	return nil
 }
 
@@ -190,7 +190,7 @@ func TestReferralUpdateStatusNotFound(t *testing.T) {
 	repo := &fakeRepo{encounter: encounterFixture()}
 	svc := newTestService(repo)
 
-	_, err := svc.UpdateStatus(uuid.New(), models.ReferralAccepted)
+	_, err := svc.UpdateStatus(uuid.New(), models.ReferralAccepted, nil)
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
@@ -201,7 +201,7 @@ func TestReferralIncomingUsesCallerDepartment(t *testing.T) {
 	repo := &fakeRepo{encounter: encounterFixture(), doctor: doctor}
 	svc := newTestService(repo)
 
-	list, err := svc.Incoming("", uuid.New())
+	list, err := svc.Incoming("", uuid.New(), nil)
 	if err != nil {
 		t.Fatalf("incoming should succeed, got %v", err)
 	}

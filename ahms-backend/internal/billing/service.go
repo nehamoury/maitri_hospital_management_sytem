@@ -11,10 +11,10 @@ import (
 // Service contains billing business logic.
 type Service interface {
 	CreateBill(req CreateBillRequest, userID uuid.UUID) (*models.Bill, error)
-	GetBill(id uuid.UUID) (*models.Bill, error)
-	GetBillByNo(no string) (*models.Bill, error)
-	ListBills(status, query string) ([]models.Bill, error)
-	ListBillsByPatient(patientID uuid.UUID) ([]models.Bill, error)
+	GetBill(id uuid.UUID, scope *models.DataScope) (*models.Bill, error)
+	GetBillByNo(no string, scope *models.DataScope) (*models.Bill, error)
+	ListBills(status, query string, scope *models.DataScope) ([]models.Bill, error)
+	ListBillsByPatient(patientID uuid.UUID, scope *models.DataScope) ([]models.Bill, error)
 	AddPayment(id uuid.UUID, req PaymentRequest, userID uuid.UUID) (*models.Bill, error)
 	RefundPayment(id uuid.UUID, req RefundRequest, userID uuid.UUID) (*models.Bill, error)
 }
@@ -93,20 +93,20 @@ func (s *service) CreateBill(req CreateBillRequest, userID uuid.UUID) (*models.B
 	return s.repo.CreateBill(bill, items)
 }
 
-func (s *service) GetBill(id uuid.UUID) (*models.Bill, error) {
-	return s.repo.FindBillByID(id)
+func (s *service) GetBill(id uuid.UUID, scope *models.DataScope) (*models.Bill, error) {
+	return s.repo.FindBillByID(id, scope)
 }
 
-func (s *service) GetBillByNo(no string) (*models.Bill, error) {
-	return s.repo.FindBillByNo(no)
+func (s *service) GetBillByNo(no string, scope *models.DataScope) (*models.Bill, error) {
+	return s.repo.FindBillByNo(no, scope)
 }
 
-func (s *service) ListBills(status, query string) ([]models.Bill, error) {
-	return s.repo.ListBills(BillFilter{Status: status, Query: query})
+func (s *service) ListBills(status, query string, scope *models.DataScope) ([]models.Bill, error) {
+	return s.repo.ListBills(BillFilter{Status: status, Query: query}, scope)
 }
 
-func (s *service) ListBillsByPatient(patientID uuid.UUID) ([]models.Bill, error) {
-	return s.repo.ListBills(BillFilter{PatientID: patientID.String()})
+func (s *service) ListBillsByPatient(patientID uuid.UUID, scope *models.DataScope) ([]models.Bill, error) {
+	return s.repo.ListBills(BillFilter{PatientID: patientID.String()}, scope)
 }
 
 func (s *service) AddPayment(id uuid.UUID, req PaymentRequest, userID uuid.UUID) (*models.Bill, error) {

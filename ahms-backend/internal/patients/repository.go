@@ -21,9 +21,9 @@ type Repository interface {
 	FindDuplicates(mobile, alternateMobile, email, fullName string, dob *time.Time) ([]models.Patient, error)
 	CreateWithUHID(patient *models.Patient) error
 	FindAll(search string, scope *models.DataScope) ([]models.Patient, error)
-	FindByID(id uuid.UUID) (*models.Patient, error)
+	FindByID(id uuid.UUID, scope *models.DataScope) (*models.Patient, error)
 	Update(patient *models.Patient) error
-	Delete(id uuid.UUID) error
+	Delete(id uuid.UUID, scope *models.DataScope) error
 	CountRegisteredOn(day time.Time) (int64, error)
 	FindRecent(limit int) ([]models.Patient, error)
 }
@@ -147,9 +147,15 @@ func (r *repository) FindAll(search string, scope *models.DataScope) ([]models.P
 	return patientsList, err
 }
 
-func (r *repository) FindByID(id uuid.UUID) (*models.Patient, error) {
+func (r *repository) FindByID(id uuid.UUID, scope *models.DataScope) (*models.Patient, error) {
 	var patient models.Patient
-	err := r.db.First(&patient, "id = ?", id).Error
+	query := r.db
+	if scope != nil && scope.DoctorID != nil {
+		// Doctors may only read patients they have treated (an encounter exists
+		// between the doctor and the patient).
+		query = query.Where("EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = patients.id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL)", *scope.DoctorID)
+	}
+	err := query.First(&patient, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
@@ -160,8 +166,12 @@ func (r *repository) Update(patient *models.Patient) error {
 	return r.db.Save(patient).Error
 }
 
-func (r *repository) Delete(id uuid.UUID) error {
-	result := r.db.Delete(&models.Patient{}, "id = ?", id)
+func (r *repository) Delete(id uuid.UUID, scope *models.DataScope) error {
+	result := r.db.Where("id = ?", id)
+	if scope != nil && scope.DoctorID != nil {
+		result = result.Where("EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = patients.id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL)", *scope.DoctorID)
+	}
+	result = result.Delete(&models.Patient{})
 	if result.Error != nil {
 		return result.Error
 	}

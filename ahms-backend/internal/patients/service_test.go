@@ -41,13 +41,13 @@ func (f *fakeRepo) FindAll(search string, scope *models.DataScope) ([]models.Pat
 	return nil, nil
 }
 
-func (f *fakeRepo) FindByID(id uuid.UUID) (*models.Patient, error) {
+func (f *fakeRepo) FindByID(id uuid.UUID, scope *models.DataScope) (*models.Patient, error) {
 	return nil, ErrNotFound
 }
 
 func (f *fakeRepo) Update(patient *models.Patient) error { return nil }
 
-func (f *fakeRepo) Delete(id uuid.UUID) error { return nil }
+func (f *fakeRepo) Delete(id uuid.UUID, scope *models.DataScope) error { return nil }
 
 func (f *fakeRepo) CountRegisteredOn(day time.Time) (int64, error) { return 0, nil }
 

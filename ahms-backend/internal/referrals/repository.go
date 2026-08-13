@@ -19,15 +19,15 @@ var ErrNotFound = errors.New("referral not found")
 // counter, inside the same transaction that creates the referral.
 type Repository interface {
 	CreateWithNumber(r *models.Referral) error
-	FindIncoming(toDepartmentID uuid.UUID, statuses []string) ([]models.Referral, error)
-	FindByID(id uuid.UUID) (*models.Referral, error)
-	UpdateStatus(id uuid.UUID, status string) (*models.Referral, error)
+	FindIncoming(toDepartmentID uuid.UUID, statuses []string, scope *models.DataScope) ([]models.Referral, error)
+	FindByID(id uuid.UUID, scope *models.DataScope) (*models.Referral, error)
+	UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Referral, error)
 	FindEncounterWithHistory(id uuid.UUID) (*models.Encounter, error)
 	FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error)
 	AttachFile(att *models.ReferralAttachment) error
-	FindAttachmentsByReferralID(referralID uuid.UUID) ([]models.ReferralAttachment, error)
-	FindAttachmentByID(id uuid.UUID) (*models.ReferralAttachment, error)
-	DeleteAttachment(id uuid.UUID) error
+	FindAttachmentsByReferralID(referralID uuid.UUID, scope *models.DataScope) ([]models.ReferralAttachment, error)
+	FindAttachmentByID(id uuid.UUID, scope *models.DataScope) (*models.ReferralAttachment, error)
+	DeleteAttachment(id uuid.UUID, scope *models.DataScope) error
 }
 
 type repository struct {
@@ -37,6 +37,16 @@ type repository struct {
 // NewRepository builds a Repository backed by GORM/PostgreSQL.
 func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
+}
+
+// applyDoctorScope restricts referral queries to referrals on patients the
+// given doctor has treated. A nil scope or a scope without a DoctorID leaves
+// the query unscoped (referring/receiving staff get full access).
+func applyDoctorScope(q *gorm.DB, scope *models.DataScope) *gorm.DB {
+	if scope == nil || scope.DoctorID == nil {
+		return q
+	}
+	return q.Where("EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = referrals.patient_id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL)", *scope.DoctorID)
 }
 
 func (r *repository) CreateWithNumber(referral *models.Referral) error {
@@ -95,9 +105,10 @@ func (r *repository) CreateWithNumber(referral *models.Referral) error {
 	})
 }
 
-func (r *repository) FindIncoming(toDepartmentID uuid.UUID, statuses []string) ([]models.Referral, error) {
+func (r *repository) FindIncoming(toDepartmentID uuid.UUID, statuses []string, scope *models.DataScope) ([]models.Referral, error) {
 	query := r.db.Preload("Patient").Preload("FromDepartment").Preload("ToDepartment").
 		Where("to_department_id = ?", toDepartmentID)
+	applyDoctorScope(query, scope)
 	if len(statuses) > 0 {
 		query = query.Where("status IN ?", statuses)
 	}
@@ -106,9 +117,9 @@ func (r *repository) FindIncoming(toDepartmentID uuid.UUID, statuses []string) (
 	return list, err
 }
 
-func (r *repository) FindByID(id uuid.UUID) (*models.Referral, error) {
+func (r *repository) FindByID(id uuid.UUID, scope *models.DataScope) (*models.Referral, error) {
 	var referral models.Referral
-	err := r.db.Preload("Patient").
+	query := r.db.Preload("Patient").
 		Preload("FromDepartment").
 		Preload("ToDepartment").
 		Preload("PreferredDoctor.User").
@@ -119,22 +130,26 @@ func (r *repository) FindByID(id uuid.UUID) (*models.Referral, error) {
 		Preload("SourceEncounter.Consultations.Diagnoses").
 		Preload("SourceEncounter.Diagnoses").
 		Preload("SourceEncounter.Prescriptions.Items").
-		First(&referral, "id = ?", id).Error
+		Where("referrals.id = ?", id)
+	applyDoctorScope(query, scope)
+	err := query.First(&referral).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
 	return &referral, err
 }
 
-func (r *repository) UpdateStatus(id uuid.UUID, status string) (*models.Referral, error) {
-	result := r.db.Model(&models.Referral{}).Where("id = ?", id).Update("status", status)
+func (r *repository) UpdateStatus(id uuid.UUID, status string, scope *models.DataScope) (*models.Referral, error) {
+	query := r.db.Model(&models.Referral{}).Where("referrals.id = ?", id)
+	applyDoctorScope(query, scope)
+	result := query.Update("status", status)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	if result.RowsAffected == 0 {
 		return nil, ErrNotFound
 	}
-	return r.FindByID(id)
+	return r.FindByID(id, scope)
 }
 
 func (r *repository) FindEncounterWithHistory(id uuid.UUID) (*models.Encounter, error) {
@@ -165,26 +180,42 @@ func (r *repository) AttachFile(att *models.ReferralAttachment) error {
 	return r.db.Create(att).Error
 }
 
-func (r *repository) FindAttachmentsByReferralID(referralID uuid.UUID) ([]models.ReferralAttachment, error) {
+// applyAttachmentDoctorScope restricts attachment queries to referrals on
+// patients the given doctor has treated, via a correlated subquery on the
+// referral.
+func applyAttachmentDoctorScope(q *gorm.DB, scope *models.DataScope, table string) *gorm.DB {
+	if scope == nil || scope.DoctorID == nil {
+		return q
+	}
+	return q.Where("EXISTS (SELECT 1 FROM referrals WHERE referrals.id = "+table+".referral_id AND EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = referrals.patient_id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL))", *scope.DoctorID)
+}
+
+func (r *repository) FindAttachmentsByReferralID(referralID uuid.UUID, scope *models.DataScope) ([]models.ReferralAttachment, error) {
 	var list []models.ReferralAttachment
-	err := r.db.Preload("UploadedBy").
-		Where("referral_id = ?", referralID).
-		Order("created_at desc").
+	query := r.db.Preload("UploadedBy").
+		Where("referral_attachments.referral_id = ?", referralID)
+	applyAttachmentDoctorScope(query, scope, "referral_attachments")
+	err := query.
+		Order("referral_attachments.created_at desc").
 		Find(&list).Error
 	return list, err
 }
 
-func (r *repository) FindAttachmentByID(id uuid.UUID) (*models.ReferralAttachment, error) {
+func (r *repository) FindAttachmentByID(id uuid.UUID, scope *models.DataScope) (*models.ReferralAttachment, error) {
 	var att models.ReferralAttachment
-	err := r.db.First(&att, "id = ?", id).Error
+	query := r.db.Where("referral_attachments.id = ?", id)
+	applyAttachmentDoctorScope(query, scope, "referral_attachments")
+	err := query.First(&att).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
 	return &att, err
 }
 
-func (r *repository) DeleteAttachment(id uuid.UUID) error {
-	result := r.db.Delete(&models.ReferralAttachment{}, "id = ?", id)
+func (r *repository) DeleteAttachment(id uuid.UUID, scope *models.DataScope) error {
+	query := r.db.Where("referral_attachments.id = ?", id)
+	applyAttachmentDoctorScope(query, scope, "referral_attachments")
+	result := query.Delete(&models.ReferralAttachment{})
 	if result.Error != nil {
 		return result.Error
 	}

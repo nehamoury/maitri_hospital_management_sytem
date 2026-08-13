@@ -18,11 +18,11 @@ type fakeRepo struct {
 	doctorErr       error
 }
 
-func (f *fakeRepo) FindByEncounterID(encounterID uuid.UUID) (*models.Consultation, error) {
+func (f *fakeRepo) FindByEncounterID(encounterID uuid.UUID, scope *models.DataScope) (*models.Consultation, error) {
 	return nil, ErrNotFound
 }
 
-func (f *fakeRepo) FindByID(id uuid.UUID) (*models.Consultation, error) {
+func (f *fakeRepo) FindByID(id uuid.UUID, scope *models.DataScope) (*models.Consultation, error) {
 	if f.saved != nil && f.saved.ID == id {
 		return f.saved, nil
 	}
@@ -49,7 +49,7 @@ func (f *fakeRepo) FindDoctorByUserID(userID uuid.UUID) (*models.Doctor, error) 
 	return f.doctor, nil
 }
 
-func (f *fakeRepo) FindEncounterByID(id uuid.UUID) (*models.Encounter, error) {
+func (f *fakeRepo) FindEncounterByID(id uuid.UUID, scope *models.DataScope) (*models.Encounter, error) {
 	if !f.encounterExists {
 		return nil, ErrNotFound
 	}
@@ -60,7 +60,7 @@ func (f *fakeRepo) FindEncounterByID(id uuid.UUID) (*models.Encounter, error) {
 	return &models.Encounter{BaseModel: models.BaseModel{ID: id}, DoctorID: docID}, nil
 }
 
-func (f *fakeRepo) CompleteEncounter(encounterID uuid.UUID) error {
+func (f *fakeRepo) CompleteEncounter(encounterID uuid.UUID, scope *models.DataScope) error {
 	f.completed = true
 	return nil
 }
@@ -85,7 +85,7 @@ func TestConsultationCreateHappyPath(t *testing.T) {
 			{Diagnosis: "Katigraha", DiagnosisType: "PRIMARY"},
 		},
 		FollowUpDate: "2026-08-10",
-	}, uuid.New())
+	}, uuid.New(), nil)
 
 	if err != nil {
 		t.Fatalf("create should succeed, got %v", err)
@@ -102,7 +102,7 @@ func TestConsultationCreateRejectsMissingEncounter(t *testing.T) {
 	repo := &fakeRepo{encounterExists: false, doctor: doctorFixture()}
 	svc := newTestService(repo)
 
-	_, err := svc.Create(uuid.New(), CreateConsultationRequest{}, uuid.New())
+	_, err := svc.Create(uuid.New(), CreateConsultationRequest{}, uuid.New(), nil)
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
@@ -116,7 +116,7 @@ func TestConsultationCreateUsesEncounterDoctor(t *testing.T) {
 	repo := &fakeRepo{encounterExists: true, doctor: doctor}
 	svc := newTestService(repo)
 
-	c, err := svc.Create(uuid.New(), CreateConsultationRequest{}, uuid.New())
+	c, err := svc.Create(uuid.New(), CreateConsultationRequest{}, uuid.New(), nil)
 	if err != nil {
 		t.Fatalf("create should succeed, got %v", err)
 	}
@@ -131,7 +131,7 @@ func TestConsultationCreateRejectsInvalidFollowUp(t *testing.T) {
 
 	_, err := svc.Create(uuid.New(), CreateConsultationRequest{
 		FollowUpDate: "10/08/2026",
-	}, uuid.New())
+	}, uuid.New(), nil)
 
 	if err == nil {
 		t.Fatal("invalid follow-up date must return an error")
@@ -152,7 +152,7 @@ func TestConsultationUpdateHappyPath(t *testing.T) {
 	c, err := svc.Update(existing.ID, UpdateConsultationRequest{
 		ChiefComplaints: "new",
 		ClinicalNotes:   "updated plan",
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("update should succeed, got %v", err)
 	}
@@ -165,7 +165,7 @@ func TestConsultationUpdateNotFound(t *testing.T) {
 	repo := &fakeRepo{encounterExists: true, doctor: doctorFixture()}
 	svc := newTestService(repo)
 
-	_, err := svc.Update(uuid.New(), UpdateConsultationRequest{})
+	_, err := svc.Update(uuid.New(), UpdateConsultationRequest{}, nil)
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}

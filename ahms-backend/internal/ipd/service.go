@@ -20,20 +20,20 @@ type Service interface {
 	SetBedStatus(id, status string) (*models.Bed, error)
 
 	// Admissions.
-	ListAdmissions(f AdmissionFilter) ([]models.Admission, error)
-	GetAdmission(id string) (*models.Admission, error)
+	ListAdmissions(f AdmissionFilter, scope *models.DataScope) ([]models.Admission, error)
+	GetAdmission(id string, scope *models.DataScope) (*models.Admission, error)
 	Admit(req AdmitRequest, admittedByUserID uuid.UUID) (*models.Admission, error)
-	UpdateAdmission(id string, req UpdateAdmissionRequest, userID uuid.UUID) (*models.Admission, error)
-	TransferBed(id string, req TransferBedRequest, userID uuid.UUID) (*models.Admission, error)
+	UpdateAdmission(id string, req UpdateAdmissionRequest, userID uuid.UUID, scope *models.DataScope) (*models.Admission, error)
+	TransferBed(id string, req TransferBedRequest, userID uuid.UUID, scope *models.DataScope) (*models.Admission, error)
 
 	// Clinical chart.
-	AddNote(id string, req NoteRequest, userID uuid.UUID) (*models.ProgressNote, error)
-	AddOrder(id string, req OrderRequest, userID uuid.UUID) (*models.AdmissionOrder, error)
-	UpdateOrderStatus(admissionID, orderID string, req OrderStatusRequest) (*models.AdmissionOrder, error)
-	AddDiet(id string, req DietRequest, userID uuid.UUID) (*models.DietOrder, error)
+	AddNote(id string, req NoteRequest, userID uuid.UUID, scope *models.DataScope) (*models.ProgressNote, error)
+	AddOrder(id string, req OrderRequest, userID uuid.UUID, scope *models.DataScope) (*models.AdmissionOrder, error)
+	UpdateOrderStatus(admissionID, orderID string, req OrderStatusRequest, scope *models.DataScope) (*models.AdmissionOrder, error)
+	AddDiet(id string, req DietRequest, userID uuid.UUID, scope *models.DataScope) (*models.DietOrder, error)
 
 	// Discharge.
-	Discharge(id string, req DischargeRequest, userID uuid.UUID) (*models.Admission, error)
+	Discharge(id string, req DischargeRequest, userID uuid.UUID, scope *models.DataScope) (*models.Admission, error)
 
 	// Occupancy.
 	WardOccupancy() ([]WardOccupancyRow, error)
@@ -236,16 +236,16 @@ func (s *service) SetBedStatus(id, status string) (*models.Bed, error) {
 // Admissions
 // ---------------------------------------------------------------------------
 
-func (s *service) ListAdmissions(f AdmissionFilter) ([]models.Admission, error) {
-	return s.repo.ListAdmissions(f)
+func (s *service) ListAdmissions(f AdmissionFilter, scope *models.DataScope) ([]models.Admission, error) {
+	return s.repo.ListAdmissions(f, scope)
 }
 
-func (s *service) GetAdmission(id string) (*models.Admission, error) {
+func (s *service) GetAdmission(id string, scope *models.DataScope) (*models.Admission, error) {
 	admissionID, err := parseUUID(id)
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.FindAdmissionByID(admissionID)
+	return s.repo.FindAdmissionByID(admissionID, scope)
 }
 
 func (s *service) Admit(req AdmitRequest, admittedByUserID uuid.UUID) (*models.Admission, error) {
@@ -358,15 +358,15 @@ func (s *service) Admit(req AdmitRequest, admittedByUserID uuid.UUID) (*models.A
 	if err := s.repo.CreateAdmissionWithEncounter(a, alloc, enc); err != nil {
 		return nil, err
 	}
-	return s.repo.FindAdmissionByID(a.ID)
+	return s.repo.FindAdmissionByID(a.ID, nil)
 }
 
-func (s *service) UpdateAdmission(id string, req UpdateAdmissionRequest, userID uuid.UUID) (*models.Admission, error) {
+func (s *service) UpdateAdmission(id string, req UpdateAdmissionRequest, userID uuid.UUID, scope *models.DataScope) (*models.Admission, error) {
 	admissionID, err := parseUUID(id)
 	if err != nil {
 		return nil, err
 	}
-	a, err := s.repo.FindAdmissionByID(admissionID)
+	a, err := s.repo.FindAdmissionByID(admissionID, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -433,10 +433,10 @@ func (s *service) UpdateAdmission(id string, req UpdateAdmissionRequest, userID 
 	if err := s.repo.UpdateAdmission(a); err != nil {
 		return nil, err
 	}
-	return s.repo.FindAdmissionByID(a.ID)
+	return s.repo.FindAdmissionByID(a.ID, scope)
 }
 
-func (s *service) TransferBed(id string, req TransferBedRequest, userID uuid.UUID) (*models.Admission, error) {
+func (s *service) TransferBed(id string, req TransferBedRequest, userID uuid.UUID, scope *models.DataScope) (*models.Admission, error) {
 	admissionID, err := parseUUID(id)
 	if err != nil {
 		return nil, err
@@ -445,22 +445,25 @@ func (s *service) TransferBed(id string, req TransferBedRequest, userID uuid.UUI
 	if err != nil {
 		return nil, err
 	}
+	if _, err := s.repo.FindAdmissionByID(admissionID, scope); err != nil {
+		return nil, err
+	}
 	if err := s.repo.TransferBed(admissionID, newBedID, req.Reason, userID); err != nil {
 		return nil, err
 	}
-	return s.repo.FindAdmissionByID(admissionID)
+	return s.repo.FindAdmissionByID(admissionID, scope)
 }
 
 // ---------------------------------------------------------------------------
 // Clinical chart
 // ---------------------------------------------------------------------------
 
-func (s *service) requireActiveAdmission(id string) (*models.Admission, error) {
+func (s *service) requireActiveAdmission(id string, scope *models.DataScope) (*models.Admission, error) {
 	admissionID, err := parseUUID(id)
 	if err != nil {
 		return nil, err
 	}
-	a, err := s.repo.FindAdmissionByID(admissionID)
+	a, err := s.repo.FindAdmissionByID(admissionID, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -470,8 +473,12 @@ func (s *service) requireActiveAdmission(id string) (*models.Admission, error) {
 	return a, nil
 }
 
-func (s *service) AddNote(id string, req NoteRequest, userID uuid.UUID) (*models.ProgressNote, error) {
-	a, err := s.requireActiveAdmission(id)
+func (s *service) AddNote(id string, req NoteRequest, userID uuid.UUID, scope *models.DataScope) (*models.ProgressNote, error) {
+	admissionID, err := parseUUID(id)
+	if err != nil {
+		return nil, err
+	}
+	a, err := s.repo.FindAdmissionByID(admissionID, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -489,8 +496,12 @@ func (s *service) AddNote(id string, req NoteRequest, userID uuid.UUID) (*models
 	return n, nil
 }
 
-func (s *service) AddOrder(id string, req OrderRequest, userID uuid.UUID) (*models.AdmissionOrder, error) {
-	a, err := s.requireActiveAdmission(id)
+func (s *service) AddOrder(id string, req OrderRequest, userID uuid.UUID, scope *models.DataScope) (*models.AdmissionOrder, error) {
+	admissionID, err := parseUUID(id)
+	if err != nil {
+		return nil, err
+	}
+	a, err := s.repo.FindAdmissionByID(admissionID, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -514,8 +525,12 @@ func (s *service) AddOrder(id string, req OrderRequest, userID uuid.UUID) (*mode
 	return o, nil
 }
 
-func (s *service) UpdateOrderStatus(admissionID, orderID string, req OrderStatusRequest) (*models.AdmissionOrder, error) {
-	a, err := s.requireActiveAdmission(admissionID)
+func (s *service) UpdateOrderStatus(admissionID, orderID string, req OrderStatusRequest, scope *models.DataScope) (*models.AdmissionOrder, error) {
+	uid, err := parseUUID(admissionID)
+	if err != nil {
+		return nil, err
+	}
+	a, err := s.repo.FindAdmissionByID(uid, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -537,8 +552,8 @@ func (s *service) UpdateOrderStatus(admissionID, orderID string, req OrderStatus
 	return o, nil
 }
 
-func (s *service) AddDiet(id string, req DietRequest, userID uuid.UUID) (*models.DietOrder, error) {
-	a, err := s.requireActiveAdmission(id)
+func (s *service) AddDiet(id string, req DietRequest, userID uuid.UUID, scope *models.DataScope) (*models.DietOrder, error) {
+	a, err := s.requireActiveAdmission(id, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -564,8 +579,8 @@ func (s *service) AddDiet(id string, req DietRequest, userID uuid.UUID) (*models
 // Discharge
 // ---------------------------------------------------------------------------
 
-func (s *service) Discharge(id string, req DischargeRequest, userID uuid.UUID) (*models.Admission, error) {
-	a, err := s.requireActiveAdmission(id)
+func (s *service) Discharge(id string, req DischargeRequest, userID uuid.UUID, scope *models.DataScope) (*models.Admission, error) {
+	a, err := s.requireActiveAdmission(id, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -608,7 +623,7 @@ func (s *service) Discharge(id string, req DischargeRequest, userID uuid.UUID) (
 	if err := s.repo.Discharge(a, summary); err != nil {
 		return nil, err
 	}
-	return s.repo.FindAdmissionByID(a.ID)
+	return s.repo.FindAdmissionByID(a.ID, scope)
 }
 
 // ---------------------------------------------------------------------------

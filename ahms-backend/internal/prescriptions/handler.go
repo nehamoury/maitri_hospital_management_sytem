@@ -28,6 +28,16 @@ func NewHandler(service Service) *Handler {
 // SetAuditRecorder attaches the audit recorder used to log data changes.
 func (h *Handler) SetAuditRecorder(r *audit.Recorder) { h.audit = r }
 
+// scopeFromContext extracts the DataScope injected by DataScopeMiddleware.
+func scopeFromContext(c *gin.Context) *models.DataScope {
+	if s, exists := c.Get("data_scope"); exists {
+		if scope, ok := s.(*models.DataScope); ok {
+			return scope
+		}
+	}
+	return nil
+}
+
 // Create godoc
 // @Summary      Create a prescription for an encounter
 // @Description  Doctor writes medicines for an encounter. Status starts at PRESCRIBED.
@@ -59,7 +69,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	prescription, err := h.service.Create(encounterID, req, userID)
+	prescription, err := h.service.Create(encounterID, req, userID, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "encounter or doctor record not found")
@@ -89,7 +99,7 @@ func (h *Handler) GetByEncounter(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid encounter id")
 		return
 	}
-	prescription, err := h.service.GetByEncounterID(encounterID)
+	prescription, err := h.service.GetByEncounterID(encounterID, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "no prescription found for this encounter")
@@ -116,7 +126,7 @@ func (h *Handler) Get(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid prescription id")
 		return
 	}
-	prescription, err := h.service.GetByID(id)
+	prescription, err := h.service.GetByID(id, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "prescription not found")
@@ -150,7 +160,7 @@ func (h *Handler) List(c *gin.Context) {
 		Search:    strings.TrimSpace(c.Query("search")),
 		Status:    status,
 		PatientID: strings.TrimSpace(c.Query("patient_id")),
-	})
+	}, scopeFromContext(c))
 	if err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to fetch prescriptions")
 		return
@@ -180,7 +190,7 @@ func (h *Handler) Print(c *gin.Context) {
 		return
 	}
 
-	p, err := h.service.GetByIDForPrint(id)
+	p, err := h.service.GetByIDForPrint(id, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "prescription not found")
@@ -331,7 +341,7 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	prescription, err := h.service.UpdateStatus(id, req.Status)
+	prescription, err := h.service.UpdateStatus(id, req.Status, scopeFromContext(c))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			utils.Fail(c, http.StatusNotFound, "prescription not found")

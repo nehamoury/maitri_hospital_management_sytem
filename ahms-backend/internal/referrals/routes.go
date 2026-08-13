@@ -9,9 +9,9 @@ import (
 // RegisterRoutes mounts referral endpoints. Creating requires
 // referral.create (doctors); status updates require referral.update;
 // viewing referrals requires referral.view.
-func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.AuthMiddleware, permMW *middleware.PermissionMiddleware) {
+func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.AuthMiddleware, permMW *middleware.PermissionMiddleware, scopeMW gin.HandlerFunc) {
 	group := rg.Group("/referrals")
-	group.Use(authMW.RequireAuth())
+	group.Use(authMW.RequireAuth(), scopeMW)
 	{
 		group.POST("", permMW.RequirePermission(models.PermReferralCreate), handler.Create)
 		group.GET("/incoming", permMW.RequirePermission(models.PermReferralView), handler.Incoming)
