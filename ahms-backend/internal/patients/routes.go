@@ -15,6 +15,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.Au
 	{
 		group.GET("", permMW.RequirePermission(models.PermPatientView), handler.List)
 		group.GET("/:id", permMW.RequirePermission(models.PermPatientView), handler.Get)
+		group.GET("/:id/photo", permMW.RequirePermission(models.PermPatientView), handler.Photo)
 
 		group.POST("", permMW.RequirePermission(models.PermPatientCreate), handler.Create)
 		group.PUT("/:id", permMW.RequirePermission(models.PermPatientUpdate), handler.Update)

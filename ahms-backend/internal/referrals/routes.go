@@ -19,6 +19,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.Au
 		group.PATCH("/:id/status", permMW.RequirePermission(models.PermReferralUpdate), handler.UpdateStatus)
 		group.POST("/:id/attachments", permMW.RequirePermission(models.PermReferralUpdate), handler.UploadAttachment)
 		group.GET("/:id/attachments", permMW.RequirePermission(models.PermReferralView), handler.ListAttachments)
+		group.GET("/:id/attachments/:attachmentId", permMW.RequirePermission(models.PermReferralView), handler.DownloadAttachment)
 		group.DELETE("/:id/attachments/:attachmentId", permMW.RequirePermission(models.PermReferralUpdate), handler.DeleteAttachment)
 	}
 }

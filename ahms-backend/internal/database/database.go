@@ -91,6 +91,29 @@ func Migrate(db *gorm.DB) error {
 		&models.TreatmentPlan{},
 		&models.TreatmentSession{},
 		&models.TreatmentPlanCounter{},
+
+		// Investigation / Lab
+		&models.InvestigationCategory{},
+		&models.InvestigationTest{},
+		&models.InvestigationOrder{},
+		&models.InvestigationOrderItem{},
+		&models.InvestigationSample{},
+		&models.InvestigationOrderCounter{},
+
+		// Diet / Kitchen
+		&models.DietPlan{},
+		&models.MealOrder{},
+
+		// IPD / Ward management
+		&models.Ward{},
+		&models.Bed{},
+		&models.Admission{},
+		&models.AdmissionBed{},
+		&models.ProgressNote{},
+		&models.AdmissionOrder{},
+		&models.DietOrder{},
+		&models.DischargeSummary{},
+		&models.AdmissionCounter{},
 	); err != nil {
 		return fmt.Errorf("database: migration failed: %w", err)
 	}
@@ -205,6 +228,30 @@ func SeedPermissions(db *gorm.DB) error {
 		{Name: models.PermTreatmentApprove, Description: "Approve treatment plans."},
 		{Name: models.PermTreatmentSession, Description: "Execute treatment sessions (therapist)."},
 		{Name: models.PermTreatmentComplete, Description: "Complete treatment plans with final assessment."},
+
+		// Investigation / Lab
+		{Name: models.PermLabView, Description: "View lab tests, orders and results."},
+		{Name: models.PermLabOrder, Description: "Order investigations for patients."},
+		{Name: models.PermLabCollect, Description: "Record sample collection."},
+		{Name: models.PermLabResult, Description: "Enter test results."},
+		{Name: models.PermLabVerify, Description: "Verify lab results."},
+		{Name: models.PermLabReview, Description: "Review lab results (clinical remarks)."},
+		{Name: models.PermLabManage, Description: "Manage investigation test master and categories."},
+
+		// Diet / Kitchen
+		{Name: models.PermDietOrder, Description: "Prescribe diet plan for IPD patients."},
+		{Name: models.PermDietManage, Description: "Manage diet master configurations."},
+		{Name: models.PermDietServe, Description: "Mark meal orders prepared/served."},
+
+		// IPD (wards, beds, admissions, clinical notes/orders).
+		{Name: models.PermWardView, Description: "View wards and beds."},
+		{Name: models.PermWardManage, Description: "Manage wards and beds."},
+		{Name: models.PermAdmissionView, Description: "View IPD admissions."},
+		{Name: models.PermAdmissionCreate, Description: "Admit IPD patients."},
+		{Name: models.PermAdmissionUpdate, Description: "Update IPD admissions and transfer beds."},
+		{Name: models.PermAdmissionDischarge, Description: "Discharge IPD patients."},
+		{Name: models.PermNoteCreate, Description: "Add progress notes and admission orders."},
+		{Name: models.PermDietCreate, Description: "Add diet orders for IPD admissions."},
 	}
 
 	permByName := make(map[string]*models.Permission, len(permissions))
@@ -251,6 +298,12 @@ func SeedPermissions(db *gorm.DB) error {
 			models.PermUserView, models.PermUserCreate, models.PermUserUpdate, models.PermUserDelete,
 			models.PermRoleManage, models.PermConfigManage,
 			models.PermAuditView, models.PermDashboardView, models.PermReportsView, models.PermReportsExport,
+			models.PermLabView, models.PermLabOrder, models.PermLabCollect, models.PermLabResult,
+			models.PermLabVerify, models.PermLabReview, models.PermLabManage,
+			models.PermDietOrder, models.PermDietManage, models.PermDietServe,
+			models.PermWardView, models.PermWardManage,
+			models.PermAdmissionView, models.PermAdmissionCreate, models.PermAdmissionUpdate, models.PermAdmissionDischarge,
+			models.PermNoteCreate, models.PermDietCreate,
 		}, append(viewClinical, append(treatmentCreate, treatmentView...)...)...),
 		models.RoleHospitalAdmin: append([]string{
 			models.PermPatientView, models.PermPatientCreate, models.PermPatientEdit,
@@ -269,6 +322,12 @@ func SeedPermissions(db *gorm.DB) error {
 			models.PermDepartmentView, models.PermDepartmentCreate, models.PermDepartmentUpdate,
 			models.PermUserView, models.PermUserCreate, models.PermUserUpdate,
 			models.PermAuditView, models.PermDashboardView, models.PermReportsView, models.PermReportsExport,
+			models.PermLabView, models.PermLabOrder, models.PermLabCollect, models.PermLabResult,
+			models.PermLabVerify, models.PermLabReview, models.PermLabManage,
+			models.PermDietOrder, models.PermDietManage, models.PermDietServe,
+			models.PermWardView, models.PermWardManage,
+			models.PermAdmissionView, models.PermAdmissionCreate, models.PermAdmissionUpdate, models.PermAdmissionDischarge,
+			models.PermNoteCreate, models.PermDietCreate,
 		}, append(viewClinical, append(treatmentCreate, treatmentView...)...)...),
 		models.RoleReceptionist: append([]string{
 			models.PermPatientView, models.PermPatientCreate, models.PermPatientUpdate,
@@ -290,6 +349,10 @@ func SeedPermissions(db *gorm.DB) error {
 			models.PermDoctorView,
 			models.PermPharmacyView,
 			models.PermBillingView, models.PermDashboardView,
+			models.PermLabView, models.PermLabOrder, models.PermLabReview,
+			models.PermDietOrder,
+			models.PermWardView, models.PermAdmissionView, models.PermAdmissionCreate, models.PermAdmissionUpdate,
+			models.PermNoteCreate, models.PermDietCreate,
 		}, append(viewClinical, append(treatmentCreate, treatmentView...)...)...),
 		models.RolePanchakarmaDoctor: append([]string{
 			models.PermPatientView, models.PermPatientUpdate,
@@ -301,10 +364,17 @@ func SeedPermissions(db *gorm.DB) error {
 			models.PermDoctorView,
 			models.PermPharmacyView,
 			models.PermBillingView, models.PermDashboardView,
+			models.PermLabView, models.PermLabOrder, models.PermLabReview,
+			models.PermDietOrder,
+			models.PermWardView, models.PermAdmissionView, models.PermAdmissionCreate, models.PermAdmissionUpdate,
+			models.PermNoteCreate, models.PermDietCreate,
 		}, append(viewClinical, append(treatmentCreate, treatmentView...)...)...),
 		models.RoleNurse: append([]string{
 			models.PermPatientView,
 			models.PermDashboardView, models.PermDoctorView,
+			models.PermDietServe,
+			models.PermWardView, models.PermAdmissionView, models.PermAdmissionUpdate,
+			models.PermNoteCreate, models.PermDietCreate,
 		}, append(viewClinical, treatmentView...)...),
 		models.RoleTherapist: append([]string{
 			models.PermPatientView,
@@ -330,9 +400,11 @@ func SeedPermissions(db *gorm.DB) error {
 		}, append(viewClinical, treatmentView...)...),
 		models.RoleDietKitchen: append([]string{
 			models.PermPatientView, models.PermDoctorView, models.PermDashboardView,
+			models.PermDietServe,
 		}, append(viewClinical, treatmentView...)...),
 		models.RoleLabStaff: append([]string{
 			models.PermPatientView, models.PermDoctorView, models.PermDashboardView,
+			models.PermLabView, models.PermLabCollect, models.PermLabResult, models.PermLabVerify,
 		}, append(viewClinical, treatmentView...)...),
 		models.RolePatient: {
 			models.PermPatientView, models.PermPrescriptionView, models.PermBillingView, models.PermEncounterView,
@@ -587,3 +659,206 @@ func SeedProcedureTypes(db *gorm.DB) error {
 	log.Println("database: procedure types seeded")
 	return nil
 }
+
+// seedWardRows is the baseline ward master. DepartmentCode resolves the
+// ward's default department from the department master (nil-safe).
+type seedWardRows struct {
+	Code           string
+	Name           string
+	Location       string
+	DepartmentCode string
+	Beds           []string
+}
+
+var defaultWards = []seedWardRows{
+	{Code: "GENMED", Name: "General Medicine Ward", Location: "Block A · Floor 1", DepartmentCode: "KAYA", Beds: []string{"G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"}},
+	{Code: "PANCHIPD", Name: "Panchakarma IPD", Location: "Block A · Floor 2", DepartmentCode: "PANCH", Beds: []string{"P1", "P2", "P3", "P4", "P5", "P6"}},
+	{Code: "PRIV", Name: "Private Rooms", Location: "Block B · Floor 1", DepartmentCode: "KAYA", Beds: []string{"PR1", "PR2", "PR3", "PR4"}},
+	{Code: "ICU", Name: "ICU / Critical Care", Location: "Block B · Floor 2", DepartmentCode: "CAS", Beds: []string{"ICU1", "ICU2", "ICU3", "ICU4"}},
+}
+
+// SeedWards creates the baseline ward/bed layout if no wards exist yet.
+func SeedWards(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&models.Ward{}).Count(&count).Error; err != nil {
+		return fmt.Errorf("database: failed to count wards: %w", err)
+	}
+	if count > 0 {
+		return nil
+	}
+
+	deptByCode := make(map[string]uuid.UUID)
+	var depts []models.Department
+	if err := db.Select("id", "code").Find(&depts).Error; err != nil {
+		return fmt.Errorf("database: failed to load departments for ward seed: %w", err)
+	}
+	for _, d := range depts {
+		deptByCode[d.Code] = d.ID
+	}
+
+	for _, w := range defaultWards {
+		ward := models.Ward{
+			BaseModel: models.BaseModel{ID: uuid.New()},
+			Code:      w.Code,
+			Name:      w.Name,
+			Location:  w.Location,
+			IsActive:  true,
+		}
+		if did, ok := deptByCode[w.DepartmentCode]; ok {
+			ward.DepartmentID = &did
+		}
+		if err := db.Create(&ward).Error; err != nil {
+			return fmt.Errorf("database: failed to seed ward %s: %w", w.Code, err)
+		}
+		for _, bn := range w.Beds {
+			bedType := models.BedTypeGeneral
+			if w.Code == "PRIV" {
+				bedType = models.BedTypePrivate
+			}
+			if w.Code == "ICU" {
+				bedType = models.BedTypeICU
+			}
+			if err := db.Create(&models.Bed{
+				BaseModel: models.BaseModel{ID: uuid.New()},
+				WardID:    ward.ID,
+				BedNo:     bn,
+				BedType:   bedType,
+				Status:    models.BedAvailable,
+				IsActive:  true,
+			}).Error; err != nil {
+				return fmt.Errorf("database: failed to seed bed %s/%s: %w", w.Code, bn, err)
+			}
+		}
+	}
+	log.Println("database: wards & beds seeded")
+	return nil
+}
+
+// SeedLabTests inserts baseline investigation categories and tests if empty.
+func SeedLabTests(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&models.InvestigationCategory{}).Count(&count).Error; err != nil {
+		return fmt.Errorf("database: failed to count lab categories: %w", err)
+	}
+	if count > 0 {
+		return nil
+	}
+
+	categories := []models.InvestigationCategory{
+		{
+			BaseModel:   models.BaseModel{ID: uuid.New()},
+			Name:        "Haematology",
+			Code:        "HAEM",
+			Description: "Blood count, coagulation and grouping studies",
+			IsActive:    true,
+		},
+		{
+			BaseModel:   models.BaseModel{ID: uuid.New()},
+			Name:        "Biochemistry",
+			Code:        "BIOC",
+			Description: "Liver, kidney, lipid profiles and metabolic studies",
+			IsActive:    true,
+		},
+		{
+			BaseModel:   models.BaseModel{ID: uuid.New()},
+			Name:        "Urine Analysis",
+			Code:        "URIN",
+			Description: "Urine chemical, physical and microscopic examinations",
+			IsActive:    true,
+		},
+	}
+
+	for i := range categories {
+		if err := db.Create(&categories[i]).Error; err != nil {
+			return fmt.Errorf("database: failed to seed category %s: %w", categories[i].Name, err)
+		}
+	}
+
+	tests := []models.InvestigationTest{
+		{
+			BaseModel:            models.BaseModel{ID: uuid.New()},
+			CategoryID:           categories[0].ID,
+			Name:                 "Complete Blood Count (CBC)",
+			Code:                 "CBC",
+			SampleType:           "Whole Blood (EDTA)",
+			Method:               "Automated Cell Counter",
+			Unit:                 "g/dL",
+			ReferenceRangeMale:   "13.5 - 17.5",
+			ReferenceRangeFemale: "12.0 - 15.5",
+			ReferenceRangeChild:  "11.0 - 14.5",
+			TurnaroundHours:      12,
+			Cost:                 350,
+			IsActive:             true,
+		},
+		{
+			BaseModel:            models.BaseModel{ID: uuid.New()},
+			CategoryID:           categories[0].ID,
+			Name:                 "Blood Grouping & Rh Typing",
+			Code:                 "BGRP",
+			SampleType:           "Whole Blood",
+			Method:               "Slide Agglutination",
+			Unit:                 "N/A",
+			ReferenceRangeMale:   "Standard ABO/Rh",
+			ReferenceRangeFemale: "Standard ABO/Rh",
+			ReferenceRangeChild:  "Standard ABO/Rh",
+			TurnaroundHours:      2,
+			Cost:                 150,
+			IsActive:             true,
+		},
+		{
+			BaseModel:            models.BaseModel{ID: uuid.New()},
+			CategoryID:           categories[1].ID,
+			Name:                 "Liver Function Test (LFT)",
+			Code:                 "LFT",
+			SampleType:           "Serum",
+			Method:               "Spectrophotometry",
+			Unit:                 "mg/dL",
+			ReferenceRangeMale:   "Bilirubin: 0.2 - 1.2, SGOT: <40, SGPT: <45",
+			ReferenceRangeFemale: "Bilirubin: 0.2 - 1.2, SGOT: <35, SGPT: <35",
+			ReferenceRangeChild:  "Bilirubin: 0.2 - 1.0, SGOT: <50, SGPT: <45",
+			TurnaroundHours:      24,
+			Cost:                 650,
+			IsActive:             true,
+		},
+		{
+			BaseModel:            models.BaseModel{ID: uuid.New()},
+			CategoryID:           categories[1].ID,
+			Name:                 "Kidney Function Test (KFT)",
+			Code:                 "KFT",
+			SampleType:           "Serum",
+			Method:               "Enzymatic / Colorimetric",
+			Unit:                 "mg/dL",
+			ReferenceRangeMale:   "Urea: 15-45, Creatinine: 0.6-1.2",
+			ReferenceRangeFemale: "Urea: 15-40, Creatinine: 0.5-1.1",
+			ReferenceRangeChild:  "Urea: 10-35, Creatinine: 0.3-0.7",
+			TurnaroundHours:      24,
+			Cost:                 550,
+			IsActive:             true,
+		},
+		{
+			BaseModel:            models.BaseModel{ID: uuid.New()},
+			CategoryID:           categories[2].ID,
+			Name:                 "Urine Routine & Microscopic",
+			Code:                 "URM",
+			SampleType:           "Mid-stream Urine",
+			Method:               "Chemical Test Strip & Microscopy",
+			Unit:                 "N/A",
+			ReferenceRangeMale:   "Normal physical & microscopic findings",
+			ReferenceRangeFemale: "Normal physical & microscopic findings",
+			ReferenceRangeChild:  "Normal physical & microscopic findings",
+			TurnaroundHours:      4,
+			Cost:                 120,
+			IsActive:             true,
+		},
+	}
+
+	for i := range tests {
+		if err := db.Create(&tests[i]).Error; err != nil {
+			return fmt.Errorf("database: failed to seed test %s: %w", tests[i].Name, err)
+		}
+	}
+
+	log.Println("database: lab investigation categories and tests seeded")
+	return nil
+}
+

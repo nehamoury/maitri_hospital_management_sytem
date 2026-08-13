@@ -16,6 +16,7 @@ type Repository interface {
 	FindPatient(id uuid.UUID) (*models.Patient, error)
 	FindEncountersWithHistory(patientID uuid.UUID) ([]models.Encounter, error)
 	FindTreatmentPlans(patientID uuid.UUID) ([]models.TreatmentPlan, error)
+	FindAdmissions(patientID uuid.UUID) ([]models.Admission, error)
 }
 
 type repository struct {
@@ -69,4 +70,22 @@ func (r *repository) FindTreatmentPlans(patientID uuid.UUID) ([]models.Treatment
 		Order("created_at asc").
 		Find(&plans).Error
 	return plans, err
+}
+
+// FindAdmissions loads every IPD admission of the patient with its
+// department, doctor, current bed, discharge summary and clinical chart,
+// so the longitudinal timeline also surfaces IPD stays.
+func (r *repository) FindAdmissions(patientID uuid.UUID) ([]models.Admission, error) {
+	var admissions []models.Admission
+	err := r.db.Preload("Department").
+		Preload("Doctor.User").
+		Preload("Bed.Ward").
+		Preload("Discharge").
+		Preload("ProgressNotes").
+		Preload("Orders").
+		Preload("DietOrders").
+		Where("patient_id = ?", patientID).
+		Order("admission_date asc, created_at asc").
+		Find(&admissions).Error
+	return admissions, err
 }

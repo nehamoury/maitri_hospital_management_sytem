@@ -216,3 +216,253 @@ export async function openPrescriptionPrint(id: string): Promise<void> {
   win.document.close()
   win.focus()
 }
+
+// ---------------------------------------------------------------------------
+// Reports API
+// ---------------------------------------------------------------------------
+export interface ReportFilters {
+  from?: string
+  to?: string
+  department_id?: string
+  doctor_id?: string
+  group_by?: string
+  expiry_days?: number
+}
+
+export const reportsApi = {
+  getSummary: (f: ReportFilters) => api.get('/reports/summary', { params: f }).then((r) => r.data),
+  getDepartmentDistribution: (f: ReportFilters) =>
+    api.get('/reports/department-distribution', { params: f }).then((r) => r.data),
+  getRevenue: (f: ReportFilters) => api.get('/reports/revenue', { params: f }).then((r) => r.data),
+  getPharmacyDispensing: (f: ReportFilters) =>
+    api.get('/reports/pharmacy-dispensing', { params: f }).then((r) => r.data),
+  getPharmacyStock: (f: ReportFilters) =>
+    api.get('/reports/pharmacy-stock', { params: f }).then((r) => r.data),
+  getDoctors: (f: ReportFilters) => api.get('/reports/doctors', { params: f }).then((r) => r.data),
+  getPatients: (f: ReportFilters) => api.get('/reports/patients', { params: f }).then((r) => r.data),
+  getPanchakarma: (f: ReportFilters) =>
+    api.get('/reports/panchakarma', { params: f }).then((r) => r.data),
+  getReferrals: (f: ReportFilters) => api.get('/reports/referrals', { params: f }).then((r) => r.data),
+
+  exportReport: async (report: string, format: string, filters: ReportFilters) => {
+    if (format === 'print') {
+      const res = await api.get('/reports/export', {
+        params: { report, format, ...filters },
+        responseType: 'text',
+      })
+      const win = window.open('', '_blank')
+      if (!win) throw new Error('Popup blocked')
+      win.document.open()
+      win.document.write(res.data)
+      win.document.close()
+      win.focus()
+      setTimeout(() => win.print(), 300)
+      return
+    }
+
+    const res = await api.get('/reports/export', {
+      params: { report, format, ...filters },
+      responseType: 'blob',
+    })
+
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = url
+    
+    // Extract filename from Content-Disposition header if possible
+    let filename = `${report}-${format}-export`
+    const disposition = res.headers['content-disposition']
+    if (disposition && disposition.indexOf('filename=') !== -1) {
+      const matches = /filename="?([^"]+)"?/.exec(disposition)
+      if (matches != null && matches[1]) {
+        filename = matches[1]
+      }
+    } else {
+      filename = `${report}.${format === 'excel' ? 'xls' : format}`
+    }
+
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  },
+}
+
+// ─── Lab API ──────────────────────────────────────────────────────────────────
+
+export interface LabCategory {
+  id: string
+  name: string
+  code: string
+  description: string
+  is_active: boolean
+}
+
+export interface LabTest {
+  id: string
+  category_id: string
+  category_name?: string
+  name: string
+  code: string
+  sample_type: string
+  method: string
+  unit: string
+  reference_range_male: string
+  reference_range_female: string
+  reference_range_child: string
+  turnaround_hours: number
+  cost: number
+  is_active: boolean
+}
+
+export interface LabOrderItem {
+  id: string
+  test_id: string
+  test_name: string
+  test_code: string
+  test_unit: string
+  sample_type: string
+  status: string
+  result_value?: string
+  result_unit?: string
+  result_text?: string
+  result_flag?: string
+  reference_range_snapshot?: string
+  remarks?: string
+  resulted_by_name?: string
+  resulted_at?: string
+  verified_by_name?: string
+  verified_at?: string
+}
+
+export interface LabSample {
+  id: string
+  order_id: string
+  sample_type: string
+  collection_method: string
+  barcode?: string
+  volume_ml?: number
+  is_adequate: boolean
+  notes?: string
+  collected_by_name: string
+  collected_at: string
+}
+
+export interface LabOrder {
+  id: string
+  order_no: string
+  patient_id: string
+  patient_name: string
+  patient_uhid: string
+  encounter_id?: string
+  admission_id?: string
+  department_id?: string
+  ordered_by: string
+  status: string
+  priority: string
+  clinical_notes: string
+  cancel_reason?: string
+  doctor_remarks?: string
+  reviewed_by?: string
+  reviewed_at?: string
+  items: LabOrderItem[]
+  sample?: LabSample
+  created_at: string
+}
+
+export interface LabOrderListItem {
+  id: string
+  order_no: string
+  patient_name: string
+  patient_uhid: string
+  status: string
+  priority: string
+  test_count: number
+  pending_count: number
+  ordered_by: string
+  created_at: string
+}
+
+export const labApi = {
+  // Categories
+  listCategories: (activeOnly = true) =>
+    api.get<ApiResponse<LabCategory[]>>('/lab/categories', { params: { active_only: activeOnly } }),
+  createCategory: (data: Partial<LabCategory>) =>
+    api.post<ApiResponse<LabCategory>>('/lab/categories', data),
+  updateCategory: (id: string, data: Partial<LabCategory>) =>
+    api.put<ApiResponse<LabCategory>>(`/lab/categories/${id}`, data),
+
+  // Tests
+  listTests: (categoryId?: string, activeOnly = true) =>
+    api.get<ApiResponse<LabTest[]>>('/lab/tests', { params: { category_id: categoryId, active_only: activeOnly } }),
+  createTest: (data: Partial<LabTest>) =>
+    api.post<ApiResponse<LabTest>>('/lab/tests', data),
+  updateTest: (id: string, data: Partial<LabTest>) =>
+    api.put<ApiResponse<LabTest>>(`/lab/tests/${id}`, data),
+
+  // Orders
+  listOrders: (params?: Record<string, string | number>) =>
+    api.get<ApiResponse<{ data: LabOrderListItem[]; total: number; page: number }>>('/lab/orders', { params }),
+  getOrder: (id: string) =>
+    api.get<ApiResponse<LabOrder>>(`/lab/orders/${id}`),
+  createOrder: (data: object) =>
+    api.post<ApiResponse<LabOrder>>('/lab/orders', data),
+  cancelOrder: (id: string, reason: string) =>
+    api.put<ApiResponse<null>>(`/lab/orders/${id}/cancel`, { reason }),
+
+  // Workflow
+  collectSample: (id: string, data: object) =>
+    api.put<ApiResponse<null>>(`/lab/orders/${id}/collect`, data),
+  markProcessing: (id: string) =>
+    api.put<ApiResponse<null>>(`/lab/orders/${id}/process`, {}),
+  enterResults: (id: string, results: object[]) =>
+    api.put<ApiResponse<null>>(`/lab/orders/${id}/result`, { results }),
+  verifyResults: (id: string) =>
+    api.put<ApiResponse<null>>(`/lab/orders/${id}/verify`, {}),
+  doctorReview: (id: string, doctor_remarks: string) =>
+    api.put<ApiResponse<null>>(`/lab/orders/${id}/review`, { doctor_remarks }),
+
+  // Print report
+  printReport: (id: string) =>
+    api.get<string>(`/lab/orders/${id}/report`).then(r => {
+      const win = window.open('', '_blank')
+      if (win) { win.document.write(r.data); win.document.close(); win.print() }
+    }),
+
+  // Patient timeline
+  patientOrders: (patientId: string) =>
+    api.get<ApiResponse<LabOrderListItem[]>>(`/patients/${patientId}/lab-orders`),
+}
+
+// ─── Diet API ──────────────────────────────────────────────────────────────────
+
+export interface CreateDietPlanReq {
+  admission_id: string
+  patient_id: string
+  diet_type: string
+  pathya?: string
+  apathya?: string
+  special_instructions?: string
+  start_date: string
+  end_date: string
+}
+
+export const dietApi = {
+  createDietPlan: (data: CreateDietPlanReq) =>
+    api.post<ApiResponse<any>>('/diet/plans', data),
+  getActiveDietPlan: (admissionId: string) =>
+    api.get<ApiResponse<any>>(`/diet/plans/active?admission_id=${admissionId}`),
+  listDietPlans: (admissionId: string) =>
+    api.get<ApiResponse<any[]>>(`/diet/plans?admission_id=${admissionId}`),
+  cancelDietPlan: (id: string) =>
+    api.put<ApiResponse<null>>(`/diet/plans/${id}/cancel`, {}),
+  generateDailyMeals: (date?: string) =>
+    api.post<ApiResponse<{ count: number }>>('/diet/generate-meals', { date }),
+  getKitchenSheet: (params?: Record<string, string | number>) =>
+    api.get<ApiResponse<any[]>>('/diet/kitchen-sheet', { params }),
+  updateMealStatus: (id: string, status: string, remarks?: string) =>
+    api.put<ApiResponse<null>>(`/diet/meals/${id}/status`, { status, remarks }),
+}
+
+

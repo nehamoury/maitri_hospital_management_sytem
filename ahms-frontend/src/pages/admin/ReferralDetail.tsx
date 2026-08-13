@@ -9,7 +9,7 @@ interface SourceEncounter {
   visit_date: string
   department_name: string
   doctor_name: string
-  consultation?: {
+  consultations?: {
     consultation_id: string
     chief_complaints: string
     history: string
@@ -17,8 +17,9 @@ interface SourceEncounter {
     clinical_notes: string
     treatment_plan: string
     diagnoses: { diagnosis: string; diagnosis_type: string; notes: string }[]
-  }
-  prescriptions: {
+  }[]
+  diagnoses?: { diagnosis: string; diagnosis_type: string; notes: string }[]
+  prescriptions?: {
     prescription_id: string
     status: string
     items: { medicine: string; dose: string; frequency: string; duration: string; quantity: number; dispensed_qty: number }[]
@@ -86,7 +87,14 @@ export default function ReferralDetail() {
     <div className="max-w-3xl">
       <PageHeader
         title={ref.referral_no}
-        subtitle={`${ref.patient_name} (${ref.uhid})`}
+        subtitle={
+          <div className="flex items-center gap-1.5">
+            <span>Patient:</span>
+            <Link to={`/admin/patients/${ref.patient_id}`} className="font-semibold text-emerald-700 hover:underline">
+              {ref.patient_name} ({ref.uhid})
+            </Link>
+          </div>
+        }
         action={<Badge color={statusColor(ref.status)}>{ref.status}</Badge>}
       />
       {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -185,31 +193,31 @@ export default function ReferralDetail() {
             }
           />
           <div className="space-y-4 p-5">
-            {src.consultation && (
-              <div className="rounded-lg border border-slate-200 p-4">
+            {(src.consultations ?? []).map((c, i) => (
+              <div key={i} className="rounded-lg border border-slate-200 p-4">
                 <p className="text-xs font-semibold uppercase text-slate-400">Consultation</p>
-                {src.consultation.chief_complaints && (
+                {c.chief_complaints && (
                   <p className="mt-2 text-sm text-slate-700">
-                    <span className="font-medium">Complaints:</span> {src.consultation.chief_complaints}
+                    <span className="font-medium">Complaints:</span> {c.chief_complaints}
                   </p>
                 )}
-                {src.consultation.treatment_plan && (
+                {c.treatment_plan && (
                   <p className="mt-1 text-sm text-slate-700">
-                    <span className="font-medium">Plan:</span> {src.consultation.treatment_plan}
+                    <span className="font-medium">Plan:</span> {c.treatment_plan}
                   </p>
                 )}
-                {src.consultation.diagnoses.length > 0 && (
+                {c.diagnoses && c.diagnoses.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {src.consultation.diagnoses.map((d, i) => (
-                      <Badge key={i} color="purple">
+                    {c.diagnoses.map((d, j) => (
+                      <Badge key={j} color="purple">
                         {d.diagnosis_type}: {d.diagnosis}
                       </Badge>
                     ))}
                   </div>
                 )}
               </div>
-            )}
-            {src.prescriptions.map((rx, i) => (
+            ))}
+            {(src.prescriptions ?? []).map((rx, i) => (
               <div key={i} className="rounded-lg border border-slate-200 p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase text-slate-400">Prescription</p>

@@ -293,16 +293,21 @@ func (h *Handler) ListAttachments(c *gin.Context) {
 	utils.Success(c, http.StatusOK, "attachments fetched", resp)
 }
 
-// DeleteAttachment godoc
-// @Summary      Remove an attachment from a referral
+// DownloadAttachment godoc
+// @Summary      Download a referral attachment
 // @Tags         referrals
-// @Produce      json
+// @Produce      application/octet-stream
 // @Security     BearerAuth
 // @Param        id           path string true "Referral ID"
 // @Param        attachmentId path string true "Attachment ID"
-// @Success      200 {object} utils.APIResponse
-// @Router       /referrals/{id}/attachments/{attachmentId} [delete]
-func (h *Handler) DeleteAttachment(c *gin.Context) {
+// @Success      200
+// @Router       /referrals/{id}/attachments/{attachmentId} [get]
+func (h *Handler) DownloadAttachment(c *gin.Context) {
+	referralID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid referral id")
+		return
+	}
 	attID, err := uuid.Parse(c.Param("attachmentId"))
 	if err != nil {
 		utils.Fail(c, http.StatusBadRequest, "invalid attachment id")
@@ -315,6 +320,51 @@ func (h *Handler) DeleteAttachment(c *gin.Context) {
 			return
 		}
 		utils.Fail(c, http.StatusInternalServerError, "failed to load attachment")
+		return
+	}
+	if att.ReferralID != referralID {
+		utils.Fail(c, http.StatusForbidden, "attachment does not belong to this referral")
+		return
+	}
+	if h.uploadDir == "" {
+		utils.Fail(c, http.StatusNotFound, "attachment storage not configured")
+		return
+	}
+	path := filepath.Join(h.uploadDir, referralUploadDir, filepath.Base(att.FilePath))
+	c.FileAttachment(path, att.FileName)
+}
+
+// DeleteAttachment godoc
+// @Summary      Remove an attachment from a referral
+// @Tags         referrals
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id           path string true "Referral ID"
+// @Param        attachmentId path string true "Attachment ID"
+// @Success      200 {object} utils.APIResponse
+// @Router       /referrals/{id}/attachments/{attachmentId} [delete]
+func (h *Handler) DeleteAttachment(c *gin.Context) {
+	referralID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid referral id")
+		return
+	}
+	attID, err := uuid.Parse(c.Param("attachmentId"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid attachment id")
+		return
+	}
+	att, err := h.service.GetAttachment(attID)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			utils.Fail(c, http.StatusNotFound, "attachment not found")
+			return
+		}
+		utils.Fail(c, http.StatusInternalServerError, "failed to load attachment")
+		return
+	}
+	if att.ReferralID != referralID {
+		utils.Fail(c, http.StatusForbidden, "attachment does not belong to this referral")
 		return
 	}
 	if err := h.service.DeleteAttachment(attID); err != nil {

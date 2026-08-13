@@ -83,6 +83,13 @@ func (s *service) CreateBill(req CreateBillRequest, userID uuid.UUID) (*models.B
 		}
 		bill.EncounterID = &eid
 	}
+	if req.AdmissionID != "" {
+		aid, err := uuid.Parse(req.AdmissionID)
+		if err != nil {
+			return nil, err
+		}
+		bill.AdmissionID = &aid
+	}
 	return s.repo.CreateBill(bill, items)
 }
 

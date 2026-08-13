@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, errorMessage } from '../../lib/api'
 import { Can } from '../../lib/can'
+import { PatientPhoto } from '../../components/PatientPhoto'
 import { Card, CardHeader, Badge, EmptyState, Spinner, PageHeader, Button, Input, Select, Field } from '../../components/ui'
 
 interface PatientRecord {
@@ -123,6 +124,53 @@ interface TimelineTreatmentPlan {
   sessions: TimelineSession[]
 }
 
+interface TimelineAdmissionNote {
+  note_type: string
+  notes: string
+  shift: string
+  vitals: Record<string, string | number>
+  recorded_by: string
+  created_at: string
+}
+
+interface TimelineAdmissionOrder {
+  order_type: string
+  description: string
+  frequency: string
+  quantity: string
+  status: string
+  ordered_by: string
+  created_at: string
+}
+
+interface TimelineAdmissionDiet {
+  diet_type: string
+  schedule: string
+  instructions: string
+  status: string
+  created_at: string
+}
+
+interface TimelineAdmission {
+  admission_id: string
+  admission_no: string
+  admission_date: string
+  discharged_at?: string
+  department_name: string
+  doctor_name: string
+  bed_no?: string
+  ward_name?: string
+  reason: string
+  diagnosis: string
+  status: string
+  discharge_type?: string
+  final_diagnosis?: string
+  summary?: string
+  notes: TimelineAdmissionNote[]
+  orders: TimelineAdmissionOrder[]
+  diet_orders: TimelineAdmissionDiet[]
+}
+
 interface Timeline {
   patient_id: string
   uhid: string
@@ -132,6 +180,7 @@ interface Timeline {
   mobile: string
   encounters: TimelineEncounter[]
   treatment_plans: TimelineTreatmentPlan[]
+  admissions: TimelineAdmission[]
 }
 
 interface Appointment {
@@ -211,7 +260,7 @@ interface PatientDocument {
 
 const DOC_TYPES = ['REPORT', 'ID_PROOF', 'CONSENT', 'REFERRAL', 'DISCHARGE', 'OTHER']
 
-type TabKey = 'personal' | 'timeline' | 'appointments' | 'prescriptions' | 'bills' | 'documents'
+type TabKey = 'personal' | 'timeline' | 'appointments' | 'prescriptions' | 'bills' | 'documents' | 'lab'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'personal', label: 'Personal Details' },
@@ -220,6 +269,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'prescriptions', label: 'Prescriptions' },
   { key: 'bills', label: 'Bills' },
   { key: 'documents', label: 'Documents' },
+  { key: 'lab', label: 'Lab Orders' },
 ]
 
 function TabBar({ active, onChange }: { active: TabKey; onChange: (k: TabKey) => void }) {
@@ -266,6 +316,7 @@ export default function PatientDetail() {
   const [prescriptions, setPrescriptions] = useState<PrescriptionBadge[]>([])
   const [bills, setBills] = useState<Bill[]>([])
   const [docs, setDocs] = useState<PatientDocument[]>([])
+  const [labOrders, setLabOrders] = useState<any[]>([])
   const [docError, setDocError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [selFile, setSelFile] = useState<File | null>(null)
@@ -313,20 +364,22 @@ export default function PatientDetail() {
     setLoading(true)
     setError('')
     Promise.all([
-      api.get<{ data: Timeline }>(`/patients/${id}/timeline`).catch(() => ({ data: { data: { patient_id: '', uhid: '', patient_name: '', gender: '', age: 0, mobile: '', encounters: [], treatment_plans: [] } } })),
+      api.get<{ data: Timeline }>(`/patients/${id}/timeline`).catch(() => ({ data: { data: { patient_id: '', uhid: '', patient_name: '', gender: '', age: 0, mobile: '', encounters: [], treatment_plans: [], admissions: [] } } })),
       api.get<{ data: PatientRecord }>(`/patients/${id}`),
       api.get<{ data: Appointment[] }>(`/appointments?patient_id=${id}`).catch(() => ({ data: { data: [] } })),
       api.get<{ data: PrescriptionBadge[] }>(`/prescriptions?patient_id=${id}`).catch(() => ({ data: { data: [] } })),
       api.get<{ data: Bill[] }>(`/bills?patient_id=${id}`).catch(() => ({ data: { data: [] } })),
       api.get<{ data: PatientDocument[] }>(`/patients/${id}/documents`).catch(() => ({ data: { data: [] } })),
+      api.get<{ data: any[] }>(`/patients/${id}/lab-orders`).catch(() => ({ data: { data: [] } })),
     ])
-      .then(([tl, pat, appts, rx, bls, dcs]) => {
+      .then(([tl, pat, appts, rx, bls, dcs, labs]) => {
         setData(tl.data.data)
         setPatient(pat.data.data)
         setAppointments(appts.data.data)
         setPrescriptions(rx.data.data)
         setBills(bls.data.data)
         setDocs(dcs.data.data)
+        setLabOrders(labs.data.data)
         // Populate edit form
         const p = pat.data.data
         setForm({
@@ -576,6 +629,60 @@ export default function PatientDetail() {
             </div>
 
             <div className="border-t border-slate-100 pt-4">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-teal-800">Physical Parameters</p>
+              <div className="grid gap-4 sm:grid-cols-5">
+                <Field label="Height (cm)">
+                  <Input type="number" value={form.height_cm} onChange={(e) => setForm({ ...form, height_cm: e.target.value })} />
+                </Field>
+                <Field label="Weight (kg)">
+                  <Input type="number" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
+                </Field>
+                <Field label="Blood Pressure">
+                  <Input value={form.blood_pressure} onChange={(e) => setForm({ ...form, blood_pressure: e.target.value })} placeholder="e.g. 120/80" />
+                </Field>
+                <Field label="Pulse (bpm)">
+                  <Input value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} placeholder="e.g. 72" />
+                </Field>
+                <Field label="Sugar (mg/dL)">
+                  <Input value={form.sugar} onChange={(e) => setForm({ ...form, sugar: e.target.value })} placeholder="e.g. 90" />
+                </Field>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-teal-800">Medical Information</p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label="Allergies">
+                  <Input value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} placeholder="e.g. Peanuts, Penicillin" />
+                </Field>
+                <Field label="Chronic Diseases">
+                  <Input value={form.chronic_diseases} onChange={(e) => setForm({ ...form, chronic_diseases: e.target.value })} placeholder="e.g. Diabetes, Hypertension" />
+                </Field>
+                <Field label="Current Medication">
+                  <Input value={form.current_medication} onChange={(e) => setForm({ ...form, current_medication: e.target.value })} placeholder="e.g. Metformin 500mg" />
+                </Field>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-teal-800">Emergency Contact</p>
+              <div className="grid gap-4 sm:grid-cols-4">
+                <Field label="Contact Name">
+                  <Input value={form.emergency_contact_name} onChange={(e) => setForm({ ...form, emergency_contact_name: e.target.value })} />
+                </Field>
+                <Field label="Relation">
+                  <Input value={form.emergency_contact_relation} onChange={(e) => setForm({ ...form, emergency_contact_relation: e.target.value })} placeholder="e.g. Spouse, Father" />
+                </Field>
+                <Field label="Contact Number">
+                  <Input value={form.emergency_contact} onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })} />
+                </Field>
+                <Field label="Contact Address">
+                  <Input value={form.emergency_contact_address} onChange={(e) => setForm({ ...form, emergency_contact_address: e.target.value })} />
+                </Field>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4">
               <p className="mb-3 text-sm font-bold uppercase tracking-wide text-teal-800">Status & Remarks</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Status">
@@ -608,13 +715,12 @@ export default function PatientDetail() {
         <CardHeader title="Patient Clinical Profile" subtitle={`Registered ${new Date(patient.created_at).toLocaleDateString()} • ${patient.registration_type}`} />
         <div className="p-6 space-y-6">
           <div className="flex items-center gap-4 border-b border-slate-100 pb-5">
-            {patient.photo_url ? (
-              <img src={patient.photo_url} alt="patient" className="h-16 w-16 rounded-2xl object-cover ring-2 ring-teal-50" />
-            ) : (
-              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-teal-50 text-2xl font-bold text-teal-700 ring-2 ring-teal-50">
-                {patient.full_name.split(' ')[0]?.[0] || 'P'}
-              </div>
-            )}
+            <PatientPhoto
+              patientId={id}
+              className="h-16 w-16 rounded-2xl object-cover ring-2 ring-teal-50"
+              fallbackClassName="grid h-16 w-16 place-items-center rounded-2xl bg-teal-50 text-2xl font-bold text-teal-700 ring-2 ring-teal-50"
+              fallbackChar={patient.full_name.split(' ')[0]?.[0] || 'P'}
+            />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-slate-800">{patient.full_name}</h2>
@@ -860,6 +966,139 @@ export default function PatientDetail() {
           </div>
         </div>
       )}
+
+      {(data.admissions && data.admissions.length > 0) && (
+        <div className="mt-4">
+          <h2 className="mb-3 text-lg font-semibold text-slate-800">IPD Admissions</h2>
+          <div className="space-y-4">
+            {data.admissions.map((adm) => (
+              <Card key={adm.admission_id}>
+                <CardHeader
+                  title={`${adm.admission_no} • ${adm.department_name} • ${adm.doctor_name}`}
+                  subtitle={`${new Date(adm.admission_date).toLocaleDateString()}${
+                    adm.discharged_at ? ' → ' + new Date(adm.discharged_at).toLocaleDateString() : ''
+                  }${adm.bed_no && adm.ward_name ? ` • ${adm.bed_no}, ${adm.ward_name}` : ''}`}
+                  action={
+                    <div className="flex flex-wrap items-center gap-2">
+                      {adm.discharge_type && <Badge color="slate">{adm.discharge_type}</Badge>}
+                      <Badge color={adm.status === 'ADMITTED' ? 'green' : adm.status === 'DISCHARGED' ? 'slate' : adm.status === 'CANCELLED' ? 'red' : 'blue'}>
+                        {adm.status}
+                      </Badge>
+                    </div>
+                  }
+                />
+                <div className="space-y-4 p-5">
+                  {adm.reason && (
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Reason:</span> {adm.reason}
+                    </p>
+                  )}
+                  {adm.diagnosis && (
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Admission Diagnosis:</span> {adm.diagnosis}
+                    </p>
+                  )}
+                  {adm.final_diagnosis && (
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Final Diagnosis:</span> {adm.final_diagnosis}
+                    </p>
+                  )}
+                  {adm.summary && (
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="text-xs font-semibold uppercase text-slate-400">Discharge Summary</p>
+                      <p className="mt-1 text-sm text-slate-700">{adm.summary}</p>
+                    </div>
+                  )}
+
+                  {(adm.notes || []).length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase text-slate-400">Clinical Chart ({adm.notes.length} notes)</p>
+                      <div className="space-y-2">
+                        {adm.notes.map((n, i) => (
+                          <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-xs font-bold uppercase text-slate-500">
+                                {n.note_type.replace(/_/g, ' ')}
+                                {n.shift && <span className="ml-2 font-medium normal-case text-slate-400">{n.shift}</span>}
+                              </p>
+                              <span className="text-[11px] text-slate-400">{new Date(n.created_at).toLocaleString()}</span>
+                            </div>
+                            {n.notes && <p className="mt-1 text-sm text-slate-700">{n.notes}</p>}
+                            {n.vitals && Object.keys(n.vitals).length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {Object.entries(n.vitals).map(([k, v]) => (
+                                  <span key={k} className="rounded-md bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200">
+                                    {k}: {String(v)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {n.recorded_by && <p className="mt-1 text-[11px] text-slate-400">By {n.recorded_by}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(adm.orders || []).length > 0 && (
+                    <div className="overflow-x-auto">
+                      <p className="mb-2 text-xs font-semibold uppercase text-slate-400">Orders ({adm.orders.length})</p>
+                      <table className="w-full text-sm whitespace-nowrap">
+                        <thead>
+                          <tr className="text-left text-xs text-slate-400">
+                            <th className="py-1 pr-4">Type</th>
+                            <th className="py-1 pr-4">Description</th>
+                            <th className="py-1 pr-4">Frequency</th>
+                            <th className="py-1 pr-4">Qty</th>
+                            <th className="py-1 pr-4">Status</th>
+                            <th className="py-1">By</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {adm.orders.map((o, i) => (
+                            <tr key={i} className="border-t border-slate-100">
+                              <td className="py-1.5 pr-4 text-slate-600">{o.order_type.replace(/_/g, ' ')}</td>
+                              <td className="py-1.5 pr-4 font-medium text-slate-700">{o.description}</td>
+                              <td className="py-1.5 pr-4 text-slate-600">{o.frequency || '—'}</td>
+                              <td className="py-1.5 pr-4 text-slate-600">{o.quantity || '—'}</td>
+                              <td className="py-1.5 pr-4">
+                                <Badge color={o.status === 'COMPLETED' ? 'green' : o.status === 'CANCELLED' ? 'red' : o.status === 'HELD' ? 'amber' : 'blue'}>
+                                  {o.status.replace(/_/g, ' ')}
+                                </Badge>
+                              </td>
+                              <td className="py-1.5 text-slate-500">{o.ordered_by}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {(adm.diet_orders || []).length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase text-slate-400">Diet Orders ({adm.diet_orders.length})</p>
+                      <div className="space-y-1">
+                        {adm.diet_orders.map((d, i) => (
+                          <div key={i} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-2 text-sm">
+                            <div>
+                              <span className="font-semibold text-slate-700">{d.diet_type}</span>
+                              {d.schedule && <span className="ml-2 text-xs text-slate-500">{d.schedule}</span>}
+                              {d.instructions && <span className="ml-2 text-xs text-slate-500">{d.instructions}</span>}
+                            </div>
+                            <Badge color={d.status === 'SERVED' ? 'green' : d.status === 'PREPARED' ? 'blue' : d.status === 'HELD' ? 'amber' : 'slate'}>
+                              {d.status}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
       </>)}
 
       {activeTab === 'appointments' && (
@@ -1084,6 +1323,48 @@ export default function PatientDetail() {
             )}
           </Card>
         </div>
+      )}
+
+      {activeTab === 'lab' && (
+        <Card>
+          <CardHeader title="Lab Investigation History" />
+          <div className="p-5">
+            {labOrders.length === 0 ? (
+              <EmptyState message="No lab investigation orders found for this patient" />
+            ) : (
+              <div className="space-y-3">
+                {labOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 p-4 hover:border-teal-500/50 transition-all cursor-pointer"
+                    onClick={() => navigate(`/admin/lab?order_id=${order.id}`)}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-semibold text-teal-700">{order.order_no}</span>
+                        <span className="text-xs text-slate-400">·</span>
+                        <span className="text-xs font-semibold text-slate-600">{order.test_count} tests</span>
+                        {order.pending_count > 0 && (
+                          <span className="text-[11px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-semibold">
+                            {order.pending_count} pending
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Ordered on {new Date(order.created_at).toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold px-2.5 py-1 bg-slate-100 text-slate-800 rounded-full font-mono uppercase tracking-wide">
+                        {order.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
       )}
     </div>
   )

@@ -196,7 +196,7 @@ export default function Appointment() {
       }
 
       const res = await api.post('/public/appointments', payload)
-      setReferenceId(res.data?.data?.uhid || `AYU-${Math.floor(Math.random() * 90000 + 10000)}`)
+      setReferenceId(res.data?.data?.patient_uhid || `AYU-${Math.floor(Math.random() * 90000 + 10000)}`)
       setSuccess(true)
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to book appointment. Please try again.')

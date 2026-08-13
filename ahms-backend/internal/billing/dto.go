@@ -10,6 +10,7 @@ import (
 type CreateBillRequest struct {
 	PatientID   string  `json:"patient_id" binding:"required"`
 	EncounterID string  `json:"encounter_id"`
+	AdmissionID string  `json:"admission_id"`
 	Discount    float64 `json:"discount" binding:"gte=0"`
 	Items       []BillItemInput `json:"items" binding:"required,min=1,dive"`
 }
@@ -62,6 +63,7 @@ type BillResponse struct {
 	PatientName   string             `json:"patient_name"`
 	PatientUHID   string             `json:"patient_uhid"`
 	EncounterID   string             `json:"encounter_id,omitempty"`
+	AdmissionID   string             `json:"admission_id,omitempty"`
 	TotalAmount   float64            `json:"total_amount"`
 	Discount      float64            `json:"discount"`
 	NetAmount     float64            `json:"net_amount"`
@@ -93,6 +95,9 @@ func toBillResponse(b *models.Bill) BillResponse {
 	}
 	if b.EncounterID != nil {
 		resp.EncounterID = b.EncounterID.String()
+	}
+	if b.AdmissionID != nil {
+		resp.AdmissionID = b.AdmissionID.String()
 	}
 	for i := range b.Items {
 		it := &b.Items[i]

@@ -46,6 +46,9 @@ export default function Encounters() {
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterDate, setFilterDate] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
   const [form, setForm] = useState({
     patient_id: '',
     department_id: '',
@@ -71,6 +74,10 @@ export default function Encounters() {
     api.get<{ data: Department[] }>('/departments').then((res) => setDepartments(res.data.data)).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterDate])
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -94,6 +101,22 @@ export default function Encounters() {
 
   const statusColor = (s: string) =>
     s === 'COMPLETED' ? 'green' : s === 'IN_CONSULTATION' ? 'blue' : s === 'WAITING' ? 'amber' : 'slate'
+
+  const filteredEncounters = encounters?.filter((e) => {
+    const matchesName = searchTerm
+      ? (e.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         e.uhid?.toLowerCase().includes(searchTerm.toLowerCase()))
+      : true
+    const matchesDate = filterDate
+      ? new Date(e.visit_date).toISOString().slice(0, 10) === filterDate
+      : true
+    return matchesName && matchesDate
+  }) || []
+
+  const ITEMS_PER_PAGE = 10
+  const totalPages = Math.ceil(filteredEncounters.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const paginatedEncounters = filteredEncounters.slice(startIndex, startIndex + ITEMS_PER_PAGE)
 
   return (
     <div>
@@ -169,41 +192,126 @@ export default function Encounters() {
         </Card>
       )}
 
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex-1 max-w-sm">
+          <Input
+            placeholder="Search by patient name or UHID..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="w-full sm:w-48">
+          <Input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+          />
+        </div>
+        {(searchTerm || filterDate) && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setSearchTerm('')
+              setFilterDate('')
+            }}
+          >
+            Clear
+          </Button>
+        )}
+      </div>
+
       <Card>
         {!encounters ? (
           <Spinner label="Loading encounters..." />
-        ) : encounters.length === 0 ? (
+        ) : filteredEncounters.length === 0 ? (
           <EmptyState message="No encounters found" />
         ) : (
-          <Table headers={['Date', 'Token', 'Patient', 'Department', 'Doctor', 'Type', 'Status', 'Actions']}>
-            {encounters.map((e) => (
-              <tr key={e.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 text-slate-600">{new Date(e.visit_date).toLocaleDateString()}</td>
-                <td className="px-4 py-3 font-mono text-xs">{e.token_number}</td>
-                <td className="px-4 py-3">
-                  <Link to={`/admin/patients/${e.patient_id}`} className="font-medium text-slate-800 hover:text-emerald-700">
-                    {e.patient_name?.trim() ? e.patient_name : <span className="italic text-slate-400">Unnamed Patient</span>}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-slate-600">{e.department_name}</td>
-                <td className="px-4 py-3 text-slate-600">{e.doctor_name}</td>
-                <td className="px-4 py-3 text-slate-600">{e.encounter_type}</td>
-                <td className="px-4 py-3">
-                  <Badge color={statusColor(e.status)}>{e.status}</Badge>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-3 text-sm">
-                    <Link to={`/admin/encounters/${e.id}/consultation`} className="text-emerald-700 hover:underline">
-                      Consultation
-                    </Link>
-                    <Link to={`/admin/encounters/${e.id}/prescriptions`} className="text-emerald-700 hover:underline">
-                      Rx
-                    </Link>
+          <div>
+            <div className="overflow-y-auto max-h-[550px] border border-slate-100 rounded-t-lg">
+              <Table headers={['Date', 'Token', 'Patient', 'Department', 'Doctor', 'Type', 'Status', 'Actions']}>
+                {paginatedEncounters.map((e) => (
+                  <tr key={e.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 text-slate-600">{new Date(e.visit_date).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{e.token_number}</td>
+                    <td className="px-4 py-3">
+                      <Link to={`/admin/patients/${e.patient_id}`} className="font-medium text-slate-800 hover:text-emerald-700">
+                        {e.patient_name?.trim() ? e.patient_name : <span className="italic text-slate-400">Unnamed Patient</span>}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{e.department_name}</td>
+                    <td className="px-4 py-3 text-slate-600">{e.doctor_name}</td>
+                    <td className="px-4 py-3 text-slate-600">{e.encounter_type}</td>
+                    <td className="px-4 py-3">
+                      <Badge color={statusColor(e.status)}>{e.status}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-3 text-sm">
+                        <Link to={`/admin/encounters/${e.id}/consultation`} className="text-emerald-700 hover:underline">
+                          Consultation
+                        </Link>
+                        <Link to={`/admin/encounters/${e.id}/prescriptions`} className="text-emerald-700 hover:underline">
+                          Rx
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </Table>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-4 py-3 rounded-b-lg sm:px-6">
+                <div className="flex flex-1 justify-between sm:hidden">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-slate-700">
+                      Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                      <span className="font-medium">
+                        {Math.min(startIndex + ITEMS_PER_PAGE, filteredEncounters.length)}
+                      </span>{' '}
+                      of <span className="font-medium">{filteredEncounters.length}</span> results
+                    </p>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </Table>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-slate-700">
+                      Page <span className="font-semibold text-slate-900">{currentPage}</span> of{' '}
+                      <span className="font-semibold text-slate-900">{totalPages}</span>
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                        disabled={currentPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </Card>
     </div>

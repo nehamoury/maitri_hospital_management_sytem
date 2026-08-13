@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -82,6 +83,26 @@ func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 		}
 		if _, ok := allowed[roleName.(string)]; !ok {
 			utils.Fail(c, http.StatusForbidden, "you do not have permission to perform this action")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+// RequireStaff blocks patient-role tokens from the generic staff API. It
+// must run after RequireAuth() on every group a patient must not reach.
+// Public routes (no token) carry no role_name and pass through untouched,
+// so this is safe on groups that also mount public endpoints.
+func RequireStaff() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleVal, exists := c.Get("role_name")
+		if !exists {
+			c.Next()
+			return
+		}
+		if roleVal.(string) == models.RolePatient {
+			utils.Fail(c, http.StatusForbidden, "patient accounts cannot access staff endpoints")
 			c.Abort()
 			return
 		}

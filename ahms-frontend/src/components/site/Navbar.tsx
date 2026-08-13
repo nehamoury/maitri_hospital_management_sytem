@@ -1,4 +1,4 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { Menu, Phone, X, Leaf, ChevronDown, Stethoscope, Building2, FlaskConical, Image, BookOpen, Layers3, UserCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -105,7 +105,9 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const scrolled = hasScrolled
+  const location = useLocation()
+  const isPortal = location.pathname.startsWith('/portal')
+  const scrolled = hasScrolled || isPortal
 
   // Close drawer on resize to desktop
   useEffect(() => {

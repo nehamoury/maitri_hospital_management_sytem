@@ -7,7 +7,8 @@ import {
   LayoutDashboard, Users, Calendar, Stethoscope, ArrowLeftRight,
   Pill, Receipt, UserCog, Building2, FileText, Search, Bell, LogOut,
   Menu, X, ChevronRight, ChevronDown, Settings, User as UserIcon,
-  Leaf, CalendarClock, ShieldCheck, MonitorPlay
+  Leaf, CalendarClock, ShieldCheck, MonitorPlay, BedDouble, Hospital,
+  FlaskConical, ChefHat
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ThemeToggle } from './ThemeToggle'
@@ -31,6 +32,9 @@ const navSections = [
       { to: '/admin/referrals', label: 'Referrals', icon: ArrowLeftRight, perm: 'referral.view' },
       { to: '/admin/treatment-plans', label: 'Treatment Plans', icon: Leaf, perm: 'treatment.view' },
       { to: '/admin/treatment-sessions', label: 'Therapist Sessions', icon: CalendarClock, perm: 'treatment.session' },
+      { to: '/admin/admissions', label: 'IPD Admissions', icon: BedDouble, perm: 'admission.view' },
+      { to: '/admin/wards', label: 'Wards & Beds', icon: Hospital, perm: 'ward.view' },
+      { to: '/admin/lab', label: 'Laboratory', icon: FlaskConical, perm: 'lab.view' },
     ],
   },
   {
@@ -38,6 +42,8 @@ const navSections = [
     items: [
       { to: '/admin/pharmacy', label: 'Pharmacy', icon: Pill, perm: 'pharmacy.view' },
       { to: '/admin/billing', label: 'Billing', icon: Receipt, perm: 'billing.view' },
+      { to: '/admin/diet', label: 'Diet & Kitchen', icon: ChefHat, perm: 'diet.serve' },
+      { to: '/admin/reports', label: 'Reports', icon: FileText, perm: 'reports.view' },
     ],
   },
   {
@@ -569,7 +575,15 @@ export function AdminLayout() {
     }
 
     return () => {
-      ws.close()
+      // Only close if the socket finished opening; closing a still-connecting
+      // socket (e.g. StrictMode double-mount) can throw in the browser.
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CLOSING) {
+        try {
+          ws.close()
+        } catch {
+          // ignore
+        }
+      }
     }
   }, [token])
 

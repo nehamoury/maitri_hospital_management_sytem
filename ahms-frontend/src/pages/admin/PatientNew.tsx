@@ -52,6 +52,7 @@ export default function PatientNew() {
   })
   const [error, setError] = useState('')
   const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [duplicates, setDuplicates] = useState<ExistingPatient[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -80,6 +81,9 @@ export default function PatientNew() {
     setPhotoUploading(true)
     setError('')
     try {
+      // Show an immediate local preview (photos are not served from a
+      // public /uploads path, so we never render the stored URL directly).
+      setPhotoPreview(URL.createObjectURL(file))
       const fd = new FormData()
       fd.append('file', file)
       const res = await api.post<{ data: { photo_url: string } }>('/upload/patient-photo', fd, {
@@ -87,6 +91,7 @@ export default function PatientNew() {
       })
       set('photo_url', res.data.data.photo_url)
     } catch (err) {
+      setPhotoPreview(null)
       setError(errorMessage(err, 'Photo upload failed'))
     } finally {
       setPhotoUploading(false)
@@ -167,7 +172,7 @@ export default function PatientNew() {
                       }}
                     />
                   </label>
-                  {form.photo_url && <img src={form.photo_url} alt="patient" className="h-14 w-14 rounded-xl object-cover ring-2 ring-teal-100" />}
+                  {photoPreview && <img src={photoPreview} alt="patient" className="h-14 w-14 rounded-xl object-cover ring-2 ring-teal-100" />}
                 </div>
               </Field>
               <Field label="Full Name *">

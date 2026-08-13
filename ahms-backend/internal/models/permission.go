@@ -105,6 +105,30 @@ const (
 	PermTreatmentApprove = "treatment.approve"
 	PermTreatmentSession = "treatment.session" // therapist executes sessions
 	PermTreatmentComplete = "treatment.complete"
+
+	// IPD (wards, beds, admissions).
+	PermWardView    = "ward.view"
+	PermWardManage  = "ward.manage"
+	PermAdmissionView     = "admission.view"
+	PermAdmissionCreate   = "admission.create"
+	PermAdmissionUpdate   = "admission.update"
+	PermAdmissionDischarge = "admission.discharge"
+	PermNoteCreate        = "note.create"
+	PermDietCreate        = "diet.create"
+
+	// Investigation / Lab.
+	PermLabView    = "lab.view"    // View tests, orders, results
+	PermLabOrder   = "lab.order"   // Doctor/staff orders investigation
+	PermLabCollect = "lab.collect" // Lab staff collects sample
+	PermLabResult  = "lab.result"  // Lab staff enters results
+	PermLabVerify  = "lab.verify"  // Lab supervisor verifies result
+	PermLabReview  = "lab.review"  // Doctor reviews result
+	PermLabManage  = "lab.manage"  // Admin manages test master / categories
+
+	// Diet / Kitchen.
+	PermDietOrder  = "diet.order"  // Prescribe diet plan
+	PermDietManage = "diet.manage" // Manage diet masters & configurations
+	PermDietServe  = "diet.serve"  // Mark meals prepared/served
 )
 
 // Permission represents a single fine-grained capability (e.g.

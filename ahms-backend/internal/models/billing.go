@@ -31,6 +31,7 @@ type Bill struct {
 	PatientID   uuid.UUID `gorm:"type:uuid;not null;index" json:"patient_id"`
 	Patient     Patient   `gorm:"foreignKey:PatientID" json:"patient,omitempty"`
 	EncounterID *uuid.UUID `gorm:"type:uuid;index" json:"encounter_id,omitempty"`
+	AdmissionID *uuid.UUID `gorm:"type:uuid;index" json:"admission_id,omitempty"`
 
 	TotalAmount   float64 `gorm:"type:decimal(10,2);not null;default:0" json:"total_amount"`
 	Discount      float64 `gorm:"type:decimal(10,2);not null;default:0" json:"discount"`

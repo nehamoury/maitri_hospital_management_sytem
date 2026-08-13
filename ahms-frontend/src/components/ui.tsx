@@ -52,7 +52,7 @@ export function Card({ className = '', children }: { className?: string; childre
   )
 }
 
-export function CardHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+export function CardHeader({ title, subtitle, action }: { title: string; subtitle?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex items-start justify-between border-b border-border px-6 py-5">
       <div>
@@ -64,7 +64,7 @@ export function CardHeader({ title, subtitle, action }: { title: string; subtitl
   )
 }
 
-export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-8 flex items-center justify-between">
       <div>

@@ -3,6 +3,7 @@ package portal
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ahms/backend/internal/models"
@@ -39,7 +40,9 @@ func NewRepository(db *gorm.DB) Repository {
 
 func (r *repository) FindPatientByUhidMobile(uhid, mobile string) (*models.Patient, error) {
 	var p models.Patient
-	err := r.db.First(&p, "uhid = ? AND mobile = ? AND is_active = ?", uhid, mobile, true).Error
+	cleanUhid := strings.TrimSpace(uhid)
+	cleanMobile := strings.TrimSpace(mobile)
+	err := r.db.First(&p, "uh_id = ? AND mobile = ? AND is_active = ?", cleanUhid, cleanMobile, true).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrInvalidCredentials
 	}

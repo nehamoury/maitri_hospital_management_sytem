@@ -60,6 +60,10 @@ type Encounter struct {
 	// (set when the receiving department starts its consultation).
 	ReferralID *uuid.UUID `gorm:"type:uuid;index" json:"referral_id,omitempty"`
 
+	// AdmissionID links an IPD-type encounter to the admission that
+	// created it, keeping the longitudinal timeline consistent.
+	AdmissionID *uuid.UUID `gorm:"type:uuid;index" json:"admission_id,omitempty"`
+
 	CreatedByUserID uuid.UUID `gorm:"type:uuid;not null" json:"created_by_user_id"`
 	CreatedBy       User      `gorm:"foreignKey:CreatedByUserID" json:"created_by,omitempty"`
 

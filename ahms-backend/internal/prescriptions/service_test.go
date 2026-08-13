@@ -117,16 +117,20 @@ func TestPrescriptionCreateRejectsMissingEncounter(t *testing.T) {
 	}
 }
 
-func TestPrescriptionCreateRejectsMissingDoctor(t *testing.T) {
-	repo := &fakeRepo{encounterExists: true, doctorErr: ErrNotFound}
+func TestPrescriptionCreateUsesEncounterDoctor(t *testing.T) {
+	doctor := &models.Doctor{BaseModel: models.BaseModel{ID: uuid.New()}}
+	repo := &fakeRepo{encounterExists: true, doctor: doctor}
 	svc := newTestService(repo)
 
-	_, err := svc.Create(uuid.New(), CreatePrescriptionRequest{
+	p, err := svc.Create(uuid.New(), CreatePrescriptionRequest{
 		Items: []PrescriptionItemInput{{Medicine: "Chyawanprash"}},
 	}, uuid.New())
 
-	if !errors.Is(err, ErrNotFound) {
-		t.Fatalf("expected ErrNotFound for missing doctor, got %v", err)
+	if err != nil {
+		t.Fatalf("create should succeed, got %v", err)
+	}
+	if p.DoctorID != doctor.ID {
+		t.Fatal("doctor should be resolved from the encounter")
 	}
 }
 

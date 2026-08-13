@@ -194,6 +194,9 @@ func toResponse(r *models.Referral) ReferralResponse {
 			VisitDate:      src.VisitDate.Format("2006-01-02"),
 			DepartmentName: src.Department.Name,
 			DoctorName:     src.Doctor.User.FullName,
+			Consultations:  []SourceConsultation{},
+			Diagnoses:      []SourceDiagnosis{},
+			Prescriptions:  []SourcePrescription{},
 		}
 		for i := range src.Diagnoses {
 			d := &src.Diagnoses[i]
@@ -213,6 +216,7 @@ func toResponse(r *models.Referral) ReferralResponse {
 				ClinicalNotes:   c.ClinicalNotes,
 				TreatmentPlan:   c.TreatmentPlan,
 				AyurvedaFields:  c.AyurvedaFields,
+				Diagnoses:       []SourceDiagnosis{},
 			}
 			for i := range c.Diagnoses {
 				d := &c.Diagnoses[i]
@@ -230,6 +234,7 @@ func toResponse(r *models.Referral) ReferralResponse {
 				PrescriptionID: p.ID.String(),
 				Status:         p.Status,
 				Notes:          p.Notes,
+				Items:          []SourcePrescriptionItem{},
 			}
 			for j := range p.Items {
 				it := &p.Items[j]

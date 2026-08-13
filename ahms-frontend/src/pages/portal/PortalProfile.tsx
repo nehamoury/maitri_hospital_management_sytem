@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { portalApi, errorMessage } from '../../lib/api'
-import { Card, CardHeader, EmptyState, Spinner, PageHeader } from '../../components/ui'
+import { Card, CardHeader, EmptyState, Spinner } from '../../components/ui'
 
 interface Profile {
   id: string
@@ -44,15 +44,22 @@ export default function PortalProfile() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <PageHeader
-        title="My Profile"
-        subtitle="Your registered details"
-        action={
-          <Link to="/portal" className="text-sm text-emerald-700 hover:underline">
-            ← Back to portal
+      {/* Premium Hero Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-800 to-teal-700 p-6 text-white shadow-lg mb-6">
+        <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-white/5 blur-2xl"></div>
+        <div className="relative flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-950/40 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-200 border border-emerald-700/20">
+              Maitri Ayurveda Portal
+            </span>
+            <h1 className="text-xl md:text-2xl font-extrabold tracking-tight">My Profile</h1>
+            <p className="text-emerald-100/70 text-xs md:text-sm">Your registered details</p>
+          </div>
+          <Link to="/portal" className="shrink-0 rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition-colors border border-white/10">
+            ← Dashboard
           </Link>
-        }
-      />
+        </div>
+      </div>
       <Card>
         <CardHeader title="Personal Information" />
         <div className="divide-y divide-slate-100 p-2">

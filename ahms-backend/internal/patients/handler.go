@@ -3,6 +3,8 @@ package patients
 import (
 	"errors"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/ahms/backend/internal/audit"
 	"github.com/ahms/backend/internal/models"
@@ -13,8 +15,9 @@ import (
 
 // Handler wires HTTP requests to the patients Service.
 type Handler struct {
-	service Service
-	audit   *audit.Recorder
+	service   Service
+	audit     *audit.Recorder
+	uploadDir string
 }
 
 // NewHandler builds a Handler.
@@ -24,6 +27,9 @@ func NewHandler(service Service) *Handler {
 
 // SetAuditRecorder attaches the audit recorder used to log data changes.
 func (h *Handler) SetAuditRecorder(r *audit.Recorder) { h.audit = r }
+
+// SetUploadDir sets the base directory used to persist patient photos.
+func (h *Handler) SetUploadDir(dir string) { h.uploadDir = dir }
 
 func toResponse(p *models.Patient) PatientResponse {
 	dob := ""
@@ -127,6 +133,41 @@ func (h *Handler) Get(c *gin.Context) {
 		return
 	}
 	utils.Success(c, http.StatusOK, "patient fetched", toResponse(patient))
+}
+
+// Photo godoc
+// @Summary      Get a patient's photo
+// @Description  Streams the patient photo with authorization. Photos are
+//               never served from a public static path.
+// @Tags         patients
+// @Produce      image/*
+// @Security     BearerAuth
+// @Param        id path string true "Patient ID"
+// @Success      200
+// @Failure      404 {object} utils.APIResponse
+// @Router       /patients/{id}/photo [get]
+func (h *Handler) Photo(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid patient id")
+		return
+	}
+	patient, err := h.service.GetByID(id)
+	if err != nil {
+		utils.Fail(c, http.StatusNotFound, "patient not found")
+		return
+	}
+	if patient.PhotoURL == "" || h.uploadDir == "" {
+		utils.Fail(c, http.StatusNotFound, "photo not found")
+		return
+	}
+	path := filepath.Join(h.uploadDir, "patients", filepath.Base(patient.PhotoURL))
+	if _, err := os.Stat(path); err != nil {
+		utils.Fail(c, http.StatusNotFound, "photo not found")
+		return
+	}
+	c.Header("Cache-Control", "private, max-age=3600")
+	c.File(path)
 }
 
 // Create godoc

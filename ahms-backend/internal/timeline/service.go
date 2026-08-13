@@ -31,5 +31,9 @@ func (s *service) GetPatientTimeline(patientID uuid.UUID) (TimelineResponse, err
 	if err != nil {
 		return TimelineResponse{}, err
 	}
-	return toResponse(patient, encounters, plans), nil
+	admissions, err := s.repo.FindAdmissions(patientID)
+	if err != nil {
+		return TimelineResponse{}, err
+	}
+	return toResponse(patient, encounters, plans, admissions), nil
 }

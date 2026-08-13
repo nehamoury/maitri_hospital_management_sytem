@@ -27,8 +27,11 @@ import (
 	"github.com/ahms/backend/internal/dashboard"
 	"github.com/ahms/backend/internal/database"
 	"github.com/ahms/backend/internal/departments"
+	"github.com/ahms/backend/internal/diet"
 	"github.com/ahms/backend/internal/doctors"
 	"github.com/ahms/backend/internal/encounters"
+	"github.com/ahms/backend/internal/ipd"
+	"github.com/ahms/backend/internal/lab"
 	"github.com/ahms/backend/internal/middleware"
 	"github.com/ahms/backend/internal/models"
 	"github.com/ahms/backend/internal/patientdocs"
@@ -38,6 +41,7 @@ import (
 	"github.com/ahms/backend/internal/prescriptions"
 	"github.com/ahms/backend/internal/public"
 	"github.com/ahms/backend/internal/referrals"
+	"github.com/ahms/backend/internal/reports"
 	"github.com/ahms/backend/internal/roles"
 	"github.com/ahms/backend/internal/timeline"
 	"github.com/ahms/backend/internal/treatments"
@@ -87,6 +91,12 @@ func main() {
 	if err := database.SeedProcedureTypes(db); err != nil {
 		log.Fatalf("procedure type seeding error: %v", err)
 	}
+	if err := database.SeedWards(db); err != nil {
+		log.Fatalf("ward/bed seeding error: %v", err)
+	}
+	if err := database.SeedLabTests(db); err != nil {
+		log.Fatalf("lab tests seeding error: %v", err)
+	}
 
 	if cfg.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
@@ -130,11 +140,12 @@ func main() {
 	router.Use(middleware.SwaggerProtection(cfg))
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Serve uploaded files (patient photos etc.). Static-only — files are
-	// written as images (jpg/png/webp) by the upload handler, so this route
-	// never exposes executable content.
+	// Uploaded files (patient photos, documents, referral attachments) are
+	// NEVER served via a public static route. They are streamed only through
+	// authenticated, ownership-checked API handlers (see patientdocs,
+	// referrals and patients photo endpoints) so no PHI is reachable
+	// without a valid session.
 	uploadDir := uploads.TrimOrDefault(cfg.UploadDir)
-	router.Static("/uploads", uploadDir)
 
 	jwtManager := utils.NewJWTManager(cfg.JWTSecret, cfg.JWTAccessTokenTTL, cfg.JWTRefreshTokenTTL)
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, blacklist)
@@ -181,161 +192,194 @@ func main() {
 		authHandler.SetAuditRecorder(auditRecorder)
 		auth.RegisterRoutesWithLimiter(apiV1, authHandler, authMiddleware, loginLimiter)
 
-		deptRepo := departments.NewRepository(db)
-		deptService := departments.NewService(deptRepo)
-		deptHandler := departments.NewHandler(deptService)
-		departments.RegisterRoutes(apiV1, deptHandler, authMiddleware, permissionMiddleware)
-
-		doctorRepo := doctors.NewRepository(db)
-		doctorService := doctors.NewService(doctorRepo)
-		doctorHandler := doctors.NewHandler(doctorService)
-		doctors.RegisterRoutes(apiV1, doctorHandler, authMiddleware, permissionMiddleware)
-
-		patientRepo := patients.NewRepository(db)
-		patientService := patients.NewService(patientRepo)
-		patientHandler := patients.NewHandler(patientService)
-		patientHandler.SetAuditRecorder(auditRecorder)
-		patients.RegisterRoutes(apiV1, patientHandler, authMiddleware, permissionMiddleware)
-
-		docRepo := patientdocs.NewRepository(db)
-		docService := patientdocs.NewService(docRepo)
-		docHandler := patientdocs.NewHandler(docService)
-		docHandler.SetAuditRecorder(auditRecorder)
-		docHandler.SetUploadDir(uploadDir)
-		patientdocs.RegisterRoutes(apiV1, docHandler, authMiddleware, permissionMiddleware)
-
-		apptRepo := appointments.NewRepository(db)
-		apptService := appointments.NewService(apptRepo)
-		apptHandler := appointments.NewHandler(apptService)
-		apptHandler.SetAuditRecorder(auditRecorder)
-		apptHandler.SetWebSocketHub(wsHub)
-		appointments.RegisterRoutes(apiV1, apptHandler, authMiddleware, permissionMiddleware)
-
-		publicGroup := apiV1.Group("/public")
+		// ---- Staff-facing API -------------------------------------------------
+		// Everything under staffGroup is off-limits to patient-role tokens.
+		// Patients have their own scoped surface at /api/v1/portal/* and the
+		// /auth identity endpoints. RequireStaff runs before any permission
+		// middleware, so a patient token is rejected even on routes whose
+		// permission would otherwise match (e.g. patient.view).
+		staffGroup := apiV1.Group("", middleware.RequireStaff())
 		{
-			publicGroup.POST("/appointments", apptHandler.PublicCreate)
-			publicGroup.GET("/slots", apptHandler.Slots)
-		}
 
-		dashboardRepo := dashboard.NewRepository(db)
-		dashboardService := dashboard.NewService(dashboardRepo)
-		dashboardHandler := dashboard.NewHandler(dashboardService)
-		dashboard.RegisterRoutes(apiV1, dashboardHandler, authMiddleware, permissionMiddleware, dataScopeMiddleware)
+			deptRepo := departments.NewRepository(db)
+			deptService := departments.NewService(deptRepo)
+			deptHandler := departments.NewHandler(deptService)
+			departments.RegisterRoutes(staffGroup, deptHandler, authMiddleware, permissionMiddleware)
 
-		encounterRepo := encounters.NewRepository(db)
-		encounterService := encounters.NewService(encounterRepo)
-		encounterHandler := encounters.NewHandler(encounterService)
-		encounterHandler.SetAuditRecorder(auditRecorder)
-		encounterHandler.SetWebSocketHub(wsHub)
-		encounters.RegisterRoutes(apiV1, encounterHandler, authMiddleware, permissionMiddleware, dataScopeMiddleware)
+			doctorRepo := doctors.NewRepository(db)
+			doctorService := doctors.NewService(doctorRepo)
+			doctorHandler := doctors.NewHandler(doctorService)
+			doctors.RegisterRoutes(staffGroup, doctorHandler, authMiddleware, permissionMiddleware)
 
-		consultationRepo := consultations.NewRepository(db)
-		consultationService := consultations.NewService(consultationRepo)
-		consultationHandler := consultations.NewHandler(consultationService)
-		consultationHandler.SetAuditRecorder(auditRecorder)
-		consultations.RegisterRoutes(apiV1, consultationHandler, authMiddleware, permissionMiddleware)
+			patientRepo := patients.NewRepository(db)
+			patientService := patients.NewService(patientRepo)
+			patientHandler := patients.NewHandler(patientService)
+			patientHandler.SetAuditRecorder(auditRecorder)
+			patientHandler.SetUploadDir(uploadDir)
+			patients.RegisterRoutes(staffGroup, patientHandler, authMiddleware, permissionMiddleware)
 
-		prescriptionRepo := prescriptions.NewRepository(db)
-		prescriptionService := prescriptions.NewService(prescriptionRepo)
-		prescriptionHandler := prescriptions.NewHandler(prescriptionService)
-		prescriptionHandler.SetAuditRecorder(auditRecorder)
-		prescriptions.RegisterRoutes(apiV1, prescriptionHandler, authMiddleware, permissionMiddleware)
+			docRepo := patientdocs.NewRepository(db)
+			docService := patientdocs.NewService(docRepo)
+			docHandler := patientdocs.NewHandler(docService)
+			docHandler.SetAuditRecorder(auditRecorder)
+			docHandler.SetUploadDir(uploadDir)
+			patientdocs.RegisterRoutes(staffGroup, docHandler, authMiddleware, permissionMiddleware)
 
-		timelineRepo := timeline.NewRepository(db)
-		timelineService := timeline.NewService(timelineRepo)
-		timelineHandler := timeline.NewHandler(timelineService)
-		timeline.RegisterRoutes(apiV1, timelineHandler, authMiddleware, permissionMiddleware)
+			apptRepo := appointments.NewRepository(db)
+			apptService := appointments.NewService(apptRepo)
+			apptHandler := appointments.NewHandler(apptService)
+			apptHandler.SetAuditRecorder(auditRecorder)
+			apptHandler.SetWebSocketHub(wsHub)
+			appointments.RegisterRoutes(staffGroup, apptHandler, authMiddleware, permissionMiddleware)
 
-		referralRepo := referrals.NewRepository(db)
-		referralService := referrals.NewService(referralRepo)
-		referralHandler := referrals.NewHandler(referralService)
-		referralHandler.SetAuditRecorder(auditRecorder)
-		referralHandler.SetUploadDir(uploadDir)
-		referrals.RegisterRoutes(apiV1, referralHandler, authMiddleware, permissionMiddleware)
-
-		treatmentRepo := treatments.NewRepository(db)
-		treatmentService := treatments.NewService(treatmentRepo)
-		treatmentHandler := treatments.NewHandler(treatmentService)
-		treatmentHandler.SetAuditRecorder(auditRecorder)
-		treatments.RegisterRoutes(apiV1, treatmentHandler, authMiddleware, permissionMiddleware)
-
-		publicHandler := public.NewHandler(deptService, doctorService, treatmentService)
-		public.RegisterRoutes(apiV1.Group("/public"), publicHandler)
-
-		pharmacyRepo := pharmacy.NewRepository(db)
-		pharmacyService := pharmacy.NewService(pharmacyRepo)
-		pharmacyHandler := pharmacy.NewHandler(pharmacyService)
-		pharmacyHandler.SetAuditRecorder(auditRecorder)
-		pharmacy.RegisterRoutes(apiV1, pharmacyHandler, authMiddleware, permissionMiddleware)
-
-		billingRepo := billing.NewRepository(db)
-		billingService := billing.NewService(billingRepo)
-		billingHandler := billing.NewHandler(billingService)
-		billingHandler.SetAuditRecorder(auditRecorder)
-		billing.RegisterRoutes(apiV1, billingHandler, authMiddleware, permissionMiddleware)
-
-		auditHandler := audit.NewHandler(auditService)
-		audit.RegisterRoutes(apiV1, auditHandler, authMiddleware, permissionMiddleware)
-
-		userRepo := users.NewRepository(db)
-		userService := users.NewService(userRepo)
-		userHandler := users.NewHandler(userService)
-		users.RegisterRoutes(apiV1, userHandler, authMiddleware, permissionMiddleware)
-
-		roleRepo := roles.NewRepository(db)
-		roleService := roles.NewService(roleRepo)
-		roleHandler := roles.NewHandler(roleService)
-		roles.RegisterRoutes(apiV1, roleHandler, authMiddleware, permissionMiddleware)
-
-		portalRepo := portal.NewRepository(db)
-		portalService := portal.NewService(portalRepo, jwtManager)
-		portalHandler := portal.NewHandler(portalService)
-		portal.RegisterRoutesWithLimiter(apiV1, portalHandler, authMiddleware, portalLoginLimiter)
-
-		uploadsHandler := uploads.NewHandler(uploadDir)
-		uploads.RegisterRoutes(apiV1, uploadsHandler, authMiddleware, permissionMiddleware)
-
-		apiV1.GET("/search", authMiddleware.RequireAuth(), func(c *gin.Context) {
-			q := c.Query("q")
-			if q == "" {
-				utils.Success(c, 200, "ok", gin.H{"patients": []interface{}{}, "referrals": []interface{}{}, "bills": []interface{}{}})
-				return
+			publicGroup := apiV1.Group("/public")
+			{
+				publicGroup.POST("/appointments", apptHandler.PublicCreate)
+				publicGroup.GET("/slots", apptHandler.Slots)
 			}
-			like := "%" + q + "%"
-			type PatientResult struct {
-				ID       string `json:"id"`
-				UHID     string `json:"uh_id"`
-				FullName string `json:"full_name"`
-				Mobile   string `json:"mobile"`
-				Gender   string `json:"gender"`
-			}
-			var patResults []PatientResult
-			db.Raw(`SELECT id, uhid, full_name, mobile, gender FROM patients WHERE deleted_at IS NULL AND (full_name ILIKE ? OR mobile ILIKE ? OR uhid ILIKE ?) LIMIT 10`, like, like, like).Scan(&patResults)
 
-			type ReferralResult struct {
-				ID          string `json:"id"`
-				PatientID   string `json:"patient_id"`
-				PatientName string `json:"patient_name"`
-				Department  string `json:"from_department_name"`
-				Status      string `json:"status"`
-				CreatedAt   string `json:"created_at"`
-			}
-			var refResults []ReferralResult
-			db.Raw(`SELECT r.id, r.patient_id, COALESCE(p.full_name,'') AS patient_name, COALESCE(d.name,'') AS from_department_name, r.status, r.created_at::text FROM referrals r LEFT JOIN patients p ON p.id = r.patient_id LEFT JOIN departments d ON d.id = r.from_department_id WHERE r.deleted_at IS NULL AND (p.full_name ILIKE ? OR r.referral_no ILIKE ?) LIMIT 10`, like, like).Scan(&refResults)
+			dashboardRepo := dashboard.NewRepository(db)
+			dashboardService := dashboard.NewService(dashboardRepo)
+			dashboardHandler := dashboard.NewHandler(dashboardService)
+			dashboard.RegisterRoutes(staffGroup, dashboardHandler, authMiddleware, permissionMiddleware, dataScopeMiddleware)
 
-			type BillResult struct {
-				ID          string  `json:"id"`
-				BillNo      string  `json:"bill_no"`
-				PatientID   string  `json:"patient_id"`
-				PatientName string  `json:"patient_name"`
-				Total       float64 `json:"total_amount"`
-				Status      string  `json:"status"`
-			}
-			var billResults []BillResult
-			db.Raw(`SELECT b.id, b.bill_no, b.patient_id, COALESCE(p.full_name,'') AS patient_name, b.total_amount, b.status FROM bills b LEFT JOIN patients p ON p.id = b.patient_id WHERE b.deleted_at IS NULL AND (b.bill_no ILIKE ? OR p.full_name ILIKE ?) LIMIT 10`, like, like).Scan(&billResults)
+			encounterRepo := encounters.NewRepository(db)
+			encounterService := encounters.NewService(encounterRepo)
+			encounterHandler := encounters.NewHandler(encounterService)
+			encounterHandler.SetAuditRecorder(auditRecorder)
+			encounterHandler.SetWebSocketHub(wsHub)
+			encounters.RegisterRoutes(staffGroup, encounterHandler, authMiddleware, permissionMiddleware, dataScopeMiddleware)
 
-			utils.Success(c, 200, "ok", gin.H{"patients": patResults, "referrals": refResults, "bills": billResults})
-		})
+			consultationRepo := consultations.NewRepository(db)
+			consultationService := consultations.NewService(consultationRepo)
+			consultationHandler := consultations.NewHandler(consultationService)
+			consultationHandler.SetAuditRecorder(auditRecorder)
+			consultations.RegisterRoutes(staffGroup, consultationHandler, authMiddleware, permissionMiddleware)
+
+			prescriptionRepo := prescriptions.NewRepository(db)
+			prescriptionService := prescriptions.NewService(prescriptionRepo)
+			prescriptionHandler := prescriptions.NewHandler(prescriptionService)
+			prescriptionHandler.SetAuditRecorder(auditRecorder)
+			prescriptions.RegisterRoutes(staffGroup, prescriptionHandler, authMiddleware, permissionMiddleware)
+
+			timelineRepo := timeline.NewRepository(db)
+			timelineService := timeline.NewService(timelineRepo)
+			timelineHandler := timeline.NewHandler(timelineService)
+			timeline.RegisterRoutes(staffGroup, timelineHandler, authMiddleware, permissionMiddleware)
+
+			referralRepo := referrals.NewRepository(db)
+			referralService := referrals.NewService(referralRepo)
+			referralHandler := referrals.NewHandler(referralService)
+			referralHandler.SetAuditRecorder(auditRecorder)
+			referralHandler.SetUploadDir(uploadDir)
+			referrals.RegisterRoutes(staffGroup, referralHandler, authMiddleware, permissionMiddleware)
+
+			treatmentRepo := treatments.NewRepository(db)
+			treatmentService := treatments.NewService(treatmentRepo)
+			treatmentHandler := treatments.NewHandler(treatmentService)
+			treatmentHandler.SetAuditRecorder(auditRecorder)
+			treatments.RegisterRoutes(staffGroup, treatmentHandler, authMiddleware, permissionMiddleware)
+
+			publicHandler := public.NewHandler(deptService, doctorService, treatmentService)
+			public.RegisterRoutes(apiV1.Group("/public"), publicHandler)
+
+			pharmacyRepo := pharmacy.NewRepository(db)
+			pharmacyService := pharmacy.NewService(pharmacyRepo)
+			pharmacyHandler := pharmacy.NewHandler(pharmacyService)
+			pharmacyHandler.SetAuditRecorder(auditRecorder)
+			pharmacy.RegisterRoutes(staffGroup, pharmacyHandler, authMiddleware, permissionMiddleware)
+
+			billingRepo := billing.NewRepository(db)
+			billingService := billing.NewService(billingRepo)
+			billingHandler := billing.NewHandler(billingService)
+			billingHandler.SetAuditRecorder(auditRecorder)
+			billing.RegisterRoutes(staffGroup, billingHandler, authMiddleware, permissionMiddleware)
+
+			auditHandler := audit.NewHandler(auditService)
+			audit.RegisterRoutes(staffGroup, auditHandler, authMiddleware, permissionMiddleware)
+
+			userRepo := users.NewRepository(db)
+			userService := users.NewService(userRepo)
+			userHandler := users.NewHandler(userService)
+			users.RegisterRoutes(staffGroup, userHandler, authMiddleware, permissionMiddleware)
+
+			roleRepo := roles.NewRepository(db)
+			roleService := roles.NewService(roleRepo)
+			roleHandler := roles.NewHandler(roleService)
+			roles.RegisterRoutes(staffGroup, roleHandler, authMiddleware, permissionMiddleware)
+
+			portalRepo := portal.NewRepository(db)
+			portalService := portal.NewService(portalRepo, jwtManager)
+			portalHandler := portal.NewHandler(portalService)
+			portal.RegisterRoutesWithLimiter(apiV1, portalHandler, authMiddleware, portalLoginLimiter)
+
+			ipdRepo := ipd.NewRepository(db)
+			ipdService := ipd.NewService(ipdRepo)
+			ipdHandler := ipd.NewHandler(ipdService)
+			ipdHandler.SetAuditRecorder(auditRecorder)
+			ipd.RegisterRoutes(staffGroup, ipdHandler, authMiddleware, permissionMiddleware)
+
+			reportsRepo := reports.NewRepository(db)
+			reportsService := reports.NewService(reportsRepo)
+			reportsHandler := reports.NewHandler(reportsService)
+			reports.RegisterRoutes(staffGroup, reportsHandler, authMiddleware, permissionMiddleware)
+
+			labRepo := lab.NewRepository(db)
+			labService := lab.NewService(labRepo)
+			labHandler := lab.NewHandler(labService)
+			lab.RegisterRoutes(staffGroup, labHandler, authMiddleware, permissionMiddleware)
+
+			dietRepo := diet.NewRepository(db)
+			dietService := diet.NewService(dietRepo, db)
+			dietHandler := diet.NewHandler(dietService)
+			dietHandler.SetAuditRecorder(auditRecorder)
+			diet.RegisterRoutes(staffGroup, dietHandler, authMiddleware, permissionMiddleware)
+
+			uploadsHandler := uploads.NewHandler(uploadDir)
+			uploads.RegisterRoutes(staffGroup, uploadsHandler, authMiddleware, permissionMiddleware)
+
+			staffGroup.GET("/search", authMiddleware.RequireAuth(), func(c *gin.Context) {
+				q := c.Query("q")
+				if q == "" {
+					utils.Success(c, 200, "ok", gin.H{"patients": []interface{}{}, "referrals": []interface{}{}, "bills": []interface{}{}})
+					return
+				}
+				like := "%" + q + "%"
+				type PatientResult struct {
+					ID       string `json:"id"`
+					UHID     string `json:"uh_id"`
+					FullName string `json:"full_name"`
+					Mobile   string `json:"mobile"`
+					Gender   string `json:"gender"`
+				}
+				var patResults []PatientResult
+				db.Raw(`SELECT id, uhid, full_name, mobile, gender FROM patients WHERE deleted_at IS NULL AND (full_name ILIKE ? OR mobile ILIKE ? OR uhid ILIKE ?) LIMIT 10`, like, like, like).Scan(&patResults)
+
+				type ReferralResult struct {
+					ID          string `json:"id"`
+					PatientID   string `json:"patient_id"`
+					PatientName string `json:"patient_name"`
+					Department  string `json:"from_department_name"`
+					Status      string `json:"status"`
+					CreatedAt   string `json:"created_at"`
+				}
+				var refResults []ReferralResult
+				db.Raw(`SELECT r.id, r.patient_id, COALESCE(p.full_name,'') AS patient_name, COALESCE(d.name,'') AS from_department_name, r.status, r.created_at::text FROM referrals r LEFT JOIN patients p ON p.id = r.patient_id LEFT JOIN departments d ON d.id = r.from_department_id WHERE r.deleted_at IS NULL AND (p.full_name ILIKE ? OR r.referral_no ILIKE ?) LIMIT 10`, like, like).Scan(&refResults)
+
+				type BillResult struct {
+					ID          string  `json:"id"`
+					BillNo      string  `json:"bill_no"`
+					PatientID   string  `json:"patient_id"`
+					PatientName string  `json:"patient_name"`
+					Total       float64 `json:"total_amount"`
+					Status      string  `json:"status"`
+				}
+				var billResults []BillResult
+				db.Raw(`SELECT b.id, b.bill_no, b.patient_id, COALESCE(p.full_name,'') AS patient_name, b.total_amount, b.status FROM bills b LEFT JOIN patients p ON p.id = b.patient_id WHERE b.deleted_at IS NULL AND (b.bill_no ILIKE ? OR p.full_name ILIKE ?) LIMIT 10`, like, like).Scan(&billResults)
+
+				utils.Success(c, 200, "ok", gin.H{"patients": patResults, "referrals": refResults, "bills": billResults})
+			})
+		} // staffGroup
 	}
 
 	log.Printf("AHMS backend listening on :%s (env=%s)", cfg.ServerPort, cfg.AppEnv)

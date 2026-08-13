@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronDown, Check, User, Building2 } from 'lucide-react'
 import { portalApi, errorMessage } from '../../lib/api'
-import { Card, CardHeader, Badge, Table, EmptyState, Spinner, PageHeader, Button, Input } from '../../components/ui'
+import { Card, CardHeader, Badge, Table, EmptyState, Spinner, Button, Input } from '../../components/ui'
 
 interface Appt {
   id: string
@@ -120,15 +120,22 @@ export default function PortalAppointments() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <PageHeader
-        title="My Appointments"
-        subtitle="Book and track your visits"
-        action={
-          <Link to="/portal" className="text-sm text-emerald-700 hover:underline">
-            ← Back to portal
+      {/* Premium Hero Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-800 to-teal-700 p-6 text-white shadow-lg mb-6">
+        <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-white/5 blur-2xl"></div>
+        <div className="relative flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-950/40 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-200 border border-emerald-700/20">
+              Maitri Ayurveda Portal
+            </span>
+            <h1 className="text-xl md:text-2xl font-extrabold tracking-tight">My Appointments</h1>
+            <p className="text-emerald-100/70 text-xs md:text-sm">Book and track your consultations</p>
+          </div>
+          <Link to="/portal" className="shrink-0 rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition-colors border border-white/10">
+            ← Dashboard
           </Link>
-        }
-      />
+        </div>
+      </div>
       {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <Card className="mb-6 overflow-visible">

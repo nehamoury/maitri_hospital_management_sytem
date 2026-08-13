@@ -23,6 +23,12 @@ const TreatmentPlans = lazy(() => import('./pages/admin/TreatmentPlans'))
 const TreatmentSessions = lazy(() => import('./pages/admin/TreatmentSessions'))
 const Pharmacy = lazy(() => import('./pages/admin/Pharmacy'))
 const Billing = lazy(() => import('./pages/admin/Billing'))
+const Admissions = lazy(() => import('./pages/admin/Admissions'))
+const AdmissionDetail = lazy(() => import('./pages/admin/AdmissionDetail'))
+const Wards = lazy(() => import('./pages/admin/Wards'))
+const Reports = lazy(() => import('./pages/admin/reports/Reports'))
+const Lab = lazy(() => import('./pages/admin/lab/Lab'))
+const KitchenDashboard = lazy(() => import('./pages/admin/diet/KitchenDashboard'))
 const Doctors = lazy(() => import('./pages/admin/Doctors'))
 const Departments = lazy(() => import('./pages/admin/Departments'))
 const DepartmentDetail = lazy(() => import('./pages/admin/DepartmentDetail'))
@@ -112,6 +118,12 @@ export default function App() {
               <Route path="treatment-sessions" element={<PermissionGate permission="treatment.session"><TreatmentSessions /></PermissionGate>} />
               <Route path="pharmacy" element={<PermissionGate permission="pharmacy.view"><Pharmacy /></PermissionGate>} />
               <Route path="billing" element={<PermissionGate permission="billing.view"><Billing /></PermissionGate>} />
+              <Route path="admissions" element={<PermissionGate permission="admission.view"><Admissions /></PermissionGate>} />
+              <Route path="admissions/:id" element={<PermissionGate permission="admission.view"><AdmissionDetail /></PermissionGate>} />
+              <Route path="wards" element={<PermissionGate permission="ward.view"><Wards /></PermissionGate>} />
+              <Route path="reports" element={<PermissionGate permission="reports.view"><Reports /></PermissionGate>} />
+              <Route path="lab" element={<PermissionGate permission="lab.view"><Lab /></PermissionGate>} />
+              <Route path="diet" element={<PermissionGate permission="diet.serve"><KitchenDashboard /></PermissionGate>} />
               <Route path="doctors" element={<PermissionGate permission="doctor.view"><Doctors /></PermissionGate>} />
               <Route path="departments" element={<PermissionGate permission="department.view"><Departments /></PermissionGate>} />
               <Route path="departments/:id" element={<PermissionGate permission="department.view"><DepartmentDetail /></PermissionGate>} />

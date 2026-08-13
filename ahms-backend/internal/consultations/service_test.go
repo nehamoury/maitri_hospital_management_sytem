@@ -111,13 +111,17 @@ func TestConsultationCreateRejectsMissingEncounter(t *testing.T) {
 	}
 }
 
-func TestConsultationCreateRejectsMissingDoctor(t *testing.T) {
-	repo := &fakeRepo{encounterExists: true, doctorErr: ErrNotFound}
+func TestConsultationCreateUsesEncounterDoctor(t *testing.T) {
+	doctor := doctorFixture()
+	repo := &fakeRepo{encounterExists: true, doctor: doctor}
 	svc := newTestService(repo)
 
-	_, err := svc.Create(uuid.New(), CreateConsultationRequest{}, uuid.New())
-	if !errors.Is(err, ErrNotFound) {
-		t.Fatalf("expected ErrNotFound for missing doctor, got %v", err)
+	c, err := svc.Create(uuid.New(), CreateConsultationRequest{}, uuid.New())
+	if err != nil {
+		t.Fatalf("create should succeed, got %v", err)
+	}
+	if c.DoctorID != doctor.ID {
+		t.Fatal("doctor should be resolved from the encounter")
 	}
 }
 

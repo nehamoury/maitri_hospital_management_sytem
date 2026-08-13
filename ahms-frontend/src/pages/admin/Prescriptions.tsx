@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, errorMessage, openPrescriptionPrint } from '../../lib/api'
 import { Can } from '../../lib/can'
-import { Card, CardHeader, Badge, EmptyState, Spinner, PageHeader, Button, Input } from '../../components/ui'
+import { Card, CardHeader, Badge, EmptyState, Spinner, PageHeader, Button, Input, Field } from '../../components/ui'
 
 interface RxItem {
   medicine: string
@@ -82,7 +82,8 @@ export default function Prescriptions() {
       setShowForm(false)
       setNotes('')
       setItems([emptyItem()])
-      load()    } catch (err) {
+      load()
+    } catch (err) {
       setError(errorMessage(err, 'Failed to create prescription'))
     } finally {
       setLoading(false)
@@ -125,6 +126,7 @@ export default function Prescriptions() {
                     <th className="px-3 py-2">Duration</th>
                     <th className="px-3 py-2">Qty</th>
                     <th className="px-3 py-2">Anupana</th>
+                    <th className="px-3 py-2">Instructions</th>
                     <th className="px-3 py-2"></th>
                   </tr>
                 </thead>
@@ -132,7 +134,7 @@ export default function Prescriptions() {
                   {items.map((it, i) => (
                     <tr key={i} className="border-b border-slate-100">
                       <td className="px-3 py-2">
-                        <Input value={it.medicine} onChange={(e) => setItem(i, 'medicine', e.target.value)} placeholder="e.g. Triphala Churna" />
+                        <Input value={it.medicine} onChange={(e) => setItem(i, 'medicine', e.target.value)} placeholder="e.g. Triphala" />
                       </td>
                       <td className="px-3 py-2">
                         <Input value={it.formulation} onChange={(e) => setItem(i, 'formulation', e.target.value)} placeholder="Churna" />
@@ -153,6 +155,9 @@ export default function Prescriptions() {
                         <Input value={it.anupana} onChange={(e) => setItem(i, 'anupana', e.target.value)} placeholder="Warm water" />
                       </td>
                       <td className="px-3 py-2">
+                        <Input value={it.instructions} onChange={(e) => setItem(i, 'instructions', e.target.value)} placeholder="e.g. Empty stomach" />
+                      </td>
+                      <td className="px-3 py-2">
                         <button type="button" onClick={() => removeItem(i)} className="text-sm text-red-500 hover:underline">
                           ✕
                         </button>
@@ -162,6 +167,11 @@ export default function Prescriptions() {
                 </tbody>
               </table>
             </div>
+            
+            <Field label="Prescription Notes / General Description">
+              <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add overall notes, dietary advice or instructions here..." />
+            </Field>
+
             <div className="flex items-center justify-between">
               <Button type="button" variant="secondary" onClick={addItem}>
                 + Add Item
@@ -200,6 +210,7 @@ export default function Prescriptions() {
                   <th className="py-1 pr-4">Frequency</th>
                   <th className="py-1 pr-4">Duration</th>
                   <th className="py-1 pr-4">Anupana</th>
+                  <th className="py-1 pr-4">Instructions</th>
                   <th className="py-1">Qty</th>
                 </tr>
               </thead>
@@ -214,6 +225,7 @@ export default function Prescriptions() {
                     <td className="py-2 pr-4 text-slate-600">{it.frequency}</td>
                     <td className="py-2 pr-4 text-slate-600">{it.duration}</td>
                     <td className="py-2 pr-4 text-slate-600">{it.anupana}</td>
+                    <td className="py-2 pr-4 text-slate-600">{it.instructions || '-'}</td>
                     <td className="py-2 text-slate-600">
                       {it.dispensed_qty}/{it.quantity}
                     </td>
@@ -222,6 +234,12 @@ export default function Prescriptions() {
               </tbody>
             </table>
           </div>
+          {prescription.notes && (
+            <div className="border-t border-slate-100 bg-slate-50 p-5 rounded-b-lg">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Prescription Notes / Description</span>
+              <p className="text-sm text-slate-700 font-sans whitespace-pre-wrap">{prescription.notes}</p>
+            </div>
+          )}
         </Card>
       )}
     </div>

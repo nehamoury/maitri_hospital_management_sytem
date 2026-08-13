@@ -52,6 +52,7 @@ export default function Referrals() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [encounters, setEncounters] = useState<Encounter[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
+  const [selectedDeptId, setSelectedDeptId] = useState('')
   const [error, setError] = useState('')
   
   const initialTab = searchParams.get('tab') === 'create' ? 'create' : 'incoming'
@@ -68,15 +69,19 @@ export default function Referrals() {
     diagnosis: '',
   })
 
-  const loadIncoming = () => {
+  const loadIncoming = (deptId?: string) => {
+    const url = deptId ? `/referrals/incoming?department_id=${deptId}` : '/referrals/incoming'
     api
-      .get<{ data: ReferralItem[] }>('/referrals/incoming')
+      .get<{ data: ReferralItem[] }>(url)
       .then((res) => setIncoming(res.data.data))
       .catch((err) => setError(errorMessage(err, 'Failed to load incoming referrals')))
   }
 
   useEffect(() => {
-    loadIncoming()
+    loadIncoming(selectedDeptId)
+  }, [selectedDeptId])
+
+  useEffect(() => {
     api.get<{ data: Patient[] }>('/patients').then((res) => setPatients(res.data.data)).catch(() => {})
     api.get<{ data: Encounter[] }>('/encounters').then((res) => setEncounters(res.data.data)).catch(() => {})
     api.get<{ data: Department[] }>('/departments').then((res) => setDepartments(res.data.data)).catch(() => {})
@@ -92,7 +97,7 @@ export default function Referrals() {
       const res = await api.post<{ data: { id: string } }>('/referrals', form)
       setForm({ ...form, patient_id: '', source_encounter_id: '', to_department_id: '', reason: '', clinical_notes: '', recommended_treatment: '', diagnosis: '' })
       setTab('incoming')
-      loadIncoming()
+      loadIncoming(selectedDeptId)
       navigate(`/admin/referrals/${res.data.data.id}`)
     } catch (err) {
       setError(errorMessage(err, 'Failed to create referral'))
@@ -117,13 +122,25 @@ export default function Referrals() {
       {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       {tab === 'incoming' && (
-        <Card>
-          {!incoming ? (
-            <Spinner label="Loading referrals..." />
-          ) : incoming.length === 0 ? (
-            <EmptyState message="No incoming referrals for your department" />
-          ) : (
-            <Table headers={['Ref No', 'Patient', 'From', 'To', 'Reason', 'Priority', 'Status', '']}>
+        <div className="space-y-4">
+          <div className="flex max-w-xs items-center gap-2">
+            <span className="text-sm font-medium text-slate-600 whitespace-nowrap">Department:</span>
+            <Select value={selectedDeptId} onChange={(e) => setSelectedDeptId(e.target.value)}>
+              <option value="">My Department (Default)</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <Card>
+            {!incoming ? (
+              <Spinner label="Loading referrals..." />
+            ) : incoming.length === 0 ? (
+              <EmptyState message="No incoming referrals found" />
+            ) : (
+              <Table headers={['Ref No', 'Patient', 'From', 'To', 'Reason', 'Priority', 'Status', '']}>
               {incoming.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-mono text-xs text-emerald-700">{r.referral_no}</td>
@@ -150,7 +167,8 @@ export default function Referrals() {
             </Table>
           )}
         </Card>
-      )}
+      </div>
+    )}
 
       {tab === 'create' && (
         <Card className="max-w-2xl">

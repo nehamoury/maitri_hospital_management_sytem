@@ -20,6 +20,60 @@ type TimelineResponse struct {
 	Mobile      string                  `json:"mobile"`
 	Encounters  []EncounterTimeline     `json:"encounters"`
 	TreatmentPlans []TreatmentPlanTimeline `json:"treatment_plans"`
+	Admissions  []AdmissionTimeline     `json:"admissions"`
+}
+
+// AdmissionTimeline is an IPD stay in the patient's history.
+type AdmissionTimeline struct {
+	AdmissionID    string                  `json:"admission_id"`
+	AdmissionNo    string                  `json:"admission_no"`
+	AdmissionDate  string                  `json:"admission_date"`
+	DischargedAt   string                  `json:"discharged_at,omitempty"`
+	DepartmentID   string                  `json:"department_id"`
+	DepartmentName string                  `json:"department_name"`
+	DoctorID       string                  `json:"doctor_id"`
+	DoctorName     string                  `json:"doctor_name"`
+	BedNo          string                  `json:"bed_no,omitempty"`
+	WardName       string                  `json:"ward_name,omitempty"`
+	Reason         string                  `json:"reason"`
+	Diagnosis      string                  `json:"diagnosis"`
+	Status         string                  `json:"status"`
+	DischargeType  string                  `json:"discharge_type,omitempty"`
+	FinalDiagnosis string                  `json:"final_diagnosis,omitempty"`
+	Summary        string                  `json:"summary,omitempty"`
+	Notes          []TimelineNote          `json:"notes"`
+	Orders         []TimelineOrder         `json:"orders"`
+	DietOrders     []TimelineDietOrder     `json:"diet_orders"`
+}
+
+// TimelineNote is a progress note inside an admission timeline entry.
+type TimelineNote struct {
+	NoteType         string       `json:"note_type"`
+	Notes            string       `json:"notes"`
+	Shift            string       `json:"shift"`
+	Vitals           models.JSONB `json:"vitals"`
+	RecordedBy       string       `json:"recorded_by"`
+	CreatedAt        string       `json:"created_at"`
+}
+
+// TimelineOrder is a clinical order inside an admission timeline entry.
+type TimelineOrder struct {
+	OrderType   string `json:"order_type"`
+	Description string `json:"description"`
+	Frequency   string `json:"frequency"`
+	Quantity    string `json:"quantity"`
+	Status      string `json:"status"`
+	OrderedBy   string `json:"ordered_by"`
+	CreatedAt   string `json:"created_at"`
+}
+
+// TimelineDietOrder is a diet order inside an admission timeline entry.
+type TimelineDietOrder struct {
+	DietType     string `json:"diet_type"`
+	Schedule     string `json:"schedule"`
+	Instructions string `json:"instructions"`
+	Status       string `json:"status"`
+	CreatedAt    string `json:"created_at"`
 }
 
 // EncounterTimeline is one visit in the patient's history.
@@ -163,7 +217,68 @@ func toTreatmentTimeline(p *models.TreatmentPlan) TreatmentPlanTimeline {
 	return entry
 }
 
-func toResponse(patient *models.Patient, encounters []models.Encounter, plans []models.TreatmentPlan) TimelineResponse {
+func toAdmissionTimeline(a *models.Admission) AdmissionTimeline {
+	entry := AdmissionTimeline{
+		AdmissionID:    a.ID.String(),
+		AdmissionNo:    a.AdmissionNo,
+		AdmissionDate:  a.AdmissionDate.Format("2006-01-02"),
+		DepartmentID:   a.DepartmentID.String(),
+		DepartmentName: a.Department.Name,
+		DoctorID:       a.DoctorID.String(),
+		DoctorName:     a.Doctor.User.FullName,
+		Reason:         a.Reason,
+		Diagnosis:      a.Diagnosis,
+		Status:         a.Status,
+	}
+	if a.Bed != nil {
+		entry.BedNo = a.Bed.BedNo
+		entry.WardName = a.Bed.Ward.Name
+	}
+	if a.DischargedAt != nil {
+		entry.DischargedAt = a.DischargedAt.Format("2006-01-02")
+	}
+	if a.Discharge != nil {
+		entry.DischargeType = a.Discharge.DischargeType
+		entry.FinalDiagnosis = a.Discharge.FinalDiagnosis
+		entry.Summary = a.Discharge.Summary
+	}
+	for i := range a.ProgressNotes {
+		n := &a.ProgressNotes[i]
+		entry.Notes = append(entry.Notes, TimelineNote{
+			NoteType:  n.NoteType,
+			Notes:     n.Notes,
+			Shift:     n.Shift,
+			Vitals:    n.Vitals,
+			RecordedBy: n.RecordedBy.FullName,
+			CreatedAt: n.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	for i := range a.Orders {
+		o := &a.Orders[i]
+		entry.Orders = append(entry.Orders, TimelineOrder{
+			OrderType:   o.OrderType,
+			Description: o.Description,
+			Frequency:   o.Frequency,
+			Quantity:    o.Quantity,
+			Status:      o.Status,
+			OrderedBy:   o.OrderedBy.FullName,
+			CreatedAt:   o.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	for i := range a.DietOrders {
+		d := &a.DietOrders[i]
+		entry.DietOrders = append(entry.DietOrders, TimelineDietOrder{
+			DietType:     d.DietType,
+			Schedule:     d.Schedule,
+			Instructions: d.Instructions,
+			Status:       d.Status,
+			CreatedAt:    d.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	return entry
+}
+
+func toResponse(patient *models.Patient, encounters []models.Encounter, plans []models.TreatmentPlan, admissions []models.Admission) TimelineResponse {
 	resp := TimelineResponse{
 		PatientID:   patient.ID.String(),
 		UHID:        patient.UHID,
@@ -175,6 +290,10 @@ func toResponse(patient *models.Patient, encounters []models.Encounter, plans []
 
 	for i := range plans {
 		resp.TreatmentPlans = append(resp.TreatmentPlans, toTreatmentTimeline(&plans[i]))
+	}
+
+	for i := range admissions {
+		resp.Admissions = append(resp.Admissions, toAdmissionTimeline(&admissions[i]))
 	}
 
 	for i := range encounters {

@@ -186,6 +186,11 @@ func (h *Handler) List(c *gin.Context) {
 // @Success      200
 // @Router       /patients/{id}/documents/{documentId} [get]
 func (h *Handler) Download(c *gin.Context) {
+	patientID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid patient id")
+		return
+	}
 	docID, err := uuid.Parse(c.Param("documentId"))
 	if err != nil {
 		utils.Fail(c, http.StatusBadRequest, "invalid document id")
@@ -198,6 +203,10 @@ func (h *Handler) Download(c *gin.Context) {
 			return
 		}
 		utils.Fail(c, http.StatusInternalServerError, "failed to load document")
+		return
+	}
+	if doc.PatientID != patientID {
+		utils.Fail(c, http.StatusForbidden, "document does not belong to this patient")
 		return
 	}
 	if h.uploadDir == "" {
@@ -218,6 +227,11 @@ func (h *Handler) Download(c *gin.Context) {
 // @Success      200 {object} utils.APIResponse
 // @Router       /patients/{id}/documents/{documentId} [delete]
 func (h *Handler) Delete(c *gin.Context) {
+	patientID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid patient id")
+		return
+	}
 	docID, err := uuid.Parse(c.Param("documentId"))
 	if err != nil {
 		utils.Fail(c, http.StatusBadRequest, "invalid document id")
@@ -230,6 +244,10 @@ func (h *Handler) Delete(c *gin.Context) {
 			return
 		}
 		utils.Fail(c, http.StatusInternalServerError, "failed to load document")
+		return
+	}
+	if doc.PatientID != patientID {
+		utils.Fail(c, http.StatusForbidden, "document does not belong to this patient")
 		return
 	}
 	if err := h.service.Delete(docID); err != nil {

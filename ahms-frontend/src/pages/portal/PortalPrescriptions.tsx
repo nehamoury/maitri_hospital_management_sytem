@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Calendar, Info, ArrowLeft, ShieldAlert } from 'lucide-react'
+import { FileText, Calendar, Info, ShieldAlert } from 'lucide-react'
 import { portalApi, errorMessage } from '../../lib/api'
 import { Card, Badge, EmptyState, Spinner } from '../../components/ui'
 
@@ -38,14 +38,21 @@ export default function PortalPrescriptions() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">My Prescriptions</h1>
-          <p className="text-sm text-slate-500">View and download your medication plans</p>
+      {/* Premium Hero Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-800 to-teal-700 p-6 text-white shadow-lg mb-6">
+        <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-white/5 blur-2xl"></div>
+        <div className="relative flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-950/40 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-200 border border-emerald-700/20">
+              Maitri Ayurveda Portal
+            </span>
+            <h1 className="text-xl md:text-2xl font-extrabold tracking-tight">My Prescriptions</h1>
+            <p className="text-emerald-100/70 text-xs md:text-sm">View and download your medication plans</p>
+          </div>
+          <Link to="/portal" className="shrink-0 rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition-colors border border-white/10">
+            ← Dashboard
+          </Link>
         </div>
-        <Link to="/portal" className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:text-emerald-900 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to Portal
-        </Link>
       </div>
 
       {error && (
