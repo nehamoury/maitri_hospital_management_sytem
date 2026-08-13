@@ -21,6 +21,16 @@ ahmss-main/
 ahmss-main
 *.zip
 
+# Uploaded files (PHI — never commit patient data)
+uploads/
+ahms-backend/uploads/
+
+# Databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
 # Logs
 logs
 *.log
