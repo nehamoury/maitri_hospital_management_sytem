@@ -49,7 +49,7 @@ func labFail(c *gin.Context, err error) {
 		utils.Fail(c, http.StatusConflict, err.Error())
 		return
 	}
-	utils.Fail(c, http.StatusInternalServerError, err.Error())
+	utils.Fail(c, http.StatusInternalServerError, "lab operation failed")
 }
 
 // ─── Categories ───────────────────────────────────────────────────────────────

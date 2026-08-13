@@ -74,7 +74,7 @@ func renderLabReport(order *models.InvestigationOrder) string {
 	b.WriteString(`<div class="patient-box">`)
 	b.WriteString(infoField("Patient Name", patientName))
 	b.WriteString(infoField("UHID", patientUHID))
-	b.WriteString(infoField("Status", `<span class="status-badge badge-`+order.Status+`">`+order.Status+`</span>`))
+	b.WriteString(infoFieldHTML("Status", `<span class="status-badge badge-`+html.EscapeString(order.Status)+`">`+html.EscapeString(order.Status)+`</span>`))
 	b.WriteString(`</div>`)
 
 	if order.ClinicalNotes != "" {
@@ -150,6 +150,16 @@ func renderLabReport(order *models.InvestigationOrder) string {
 }
 
 func infoField(label, value string) string {
+	// Values carry free-text patient/staff input (names, notes, barcodes) and
+	// must be escaped before being interpolated into the report HTML.
+	return fmt.Sprintf(`<div class="patient-field"><label>%s</label><p>%s</p></div>`,
+		html.EscapeString(label), html.EscapeString(value))
+}
+
+// infoFieldHTML is like infoField but takes a pre-escaped, trusted HTML
+// fragment for the value (used only for the status badge, whose dynamic
+// parts are escaped by the caller).
+func infoFieldHTML(label, value string) string {
 	return fmt.Sprintf(`<div class="patient-field"><label>%s</label><p>%s</p></div>`,
 		html.EscapeString(label), value)
 }

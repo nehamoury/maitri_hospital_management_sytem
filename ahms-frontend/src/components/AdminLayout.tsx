@@ -526,9 +526,11 @@ export function AdminLayout() {
     if (!allowedRoles.includes(user.role_name)) return
 
     const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${wsProto}//${window.location.host}/ws?token=${token}`
+    // Token travels in the Sec-WebSocket-Protocol subprotocol header instead
+    // of the URL query string, so the JWT never lands in access logs.
+    const wsUrl = `${wsProto}//${window.location.host}/ws`
     
-    const ws = new WebSocket(wsUrl)
+    const ws = new WebSocket(wsUrl, [`ahms.${token}`])
     
     ws.onmessage = (event) => {
       try {

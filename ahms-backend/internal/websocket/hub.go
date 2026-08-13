@@ -3,6 +3,7 @@ package websocket
 import (
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,6 +16,24 @@ const (
 	pingPeriod     = (pongWait * 9) / 10
 	maxMessageSize = 512
 )
+
+// wsProtocolPrefix prefixes the JWT carried in the Sec-WebSocket-Protocol
+// subprotocol header. Keeping the token out of the URL means it never
+// reaches access logs.
+const wsProtocolPrefix = "ahms."
+
+// TokenFromRequest extracts the bearer token from the negotiated
+// Sec-WebSocket-Protocol subprotocol (e.g. "ahms.<jwt>") rather than from a
+// query parameter, so the JWT is not written to server/access logs.
+func TokenFromRequest(r *http.Request) string {
+	for _, p := range strings.Split(r.Header.Get("Sec-WebSocket-Protocol"), ",") {
+		p = strings.TrimSpace(p)
+		if strings.HasPrefix(p, wsProtocolPrefix) {
+			return strings.TrimPrefix(p, wsProtocolPrefix)
+		}
+	}
+	return ""
+}
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,

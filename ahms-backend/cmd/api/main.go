@@ -156,7 +156,9 @@ func main() {
 	go wsHub.Run()
 
 	router.GET("/ws", func(c *gin.Context) {
-		tokenStr := c.Query("token")
+		// Token travels in the Sec-WebSocket-Protocol subprotocol header, not
+		// the URL, so it never appears in access logs.
+		tokenStr := websocket.TokenFromRequest(c.Request)
 		if tokenStr == "" {
 			c.JSON(401, gin.H{"error": "missing token"})
 			return
@@ -338,13 +340,29 @@ func main() {
 			uploadsHandler := uploads.NewHandler(uploadDir)
 			uploads.RegisterRoutes(staffGroup, uploadsHandler, authMiddleware, permissionMiddleware)
 
-			staffGroup.GET("/search", authMiddleware.RequireAuth(), func(c *gin.Context) {
+			staffGroup.GET("/search",
+				authMiddleware.RequireAuth(),
+				permissionMiddleware.RequirePermission(models.PermPatientView),
+				dataScopeMiddleware,
+				func(c *gin.Context) {
 				q := c.Query("q")
 				if q == "" {
 					utils.Success(c, 200, "ok", gin.H{"patients": []interface{}{}, "referrals": []interface{}{}, "bills": []interface{}{}})
 					return
 				}
 				like := "%" + q + "%"
+
+				// Doctor scoping: doctors only see patients they have treated,
+				// with their referrals and bills. Other staff see everything.
+				var doctorConds string
+				var doctorArgs []interface{}
+				if raw, ok := c.Get("data_scope"); ok {
+					if scope, ok2 := raw.(*models.DataScope); ok2 && scope.DoctorID != nil {
+						doctorConds = "AND EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = p.patient_id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL)"
+						doctorArgs = []interface{}{*scope.DoctorID}
+					}
+				}
+
 				type PatientResult struct {
 					ID       string `json:"id"`
 					UHID     string `json:"uh_id"`
@@ -352,8 +370,10 @@ func main() {
 					Mobile   string `json:"mobile"`
 					Gender   string `json:"gender"`
 				}
+				args := []interface{}{like, like, like}
+				args = append(args, doctorArgs...)
 				var patResults []PatientResult
-				db.Raw(`SELECT id, uhid, full_name, mobile, gender FROM patients WHERE deleted_at IS NULL AND (full_name ILIKE ? OR mobile ILIKE ? OR uhid ILIKE ?) LIMIT 10`, like, like, like).Scan(&patResults)
+				db.Raw(`SELECT id, uhid, full_name, mobile, gender FROM patients p WHERE p.deleted_at IS NULL AND (p.full_name ILIKE ? OR p.mobile ILIKE ? OR p.uhid ILIKE ?)`+doctorConds+` LIMIT 10`, args...).Scan(&patResults)
 
 				type ReferralResult struct {
 					ID          string `json:"id"`
@@ -363,8 +383,10 @@ func main() {
 					Status      string `json:"status"`
 					CreatedAt   string `json:"created_at"`
 				}
+				args = []interface{}{like, like}
+				args = append(args, doctorArgs...)
 				var refResults []ReferralResult
-				db.Raw(`SELECT r.id, r.patient_id, COALESCE(p.full_name,'') AS patient_name, COALESCE(d.name,'') AS from_department_name, r.status, r.created_at::text FROM referrals r LEFT JOIN patients p ON p.id = r.patient_id LEFT JOIN departments d ON d.id = r.from_department_id WHERE r.deleted_at IS NULL AND (p.full_name ILIKE ? OR r.referral_no ILIKE ?) LIMIT 10`, like, like).Scan(&refResults)
+				db.Raw(`SELECT r.id, r.patient_id, COALESCE(p.full_name,'') AS patient_name, COALESCE(d.name,'') AS from_department_name, r.status, r.created_at::text FROM referrals r LEFT JOIN patients p ON p.id = r.patient_id LEFT JOIN departments d ON d.id = r.from_department_id WHERE r.deleted_at IS NULL AND (p.full_name ILIKE ? OR r.referral_no ILIKE ?)`+doctorConds+` LIMIT 10`, args...).Scan(&refResults)
 
 				type BillResult struct {
 					ID          string  `json:"id"`
@@ -374,8 +396,10 @@ func main() {
 					Total       float64 `json:"total_amount"`
 					Status      string  `json:"status"`
 				}
+				args = []interface{}{like, like}
+				args = append(args, doctorArgs...)
 				var billResults []BillResult
-				db.Raw(`SELECT b.id, b.bill_no, b.patient_id, COALESCE(p.full_name,'') AS patient_name, b.total_amount, b.status FROM bills b LEFT JOIN patients p ON p.id = b.patient_id WHERE b.deleted_at IS NULL AND (b.bill_no ILIKE ? OR p.full_name ILIKE ?) LIMIT 10`, like, like).Scan(&billResults)
+				db.Raw(`SELECT b.id, b.bill_no, b.patient_id, COALESCE(p.full_name,'') AS patient_name, b.total_amount, b.status FROM bills b LEFT JOIN patients p ON p.id = b.patient_id WHERE b.deleted_at IS NULL AND (b.bill_no ILIKE ? OR p.full_name ILIKE ?)`+doctorConds+` LIMIT 10`, args...).Scan(&billResults)
 
 				utils.Success(c, 200, "ok", gin.H{"patients": patResults, "referrals": refResults, "bills": billResults})
 			})
