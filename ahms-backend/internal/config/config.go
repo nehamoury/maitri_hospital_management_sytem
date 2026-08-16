@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -79,7 +80,31 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("config: JWT_SECRET must be at least 32 characters long")
 	}
 
+	if cfg.IsProduction() {
+		if err := cfg.validateProduction(); err != nil {
+			return nil, err
+		}
+	}
+
 	return cfg, nil
+}
+
+// validateProduction blocks boot while any credential still holds the
+// placeholder template value, preventing an accidental production deploy
+// with default/known secrets.
+func (c *Config) validateProduction() error {
+	secrets := map[string]string{
+		"DB_PASSWORD":             c.DBPassword,
+		"REDIS_PASSWORD":          c.RedisPassword,
+		"JWT_SECRET":              c.JWTSecret,
+		"SEED_SUPER_ADMIN_PASSWORD": os.Getenv("SEED_SUPER_ADMIN_PASSWORD"),
+	}
+	for name, val := range secrets {
+		if val == "" || strings.Contains(val, "CHANGE_ME") {
+			return fmt.Errorf("config: refusing to start in production: %s is empty or still a placeholder (CHANGE_ME)", name)
+		}
+	}
+	return nil
 }
 
 // DSN builds the PostgreSQL connection string used by GORM's postgres driver.

@@ -1,0 +1,21 @@
+# Secrets and local data must never enter image layers
+.env
+.env.*
+*.db
+*.sqlite
+uploads/
+
+# Repo hygiene / non-runtime files
+.git
+.gitignore
+*.md
+Dockerfile
+docker-compose*.yml
+Caddyfile*
+*.log
+
+# Local build/test artifacts
+*.exe
+ahms-backend
+bin/
+scratch/

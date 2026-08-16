@@ -256,6 +256,12 @@ func toAdmissionResponse(a *models.Admission) AdmissionResponse {
 	if a.DischargedBy != nil {
 		resp.DischargedBy = a.DischargedBy.FullName
 	}
+	// Preload slices may be nil; always emit [] rather than JSON null so
+	// clients can rely on array shapes (see AdmissionDetail/PatientDetail).
+	resp.NotesList = make([]NoteResponse, 0, len(a.ProgressNotes))
+	resp.OrdersList = make([]OrderResponse, 0, len(a.Orders))
+	resp.DietList = make([]DietResponse, 0, len(a.DietOrders))
+	resp.BedHistory = make([]BedHistoryResponse, 0, len(a.BedHistory))
 	for i := range a.ProgressNotes {
 		resp.NotesList = append(resp.NotesList, toNoteResponse(&a.ProgressNotes[i]))
 	}
