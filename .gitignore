@@ -72,3 +72,7 @@ Desktop.ini
 *.dylib
 *.test
 *.out
+
+# Project documentation & QA scripts
+docs/
+qa/
