@@ -258,9 +258,23 @@ func SeedPermissions(db *gorm.DB) error {
 	for i := range permissions {
 		perm := permissions[i]
 		var existing models.Permission
-		result := db.Where("name = ?", perm.Name).FirstOrCreate(&existing, perm)
-		if result.Error != nil {
-			return fmt.Errorf("database: failed to seed permission %s: %w", perm.Name, result.Error)
+		err := db.Where("name = ?", perm.Name).First(&existing).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := db.Create(&perm).Error; err != nil {
+					return fmt.Errorf("database: failed to seed permission %s: %w", perm.Name, err)
+				}
+				existing = perm
+			} else {
+				return fmt.Errorf("database: failed to query permission %s: %w", perm.Name, err)
+			}
+		} else {
+			if existing.Description != perm.Description {
+				existing.Description = perm.Description
+				if err := db.Save(&existing).Error; err != nil {
+					return fmt.Errorf("database: failed to update permission %s: %w", perm.Name, err)
+				}
+			}
 		}
 		permByName[perm.Name] = &existing
 	}

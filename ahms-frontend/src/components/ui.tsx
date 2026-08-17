@@ -78,12 +78,12 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
 
 export function Badge({ color = 'slate', children }: { color?: 'green' | 'red' | 'amber' | 'blue' | 'slate' | 'purple'; children: ReactNode }) {
   const colors: Record<string, string> = {
-    green: 'bg-emerald-100 text-emerald-800',
-    red: 'bg-red-100 text-red-700',
-    amber: 'bg-amber-100 text-amber-800',
-    blue: 'bg-blue-100 text-blue-700',
+    green: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400',
+    red: 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400',
+    amber: 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400',
+    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400',
     slate: 'bg-muted text-foreground',
-    purple: 'bg-purple-100 text-purple-700',
+    purple: 'bg-purple-100 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400',
   }
   return (
     <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold tracking-wide uppercase ${colors[color]}`}>
@@ -105,7 +105,7 @@ export function Table({ headers, children }: { headers: string[]; children: Reac
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">{children}</tbody>
+        <tbody className="divide-y divide-border">{children}</tbody>
       </table>
     </div>
   )

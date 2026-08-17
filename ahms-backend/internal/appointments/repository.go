@@ -14,6 +14,10 @@ import (
 // ErrNotFound is returned when an appointment id doesn't match any row.
 var ErrNotFound = errors.New("appointment not found")
 
+// ErrSlotAlreadyBooked is returned when a slot is already claimed by a
+// non-cancelled appointment for the same doctor on the same day.
+var ErrSlotAlreadyBooked = errors.New("appointment slot already booked")
+
 // Repository is the data-access layer for appointments.
 type Repository interface {
 	CreateWithToken(appt *models.Appointment) error
@@ -26,20 +30,35 @@ type Repository interface {
 	CountSlotsOnDay(doctorID uuid.UUID, dayStart, dayEnd time.Time) (map[string]int64, error)
 }
 
-type repository struct {
-	db *gorm.DB
+// PatientRepository is the subset of the patients data layer that public
+// booking needs. It stays tiny so the appointments package does not
+// couple itself to the full patients module, and new-patient creation is
+// guaranteed to go through the canonical UHID-generation transaction.
+type PatientRepository interface {
+	FindActiveByMobile(mobile string) ([]models.Patient, error)
+	FindOrCreateByMobile(fullName, mobile, email string, registeredByUserID uuid.UUID) (*models.Patient, error)
 }
 
-// NewRepository builds a Repository backed by GORM/PostgreSQL.
-func NewRepository(db *gorm.DB) Repository {
-	return &repository{db: db}
+type repository struct {
+	db          *gorm.DB
+	patientRepo PatientRepository
+}
+
+// NewRepository builds a Repository backed by GORM/PostgreSQL. The
+// patientRepo dependency is the patients module (or any implementation of
+// PatientRepository) used for patient reuse/creation during public booking.
+func NewRepository(db *gorm.DB, patientRepo PatientRepository) Repository {
+	return &repository{db: db, patientRepo: patientRepo}
 }
 
 // CreateWithToken assigns the next sequential token number for
 // (DoctorID, AppointmentDate) and creates the appointment, all inside a
 // transaction that row-locks the doctor record for the duration — this
 // serializes concurrent booking requests for the same doctor so two
-// patients can never receive the same token for the same day.
+// patients can never receive the same token for the same day, and the
+// same time slot is never double-booked (a slot is single-occupancy per
+// doctor per day regardless of how the request arrives, including the
+// public no-auth booking endpoint).
 func (r *repository) CreateWithToken(appt *models.Appointment) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var doctor models.Doctor
@@ -56,6 +75,22 @@ func (r *repository) CreateWithToken(appt *models.Appointment) error {
 			0, 0, 0, 0, appt.AppointmentDate.Location(),
 		)
 		dayEnd := dayStart.Add(24 * time.Hour)
+
+		// Slot uniqueness — a non-cancelled appointment already holding this
+		// doctor + day + time slot rejects the booking. Skipped when no slot
+		// is requested (legacy/backward-compatible bookings still work).
+		if appt.TimeSlot != "" {
+			var slotExists int64
+			if err := tx.Model(&models.Appointment{}).
+				Where("doctor_id = ? AND appointment_date >= ? AND appointment_date < ? AND status != ? AND LOWER(time_slot) = LOWER(?)",
+					appt.DoctorID, dayStart, dayEnd, models.AppointmentCancelled, appt.TimeSlot).
+				Count(&slotExists).Error; err != nil {
+				return err
+			}
+			if slotExists > 0 {
+				return ErrSlotAlreadyBooked
+			}
+		}
 
 		var maxToken int
 		row := tx.Model(&models.Appointment{}).
@@ -135,38 +170,17 @@ func (r *repository) CountOnDate(day time.Time) (int64, error) {
 	return count, err
 }
 
+// FindOrCreatePatient delegates to the patients module's canonical
+// find-or-create path, which reuses an existing patient by mobile or
+// registers a new one through CreateWithUHID. This package no longer
+// embeds its own copy of the UHID counter logic, so the row-locked
+// counter in patients.CreateWithUHID stays the single source of truth.
 func (r *repository) FindOrCreatePatient(fullName, mobile, email string) (*models.Patient, error) {
-	var patient models.Patient
-	if err := r.db.Where("mobile = ? AND deleted_at IS NULL", mobile).First(&patient).Error; err == nil {
-		return &patient, nil
-	}
-
-	year := time.Now().Year()
-	var counter models.UHIDCounter
-	err := r.db.Where("year = ?", year).First(&counter).Error
+	systemUserID, err := r.GetSystemUserID()
 	if err != nil {
-		counter = models.UHIDCounter{Year: year, LastNumber: 0}
-		r.db.Create(&counter)
-	}
-	nextNumber := counter.LastNumber + 1
-	uhID := fmt.Sprintf("MCAH-%d-%06d", year, nextNumber)
-	r.db.Model(&models.UHIDCounter{}).Where("year = ?", year).Update("last_number", nextNumber)
-
-	var systemUser models.User
-	r.db.Where("email = ?", "admin@ahms.local").First(&systemUser)
-
-	patient = models.Patient{
-		UHID:              uhID,
-		FullName:          fullName,
-		Mobile:            mobile,
-		Email:             email,
-		Gender:            "OTHER",
-		RegisteredByUserID: systemUser.ID,
-	}
-	if err := r.db.Create(&patient).Error; err != nil {
 		return nil, err
 	}
-	return &patient, nil
+	return r.patientRepo.FindOrCreateByMobile(fullName, mobile, email, systemUserID)
 }
 
 func (r *repository) GetSystemUserID() (uuid.UUID, error) {

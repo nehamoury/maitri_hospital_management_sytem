@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { PageHero, Section } from '../../design-system/Layout'
 import { fadeUp, viewportOpts } from '../../design-system/animations'
 import { SEO } from '../../components/SEO'
+import campusGrowthImg from '../../assets/campus_growth.jpg'
 
 function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -135,26 +136,39 @@ export default function About() {
       </Section>
 
       <Section>
-        <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#C8A14D] mb-3">Milestones</p>
-          <h2 className="text-3xl font-bold md:text-4xl text-foreground" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            How the campus grew
-          </h2>
-        </Reveal>
-        <div className="border-l-2 border-border mt-14 pl-8 ml-4 md:ml-0">
-          {timeline.map((t, i) => (
-            <Reveal key={t.year} delay={i * 70}>
-              <div className="relative pb-12">
-                <span className="absolute top-1.5 -left-[41px] h-4 w-4 rounded-full bg-teal-600 ring-4 ring-white" />
-                <p className="text-xl font-bold text-primary" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                  {t.year}
-                </p>
-                <p className="mt-2 max-w-2xl text-muted-foreground leading-relaxed text-lg">
-                  {t.text}
-                </p>
-              </div>
+        <div className="grid gap-12 lg:grid-cols-2 items-start">
+          <div>
+            <Reveal>
+              <p className="text-xs font-semibold uppercase tracking-widest text-[#C8A14D] mb-3">Milestones</p>
+              <h2 className="text-3xl font-bold md:text-4xl text-foreground" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                How the campus grew
+              </h2>
             </Reveal>
-          ))}
+            <div className="border-l-2 border-border mt-14 pl-8 ml-4 md:ml-0">
+              {timeline.map((t, i) => (
+                <Reveal key={t.year} delay={i * 70}>
+                  <div className="relative pb-12">
+                    <span className="absolute top-1.5 -left-[41px] h-4 w-4 rounded-full bg-teal-600 ring-4 ring-white" />
+                    <p className="text-xl font-bold text-primary" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                      {t.year}
+                    </p>
+                    <p className="mt-2 max-w-2xl text-muted-foreground leading-relaxed text-lg">
+                      {t.text}
+                    </p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+          <Reveal delay={150} className="lg:sticky lg:top-24 mt-8 lg:mt-0">
+            <img
+              src={campusGrowthImg}
+              alt="Maitri Ayurveda Campus"
+              loading="lazy"
+              className="w-full rounded-[2.5rem] object-cover shadow-xl hover:-translate-y-2 transition-transform duration-500 border border-border"
+              style={{ aspectRatio: '3/4', maxHeight: '680px' }}
+            />
+          </Reveal>
         </div>
       </Section>
 

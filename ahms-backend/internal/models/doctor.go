@@ -17,6 +17,7 @@ type Doctor struct {
 	Qualification   string  `gorm:"type:varchar(150)" json:"qualification"`
 	ExperienceYears int     `gorm:"default:0" json:"experience_years"`
 	ConsultationFee float64 `gorm:"type:decimal(10,2);default:0" json:"consultation_fee"`
+	ImageUrl        string  `gorm:"type:varchar(500)" json:"image_url"`
 	IsActive        bool    `gorm:"default:true" json:"is_active"`
 }
 

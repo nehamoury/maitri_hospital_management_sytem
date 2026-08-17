@@ -12,6 +12,7 @@ import (
 	"github.com/ahms/backend/internal/treatments"
 	"github.com/ahms/backend/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // Handler composes the feature services that back the public website feeds.
@@ -47,6 +48,7 @@ type DoctorPublic struct {
 	Qualification   string  `json:"qualification"`
 	ExperienceYears int     `json:"experience_years"`
 	ConsultationFee float64 `json:"consultation_fee"`
+	ImageUrl        string  `json:"image_url"`
 }
 
 // ProcedureTypePublic is the safe, public shape of a procedure type.
@@ -55,6 +57,12 @@ type ProcedureTypePublic struct {
 	Name        string `json:"name"`
 	Category    string `json:"category"`
 	Description string `json:"description"`
+}
+
+// DoctorStatus is the public, advisory live status of a single doctor.
+type DoctorStatus struct {
+	DoctorID string `json:"doctor_id"`
+	Status   string `json:"status"`
 }
 
 // Doctors godoc
@@ -84,6 +92,7 @@ func (h *Handler) Doctors(c *gin.Context) {
 			Qualification:   d.Qualification,
 			ExperienceYears: d.ExperienceYears,
 			ConsultationFee: d.ConsultationFee,
+			ImageUrl:        d.ImageUrl,
 		})
 	}
 	utils.Success(c, http.StatusOK, "doctors fetched", resp)
@@ -157,4 +166,29 @@ func (h *Handler) ProcedureTypes(c *gin.Context) {
 		})
 	}
 	utils.Success(c, http.StatusOK, "procedure types fetched", resp)
+}
+
+// DoctorStatus godoc
+// @Summary      Public advisory live status of a doctor
+// @Description  No auth. Returns AVAILABLE / IN_CONSULTATION / NOT_AVAILABLE. Advisory only — never gates bookings.
+// @Tags         public
+// @Produce      json
+// @Param        id path string true "doctor id"
+// @Success      200 {object} utils.APIResponse{data=DoctorStatus}
+// @Router       /public/doctors/{id}/status [get]
+func (h *Handler) DoctorStatus(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid doctor id")
+		return
+	}
+	status, err := h.doctors.LiveStatus(id)
+	if err != nil {
+		utils.Fail(c, http.StatusInternalServerError, "failed to fetch doctor status")
+		return
+	}
+	utils.Success(c, http.StatusOK, "doctor status fetched", DoctorStatus{
+		DoctorID: id.String(),
+		Status:   status,
+	})
 }

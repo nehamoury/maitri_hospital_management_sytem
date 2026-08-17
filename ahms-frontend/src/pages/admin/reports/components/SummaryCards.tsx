@@ -47,7 +47,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
     },
     {
       title: 'Total Revenue',
-      value: `₹${summary.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      value: `₹${(summary.total_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
       icon: IndianRupee,
       color: 'text-rose-600',
       bg: 'bg-rose-50',

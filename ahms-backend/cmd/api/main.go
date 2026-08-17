@@ -15,6 +15,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -145,7 +146,9 @@ func main() {
 	// authenticated, ownership-checked API handlers (see patientdocs,
 	// referrals and patients photo endpoints) so no PHI is reachable
 	// without a valid session.
+	// NOTE: Doctor photos are NOT private patient files, so we serve them publicly.
 	uploadDir := uploads.TrimOrDefault(cfg.UploadDir)
+	router.Static("/uploads/doctors", filepath.Join(uploadDir, "doctors"))
 
 	jwtManager := utils.NewJWTManager(cfg.JWTSecret, cfg.JWTAccessTokenTTL, cfg.JWTRefreshTokenTTL)
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, blacklist)
@@ -227,7 +230,7 @@ func main() {
 			docHandler.SetUploadDir(uploadDir)
 			patientdocs.RegisterRoutes(staffGroup, docHandler, authMiddleware, permissionMiddleware, dataScopeMiddleware)
 
-			apptRepo := appointments.NewRepository(db)
+			apptRepo := appointments.NewRepository(db, patientRepo)
 			apptService := appointments.NewService(apptRepo)
 			apptHandler := appointments.NewHandler(apptService)
 			apptHandler.SetAuditRecorder(auditRecorder)
@@ -373,7 +376,7 @@ func main() {
 				args := []interface{}{like, like, like}
 				args = append(args, doctorArgs...)
 				var patResults []PatientResult
-				db.Raw(`SELECT id, uhid, full_name, mobile, gender FROM patients p WHERE p.deleted_at IS NULL AND (p.full_name ILIKE ? OR p.mobile ILIKE ? OR p.uhid ILIKE ?)`+doctorConds+` LIMIT 10`, args...).Scan(&patResults)
+				db.Raw(`SELECT id, uh_id, full_name, mobile, gender FROM patients p WHERE p.deleted_at IS NULL AND (p.full_name ILIKE ? OR p.mobile ILIKE ? OR p.uh_id ILIKE ?)`+doctorConds+` LIMIT 10`, args...).Scan(&patResults)
 
 				type ReferralResult struct {
 					ID          string `json:"id"`

@@ -32,6 +32,7 @@ func toResponse(d *models.Doctor) DoctorResponse {
 		Qualification:   d.Qualification,
 		ExperienceYears: d.ExperienceYears,
 		ConsultationFee: d.ConsultationFee,
+		ImageUrl:        d.ImageUrl,
 		IsActive:        d.IsActive,
 		CreatedAt:       d.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}

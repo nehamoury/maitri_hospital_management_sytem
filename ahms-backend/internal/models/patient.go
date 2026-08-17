@@ -37,6 +37,15 @@ type Patient struct {
 	EmergencyContact         string `gorm:"type:varchar(15)" json:"emergency_contact"`
 	EmergencyContactAddress  string `gorm:"type:text" json:"emergency_contact_address"`
 
+	// Government / other identifiers. Sensitive: these are returned fully
+	// only to registration/administration roles; every other caller gets
+	// masked values (see patients handler toResponseWithIDs).
+	AadhaarNo     string `gorm:"type:varchar(12);index" json:"aadhaar_no"`
+	PanNo         string `gorm:"type:varchar(10)" json:"pan_no"`
+	AbhaID        string `gorm:"type:varchar(50)" json:"abha_id"`
+	OtherIDType   string `gorm:"type:varchar(50)" json:"other_id_type"`
+	OtherIDNumber string `gorm:"type:varchar(50)" json:"other_id_number"`
+
 	HeightCm          float64 `gorm:"type:decimal(5,1)" json:"height_cm"`
 	WeightKg          float64 `gorm:"type:decimal(5,1)" json:"weight_kg"`
 	BMI               float64 `gorm:"type:decimal(4,1)" json:"bmi"`

@@ -101,7 +101,7 @@ func (r *repository) ListPlans(filter ListFilter) ([]models.TreatmentPlan, error
 	if filter.Search != "" {
 		like := "%" + filter.Search + "%"
 		q = q.Where(
-			"EXISTS (SELECT 1 FROM patients p WHERE p.id = treatment_plans.patient_id AND (p.full_name ILIKE ? OR p.uhid ILIKE ?))",
+			"EXISTS (SELECT 1 FROM patients p WHERE p.id = treatment_plans.patient_id AND (p.full_name ILIKE ? OR p.uh_id ILIKE ?))",
 			like, like,
 		)
 	}

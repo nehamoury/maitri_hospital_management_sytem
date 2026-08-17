@@ -36,5 +36,13 @@ func (s *service) GetPatientTimeline(patientID uuid.UUID, scope *models.DataScop
 	if err != nil {
 		return TimelineResponse{}, err
 	}
-	return toResponse(patient, encounters, plans, admissions), nil
+	orders, err := s.repo.FindLabOrders(patientID)
+	if err != nil {
+		return TimelineResponse{}, err
+	}
+	referrals, err := s.repo.FindReferrals(patientID)
+	if err != nil {
+		return TimelineResponse{}, err
+	}
+	return toResponse(patient, encounters, plans, admissions, orders, referrals), nil
 }

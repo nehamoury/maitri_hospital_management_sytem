@@ -281,7 +281,7 @@ func (r *repository) ListAdmissions(f AdmissionFilter, scope *models.DataScope) 
 	if f.Search != "" {
 		like := "%" + f.Search + "%"
 		q = q.Where(
-			"admission_no ILIKE ? OR EXISTS (SELECT 1 FROM patients p WHERE p.id = admissions.patient_id AND (p.full_name ILIKE ? OR p.uhid ILIKE ?))",
+			"admission_no ILIKE ? OR EXISTS (SELECT 1 FROM patients p WHERE p.id = admissions.patient_id AND (p.full_name ILIKE ? OR p.uh_id ILIKE ?))",
 			like, like, like,
 		)
 	}

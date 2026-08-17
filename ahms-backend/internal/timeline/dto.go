@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ahms/backend/internal/models"
+	"github.com/google/uuid"
 )
 
 // TimelineResponse is the full longitudinal record of one patient.
@@ -21,6 +22,68 @@ type TimelineResponse struct {
 	Encounters  []EncounterTimeline     `json:"encounters"`
 	TreatmentPlans []TreatmentPlanTimeline `json:"treatment_plans"`
 	Admissions  []AdmissionTimeline     `json:"admissions"`
+	LabOrders   []LabOrderTimeline      `json:"lab_orders"`
+	Referrals   []ReferralTimeline      `json:"referrals"`
+}
+
+// LabOrderTimeline is a lab investigation order in the patient's history,
+// showing which tests were ordered, their workflow status and any result.
+type LabOrderTimeline struct {
+	OrderID       string                 `json:"order_id"`
+	OrderNo       string                 `json:"order_no"`
+	OrderedBy     string                 `json:"ordered_by"`
+	Priority      string                 `json:"priority"`
+	Status        string                 `json:"status"`
+	ClinicalNotes string                 `json:"clinical_notes,omitempty"`
+	ReviewedBy    string                 `json:"reviewed_by,omitempty"`
+	DoctorRemarks string                 `json:"doctor_remarks,omitempty"`
+	SampleCollected bool                 `json:"sample_collected"`
+	CreatedAt     string                 `json:"created_at"`
+	Items         []LabItemTimeline      `json:"items"`
+}
+
+// LabItemTimeline is a single test within a lab order entry.
+type LabItemTimeline struct {
+	TestName    string `json:"test_name"`
+	Status      string `json:"status"`
+	ResultValue string `json:"result_value,omitempty"`
+	ResultUnit  string `json:"result_unit,omitempty"`
+	ResultText  string `json:"result_text,omitempty"`
+	ResultFlag  string `json:"result_flag,omitempty"`
+	ReferenceRange string `json:"reference_range,omitempty"`
+	Remarks     string `json:"remarks,omitempty"`
+}
+
+// ReferralTimeline is an inter-department referral event in the patient's
+// history, carrying the referral notes and the clinical snapshot of the
+// source encounter the receiving doctor relies on.
+type ReferralTimeline struct {
+	ReferralID         string                    `json:"referral_id"`
+	ReferralNo         string                    `json:"referral_no"`
+	FromDepartment     string                    `json:"from_department"`
+	ToDepartment       string                    `json:"to_department"`
+	PreferredDoctor    string                    `json:"preferred_doctor,omitempty"`
+	Reason             string                    `json:"reason"`
+	ClinicalNotes      string                    `json:"clinical_notes,omitempty"`
+	Priority           string                    `json:"priority"`
+	RecommendedTreatment string                  `json:"recommended_treatment,omitempty"`
+	Diagnosis          string                    `json:"diagnosis,omitempty"`
+	Status             string                    `json:"status"`
+	ReferredBy         string                    `json:"referred_by"`
+	CreatedAt          string                    `json:"created_at"`
+	SourceEncounter    *ReferralSourceTimeline   `json:"source_encounter,omitempty"`
+}
+
+// ReferralSourceTimeline is the snapshot of the source encounter attached
+// to a referral event.
+type ReferralSourceTimeline struct {
+	EncounterID     string                `json:"encounter_id"`
+	VisitDate       string                `json:"visit_date"`
+	DepartmentName  string                `json:"department_name"`
+	DoctorName      string                `json:"doctor_name"`
+	Diagnoses       []TimelineDiagnosis   `json:"diagnoses"`
+	Consultations   []TimelineConsultation `json:"consultations"`
+	Prescriptions   []TimelinePrescription `json:"prescriptions"`
 }
 
 // AdmissionTimeline is an IPD stay in the patient's history.
@@ -278,7 +341,138 @@ func toAdmissionTimeline(a *models.Admission) AdmissionTimeline {
 	return entry
 }
 
-func toResponse(patient *models.Patient, encounters []models.Encounter, plans []models.TreatmentPlan, admissions []models.Admission) TimelineResponse {
+func toLabTimeline(o *models.InvestigationOrder) LabOrderTimeline {
+	entry := LabOrderTimeline{
+		OrderID:       o.ID.String(),
+		OrderNo:       o.OrderNo,
+		Priority:      o.Priority,
+		Status:        o.Status,
+		ClinicalNotes: o.ClinicalNotes,
+		CreatedAt:     o.CreatedAt.Format(time.RFC3339),
+	}
+	if o.OrderedByUser.ID != uuid.Nil {
+		entry.OrderedBy = o.OrderedByUser.FullName
+	}
+	if o.ReviewedByUser != nil {
+		entry.ReviewedBy = o.ReviewedByUser.FullName
+		entry.DoctorRemarks = o.DoctorRemarks
+	}
+	if o.Sample != nil {
+		entry.SampleCollected = true
+	}
+	for i := range o.Items {
+		it := &o.Items[i]
+		li := LabItemTimeline{
+			TestName:   it.Test.Name,
+			Status:     it.Status,
+			ResultValue: it.ResultValue,
+			ResultUnit:  it.ResultUnit,
+			ResultText:  it.ResultText,
+			ResultFlag:  it.ResultFlag,
+			Remarks:     it.Remarks,
+		}
+		if it.ReferenceRangeSnapshot != "" {
+			li.ReferenceRange = it.ReferenceRangeSnapshot
+		} else if it.Test.ReferenceRangeMale != "" && it.Test.ReferenceRangeFemale != "" {
+			li.ReferenceRange = "M: " + it.Test.ReferenceRangeMale + " / F: " + it.Test.ReferenceRangeFemale
+		} else {
+			li.ReferenceRange = it.Test.ReferenceRangeMale
+		}
+		entry.Items = append(entry.Items, li)
+	}
+	return entry
+}
+
+func toReferralTimeline(r *models.Referral) ReferralTimeline {
+	entry := ReferralTimeline{
+		ReferralID:           r.ID.String(),
+		ReferralNo:           r.ReferralNo,
+		FromDepartment:       r.FromDepartment.Name,
+		ToDepartment:         r.ToDepartment.Name,
+		Reason:               r.Reason,
+		ClinicalNotes:        r.ClinicalNotes,
+		Priority:             r.Priority,
+		RecommendedTreatment: r.RecommendedTreatment,
+		Diagnosis:            r.Diagnosis,
+		Status:               r.Status,
+		ReferredBy:           r.ReferredBy.FullName,
+		CreatedAt:            r.CreatedAt.Format(time.RFC3339),
+	}
+	if r.PreferredDoctor != nil && r.PreferredDoctor.User.ID != uuid.Nil {
+		entry.PreferredDoctor = r.PreferredDoctor.User.FullName
+	}
+	if r.SourceEncounter.ID == uuid.Nil {
+		return entry
+	}
+	src := &ReferralSourceTimeline{
+		EncounterID:    r.SourceEncounter.ID.String(),
+		VisitDate:      r.SourceEncounter.VisitDate.Format("2006-01-02"),
+		DepartmentName: r.SourceEncounter.Department.Name,
+		DoctorName:     r.SourceEncounter.Doctor.User.FullName,
+	}
+	for j := range r.SourceEncounter.Diagnoses {
+		d := &r.SourceEncounter.Diagnoses[j]
+		src.Diagnoses = append(src.Diagnoses, TimelineDiagnosis{
+			Diagnosis:     d.Diagnosis,
+			DiagnosisType: d.DiagnosisType,
+			Notes:         d.Notes,
+		})
+	}
+	for j := range r.SourceEncounter.Consultations {
+		cons := &r.SourceEncounter.Consultations[j]
+		tc := TimelineConsultation{
+			ConsultationID:  cons.ID.String(),
+			ChiefComplaints: cons.ChiefComplaints,
+			History:         cons.History,
+			Examination:     cons.Examination,
+			ClinicalNotes:   cons.ClinicalNotes,
+			TreatmentPlan:   cons.TreatmentPlan,
+			DietPathya:      cons.DietPathya,
+			DietApathya:     cons.DietApathya,
+			AyurvedaFields:  cons.AyurvedaFields,
+			CreatedAt:       cons.CreatedAt.Format(time.RFC3339),
+		}
+		if cons.FollowUpDate != nil {
+			tc.FollowUpDate = cons.FollowUpDate.Format("2006-01-02")
+		}
+		for k := range cons.Diagnoses {
+			d := &cons.Diagnoses[k]
+			tc.Diagnoses = append(tc.Diagnoses, TimelineDiagnosis{
+				Diagnosis:     d.Diagnosis,
+				DiagnosisType: d.DiagnosisType,
+				Notes:         d.Notes,
+			})
+		}
+		src.Consultations = append(src.Consultations, tc)
+	}
+	for j := range r.SourceEncounter.Prescriptions {
+		p := &r.SourceEncounter.Prescriptions[j]
+		tp := TimelinePrescription{
+			PrescriptionID: p.ID.String(),
+			Status:         p.Status,
+			Notes:          p.Notes,
+			CreatedAt:      p.CreatedAt.Format(time.RFC3339),
+		}
+		for k := range p.Items {
+			it := &p.Items[k]
+			tp.Items = append(tp.Items, TimelinePrescriptionItem{
+				Medicine:     it.Medicine,
+				Formulation:  it.Formulation,
+				Dose:         it.Dose,
+				Frequency:    it.Frequency,
+				Duration:     it.Duration,
+				Quantity:     it.Quantity,
+				Anupana:      it.Anupana,
+				DispensedQty: it.DispensedQty,
+			})
+		}
+		src.Prescriptions = append(src.Prescriptions, tp)
+	}
+	entry.SourceEncounter = src
+	return entry
+}
+
+func toResponse(patient *models.Patient, encounters []models.Encounter, plans []models.TreatmentPlan, admissions []models.Admission, orders []models.InvestigationOrder, referrals []models.Referral) TimelineResponse {
 	resp := TimelineResponse{
 		PatientID:   patient.ID.String(),
 		UHID:        patient.UHID,
@@ -294,6 +488,14 @@ func toResponse(patient *models.Patient, encounters []models.Encounter, plans []
 
 	for i := range admissions {
 		resp.Admissions = append(resp.Admissions, toAdmissionTimeline(&admissions[i]))
+	}
+
+	for i := range orders {
+		resp.LabOrders = append(resp.LabOrders, toLabTimeline(&orders[i]))
+	}
+
+	for i := range referrals {
+		resp.Referrals = append(resp.Referrals, toReferralTimeline(&referrals[i]))
 	}
 
 	for i := range encounters {

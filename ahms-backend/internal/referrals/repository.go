@@ -39,14 +39,25 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
-// applyDoctorScope restricts referral queries to referrals on patients the
-// given doctor has treated. A nil scope or a scope without a DoctorID leaves
+// applyDoctorScope restricts referral queries to referrals the given
+// doctor is entitled to see: either on patients the doctor has treated,
+// or active referrals routed to the doctor's own department (the receiving
+// doctor must be able to review an incoming referral before creating the
+// destination encounter). A nil scope or a scope without a DoctorID leaves
 // the query unscoped (referring/receiving staff get full access).
 func applyDoctorScope(q *gorm.DB, scope *models.DataScope) *gorm.DB {
 	if scope == nil || scope.DoctorID == nil {
 		return q
 	}
-	return q.Where("EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = referrals.patient_id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL)", *scope.DoctorID)
+	// Note: referral_statuses must stay in sync with the active statuses
+	// service.Incoming uses (CREATED/RECEIVED/ACCEPTED/CONSULTATION_STARTED).
+	return q.Where(`(
+		EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = referrals.patient_id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL)
+		OR (
+			referrals.status IN ('CREATED', 'RECEIVED', 'ACCEPTED', 'CONSULTATION_STARTED')
+			AND EXISTS (SELECT 1 FROM doctors WHERE doctors.id = ? AND doctors.department_id = referrals.to_department_id AND doctors.deleted_at IS NULL)
+		)
+	)`, *scope.DoctorID, *scope.DoctorID)
 }
 
 func (r *repository) CreateWithNumber(referral *models.Referral) error {
@@ -180,14 +191,20 @@ func (r *repository) AttachFile(att *models.ReferralAttachment) error {
 	return r.db.Create(att).Error
 }
 
-// applyAttachmentDoctorScope restricts attachment queries to referrals on
-// patients the given doctor has treated, via a correlated subquery on the
-// referral.
+// applyAttachmentDoctorScope restricts attachment queries to referrals
+// the given doctor is entitled to see — on patients the doctor treated, or
+// active referrals routed to the doctor's own department.
 func applyAttachmentDoctorScope(q *gorm.DB, scope *models.DataScope, table string) *gorm.DB {
 	if scope == nil || scope.DoctorID == nil {
 		return q
 	}
-	return q.Where("EXISTS (SELECT 1 FROM referrals WHERE referrals.id = "+table+".referral_id AND EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = referrals.patient_id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL))", *scope.DoctorID)
+	return q.Where(`EXISTS (SELECT 1 FROM referrals WHERE referrals.id = `+table+`.referral_id AND (
+		EXISTS (SELECT 1 FROM encounters WHERE encounters.patient_id = referrals.patient_id AND encounters.doctor_id = ? AND encounters.deleted_at IS NULL)
+		OR (
+			referrals.status IN ('CREATED', 'RECEIVED', 'ACCEPTED', 'CONSULTATION_STARTED')
+			AND EXISTS (SELECT 1 FROM doctors WHERE doctors.id = ? AND doctors.department_id = referrals.to_department_id AND doctors.deleted_at IS NULL)
+		)
+	))`, *scope.DoctorID, *scope.DoctorID)
 }
 
 func (r *repository) FindAttachmentsByReferralID(referralID uuid.UUID, scope *models.DataScope) ([]models.ReferralAttachment, error) {

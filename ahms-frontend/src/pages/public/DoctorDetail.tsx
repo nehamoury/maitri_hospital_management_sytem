@@ -71,38 +71,64 @@ export default function DoctorDetail() {
         description={`${d.title} in the ${d.department} department. Experience: ${d.experience} years. Availability: ${d.availability}.`}
       />
 
-      <div className="relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #0F172A 0%, #0F766E 60%, #14B8A6 100%)',
-          paddingTop: '120px',
-          paddingBottom: '80px',
-        }}
-      >
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center md:items-start gap-8 z-10 text-white">
-          <div className="bg-card/10 backdrop-blur-md border border-white/20 text-white grid h-28 w-28 shrink-0 place-items-center rounded-3xl font-[family-name:var(--font-display)] text-3xl font-semibold shadow-lg">
-            {d.name.split(" ")[1]?.[0]}
-            {d.name.split(" ")[2]?.[0] || d.name.split(" ")[1]?.[1]?.toUpperCase()}
+      <div className="relative overflow-hidden bg-slate-900 pt-32 pb-20 lg:pt-40 lg:pb-28">
+        {/* Decorative background glows */}
+        <div className="absolute top-0 left-1/4 h-[400px] w-[600px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 h-[300px] w-[500px] rounded-full bg-teal-500/10 blur-[100px]" />
+        
+        {/* Subtle grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30" />
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center md:items-start gap-10 z-10 text-white animate-fade-up">
+          {/* Doctor Image Container */}
+          <div className="relative group shrink-0">
+            <div className="absolute -inset-1.5 rounded-[2rem] bg-gradient-to-tr from-teal-500 to-[#C8A14D] opacity-40 blur-lg transition duration-1000 group-hover:opacity-70 group-hover:duration-200" />
+            {d.image ? (
+              <img
+                src={d.image}
+                alt={d.name}
+                className="relative h-32 w-32 md:h-36 md:w-36 rounded-[1.75rem] object-cover border-2 border-white/20 shadow-2xl transition duration-500 hover:scale-[1.02]"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="relative bg-gradient-to-tr from-teal-800 to-emerald-700 border-2 border-white/20 text-white grid h-32 w-32 md:h-36 md:w-36 place-items-center rounded-[1.75rem] font-display text-4xl font-bold shadow-2xl">
+                {d.name.split(" ")[1]?.[0]}
+                {d.name.split(" ")[2]?.[0] || d.name.split(" ")[1]?.[1]?.toUpperCase()}
+              </div>
+            )}
           </div>
-          <div>
-            <p className="text-[#C8A14D] text-xs font-bold uppercase tracking-widest">{d.department}</p>
-            <h1 className="mt-3 text-4xl font-bold md:text-5xl" style={{ fontFamily: "'Poppins', sans-serif" }}>{d.name}</h1>
-            <p className="mt-3 text-white/80 text-lg font-medium">{d.title}</p>
-            <div className="mt-6 flex flex-wrap gap-3 text-xs">
-              <span className="bg-card/10 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 flex items-center font-medium">
-                <Star className="mr-1.5 h-3.5 w-3.5 text-[#C8A14D] fill-current" />
-                {d.rating} rating
+
+          <div className="flex-grow text-center md:text-left">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400 ring-1 ring-emerald-500/20 uppercase tracking-wider">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {d.department}
+            </div>
+            <h1 className="mt-4 text-4xl font-extrabold md:text-5xl lg:text-6xl text-white tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              {d.name}
+            </h1>
+            <p className="mt-3 text-emerald-200/80 text-lg md:text-xl font-medium max-w-3xl leading-relaxed">
+              {d.title}
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-4 text-sm">
+              <span className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 flex items-center font-medium shadow-inner">
+                <Star className="mr-2 h-4 w-4 text-[#C8A14D] fill-current" />
+                {d.rating} Rating
               </span>
-              <span className="bg-card/10 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 font-medium">
-                {d.experience} years
+              <span className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 flex items-center font-medium shadow-inner">
+                <Clock className="mr-2 h-4 w-4 text-teal-400" />
+                {d.experience} Years Experience
               </span>
-              <span className="bg-card/10 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 font-medium">
-                ₹{d.fee} consultation
+              <span className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 flex items-center font-medium shadow-inner">
+                <span className="mr-2 font-semibold text-emerald-400">₹</span>
+                {d.fee} Consultation
               </span>
             </div>
           </div>
-          <div className="md:ml-auto self-center">
-            <LinkButton to={`/appointment?dept=${encodeURIComponent(d.department)}&doc=${d.id}`} variant="gold" size="lg" className="rounded-full">
-              Book appointment
+          <div className="md:ml-auto self-center shrink-0 mt-6 md:mt-0">
+            <LinkButton to={`/appointment?dept=${encodeURIComponent(d.department)}&doc=${d.id}`} variant="gold" size="lg" className="rounded-full shadow-lg hover:shadow-gold/20 hover:-translate-y-0.5 transition-all">
+              Book Appointment
             </LinkButton>
           </div>
         </div>

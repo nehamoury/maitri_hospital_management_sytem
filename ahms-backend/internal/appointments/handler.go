@@ -159,6 +159,10 @@ func (h *Handler) Create(c *gin.Context) {
 
 	appt, err := h.service.Book(req, userID)
 	if err != nil {
+		if errors.Is(err, ErrSlotAlreadyBooked) {
+			utils.Fail(c, http.StatusConflict, "slot already booked")
+			return
+		}
 		utils.Fail(c, http.StatusBadRequest, "failed to book appointment: "+err.Error())
 		return
 	}
@@ -236,6 +240,10 @@ func (h *Handler) PublicCreate(c *gin.Context) {
 
 	appt, err := h.service.PublicBook(req)
 	if err != nil {
+		if errors.Is(err, ErrSlotAlreadyBooked) {
+			utils.Fail(c, http.StatusConflict, "slot already booked")
+			return
+		}
 		utils.Fail(c, http.StatusBadRequest, "failed to book appointment: "+err.Error())
 		return
 	}

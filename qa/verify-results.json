@@ -1,0 +1,1682 @@
+[
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "billing",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "admissions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "appointments",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "audit",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "departments",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "diet",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "doctors",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "encounters",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "lab",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "pharmacy",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "referrals",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "reports",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "roles",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "sessions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "treatment",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "users",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "BILLING_ACCOUNTS",
+        "Page":  "wards",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "treatment",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "diet",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "admissions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "appointments",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "audit",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "billing",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "departments",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "lab",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "pharmacy",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "referrals",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "reports",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "roles",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "sessions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "users",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DIET_KITCHEN",
+        "Page":  "wards",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "appointments",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "referrals",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "treatment",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "sessions",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "admissions",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "wards",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "lab",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "pharmacy",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "billing",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "audit",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "departments",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "diet",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "reports",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "roles",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "DOCTOR",
+        "Page":  "users",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "appointments",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "referrals",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "treatment",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "sessions",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "admissions",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "wards",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "lab",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "pharmacy",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "billing",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "diet",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "reports",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "departments",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "users",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "audit",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "HOSPITAL_ADMIN",
+        "Page":  "roles",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "treatment",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "lab",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "admissions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "appointments",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "audit",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "billing",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "departments",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "diet",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "pharmacy",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "referrals",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "reports",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "roles",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "sessions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "users",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "LAB_STAFF",
+        "Page":  "wards",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "treatment",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "admissions",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "wards",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "diet",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "appointments",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "audit",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "billing",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "departments",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "lab",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "pharmacy",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "referrals",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "reports",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "roles",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "sessions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "NURSE",
+        "Page":  "users",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "appointments",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "referrals",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "treatment",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "sessions",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "admissions",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "wards",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "lab",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "pharmacy",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "billing",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "audit",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "departments",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "diet",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "reports",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "roles",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PANCHAKARMA_DOCTOR",
+        "Page":  "users",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "pharmacy",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "billing",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "admissions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "appointments",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "audit",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "departments",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "diet",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "lab",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "referrals",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "reports",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "roles",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "sessions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "treatment",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "users",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "PHARMACIST",
+        "Page":  "wards",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "appointments",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "treatment",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "billing",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "departments",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "admissions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "audit",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "diet",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "lab",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "pharmacy",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "referrals",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "reports",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "roles",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "sessions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "users",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "RECEPTIONIST",
+        "Page":  "wards",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "appointments",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "referrals",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "treatment",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "sessions",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "admissions",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "wards",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "lab",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "pharmacy",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "billing",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "diet",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "reports",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "departments",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "users",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "roles",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "audit",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "SUPER_ADMIN",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "treatment",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "sessions",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "admissions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "appointments",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "audit",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "billing",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "departments",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "diet",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "lab",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "pharmacy",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "referrals",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "reports",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "roles",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "users",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "THERAPIST",
+        "Page":  "wards",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "dashboard",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "patients",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "encounters",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "treatment",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "doctors",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "profile",
+        "Expected":  "2xx",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "admissions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "appointments",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "audit",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "billing",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "departments",
+        "Expected":  "2xx(bydesign)",
+        "Actual":  200,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "diet",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "lab",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "pharmacy",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "referrals",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "reports",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "roles",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "sessions",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "users",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    },
+    {
+        "Role":  "WARD_STAFF",
+        "Page":  "wards",
+        "Expected":  "403",
+        "Actual":  403,
+        "Result":  "PASS"
+    }
+]

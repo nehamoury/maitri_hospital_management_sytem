@@ -11,6 +11,9 @@ import { LinkButton } from '../../design-system/Buttons'
 import { blogs, testimonials } from '../../lib/site-data'
 import { fetchDoctors, fetchDepartments, fetchTreatments, type PublicTreatment } from '../../lib/public-site'
 import herbsImg from '../../assets/herbs.jpg'
+import blogHerbs from '../../assets/blog_herbs.jpg'
+import panchakarmaImg from '../../assets/panchakarma.jpg'
+import blogYoga from '../../assets/blog_yoga.jpg'
 
 
 interface Doctor {
@@ -153,16 +156,29 @@ export default function Home() {
           </LinkButton>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
-          {blogs.slice(0, 3).map((b) => (
-            <article key={b.slug} className="bg-card shadow-sm border border-border hover:shadow-md hover:-translate-y-1 transition-all duration-300 rounded-3xl p-7 flex flex-col h-full">
-              <p className="text-[#C8A14D] text-xs tracking-wide uppercase font-semibold">{b.category}</p>
-              <h3 className="mt-3 text-lg font-bold text-foreground leading-snug">{b.title}</h3>
-              <p className="text-muted-foreground mt-3 text-sm leading-relaxed flex-1">{b.excerpt}</p>
-              <p className="text-muted-foreground mt-6 text-xs font-medium">
-                {b.author} · {b.read} read
-              </p>
-            </article>
-          ))}
+          {blogs.slice(0, 3).map((b, idx) => {
+            const cardImg = idx === 0 ? blogHerbs : idx === 1 ? panchakarmaImg : blogYoga;
+            return (
+              <article key={b.slug} className="group bg-card shadow-sm border border-border hover:shadow-md hover:-translate-y-1.5 transition-all duration-300 rounded-3xl overflow-hidden flex flex-col h-full cursor-pointer">
+                <div className="aspect-[16/9] overflow-hidden bg-primary/5">
+                  <img 
+                    src={cardImg} 
+                    alt={b.title} 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                    loading="lazy"
+                  />
+                </div>
+                <div className="p-7 flex-1 flex flex-col">
+                  <p className="text-[#C8A14D] text-xs tracking-wide uppercase font-semibold">{b.category}</p>
+                  <h3 className="mt-3 text-lg font-bold text-foreground leading-snug group-hover:text-primary transition-colors duration-300">{b.title}</h3>
+                  <p className="text-muted-foreground mt-3 text-sm leading-relaxed flex-1">{b.excerpt}</p>
+                  <p className="text-muted-foreground mt-6 text-xs font-medium">
+                    {b.author} · {b.read} read
+                  </p>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </Section>
 

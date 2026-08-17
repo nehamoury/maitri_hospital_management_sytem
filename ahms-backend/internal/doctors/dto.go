@@ -13,6 +13,7 @@ type CreateDoctorRequest struct {
 	Qualification   string  `json:"qualification" binding:"max=150"`
 	ExperienceYears int     `json:"experience_years" binding:"gte=0"`
 	ConsultationFee float64 `json:"consultation_fee" binding:"gte=0"`
+	ImageUrl        string  `json:"image_url"`
 }
 
 // UpdateDoctorRequest is the payload for PUT /api/v1/doctors/{id}.
@@ -26,6 +27,7 @@ type UpdateDoctorRequest struct {
 	Qualification   string  `json:"qualification" binding:"max=150"`
 	ExperienceYears int     `json:"experience_years" binding:"gte=0"`
 	ConsultationFee float64 `json:"consultation_fee" binding:"gte=0"`
+	ImageUrl        string  `json:"image_url"`
 	IsActive        *bool   `json:"is_active" binding:"required"`
 }
 
@@ -41,6 +43,7 @@ type DoctorResponse struct {
 	Qualification   string  `json:"qualification"`
 	ExperienceYears int     `json:"experience_years"`
 	ConsultationFee float64 `json:"consultation_fee"`
+	ImageUrl        string  `json:"image_url"`
 	IsActive        bool    `json:"is_active"`
 	CreatedAt       string  `json:"created_at"`
 }

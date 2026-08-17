@@ -31,12 +31,21 @@ func (h *Handler) SetAuditRecorder(r *audit.Recorder) { h.audit = r }
 // SetUploadDir sets the base directory used to persist patient photos.
 func (h *Handler) SetUploadDir(dir string) { h.uploadDir = dir }
 
+// toResponse builds a PatientResponse with sensitive government/other
+// identifiers masked. Registration/administration roles get the unmasked
+// form via toResponseWithIDs.
 func toResponse(p *models.Patient) PatientResponse {
+	return toResponseWithIDs(p, false)
+}
+
+// toResponseWithIDs builds a PatientResponse, exposing full government/
+// other identifiers only when expose is true (see Handler.canExposeIDs).
+func toResponseWithIDs(p *models.Patient, expose bool) PatientResponse {
 	dob := ""
 	if p.DOB != nil {
 		dob = p.DOB.Format("2006-01-02")
 	}
-	return PatientResponse{
+	resp := PatientResponse{
 		ID:   p.ID.String(),
 		UHID: p.UHID,
 
@@ -83,6 +92,43 @@ func toResponse(p *models.Patient) PatientResponse {
 		IsActive:  p.IsActive,
 		CreatedAt: p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
+
+	// Government/other identifiers: only the type is never sensitive; the
+	// numbers are masked unless the caller may expose them.
+	resp.OtherIDType = p.OtherIDType
+	if expose {
+		resp.AadhaarNo = p.AadhaarNo
+		resp.PanNo = p.PanNo
+		resp.AbhaID = p.AbhaID
+		resp.OtherIDNumber = p.OtherIDNumber
+	} else {
+		resp.AadhaarNo = maskSensitiveID(p.AadhaarNo)
+		resp.PanNo = maskSensitiveID(p.PanNo)
+		resp.AbhaID = maskSensitiveID(p.AbhaID)
+		resp.OtherIDNumber = maskSensitiveID(p.OtherIDNumber)
+	}
+	return resp
+}
+
+// maskSensitiveID keeps only the last four characters of an identifier,
+// e.g. "123412341234" -> "****1234". Empty values stay empty.
+func maskSensitiveID(s string) string {
+	if len(s) <= 4 {
+		if s == "" {
+			return ""
+		}
+		return "****"
+	}
+	return "****" + s[len(s)-4:]
+}
+
+// canExposeIDs reports whether the caller may see unmasked government/
+// other identifiers. Only front-desk registration and administration
+// roles are trusted with the full values; clinical and other staff get
+// masked numbers.
+func (h *Handler) canExposeIDs(c *gin.Context) bool {
+	role, _ := c.Get("role_name")
+	return role == models.RoleSuperAdmin || role == models.RoleHospitalAdmin || role == models.RoleReceptionist
 }
 
 // scopeFromContext extracts the DataScope injected by DataScopeMiddleware.
@@ -112,8 +158,9 @@ func (h *Handler) List(c *gin.Context) {
 		return
 	}
 	resp := make([]PatientResponse, 0, len(patientsList))
+	expose := h.canExposeIDs(c)
 	for i := range patientsList {
-		resp = append(resp, toResponse(&patientsList[i]))
+		resp = append(resp, toResponseWithIDs(&patientsList[i], expose))
 	}
 	utils.Success(c, http.StatusOK, "patients fetched", resp)
 }
@@ -138,7 +185,7 @@ func (h *Handler) Get(c *gin.Context) {
 		utils.Fail(c, http.StatusNotFound, "patient not found")
 		return
 	}
-	utils.Success(c, http.StatusOK, "patient fetched", toResponse(patient))
+	utils.Success(c, http.StatusOK, "patient fetched", toResponseWithIDs(patient, h.canExposeIDs(c)))
 }
 
 // Photo godoc
@@ -178,7 +225,7 @@ func (h *Handler) Photo(c *gin.Context) {
 
 // Create godoc
 // @Summary      Register a new patient (auto-generates UHID)
-// @Description  If a patient already exists with the same mobile and force=false, responds 409 with the existing matches so the receptionist can confirm before re-submitting with force=true.
+// @Description  If a patient already exists with the same mobile and force=false, responds 409 with the existing matches so the receptionist can confirm before re-submitting with force=true. When the registration carries no DOB, the name + age rule fires as a 409 warning instead of a hard rejection (force=true still registers).
 // @Tags         patients
 // @Accept       json
 // @Produce      json
@@ -204,10 +251,22 @@ func (h *Handler) Create(c *gin.Context) {
 
 	patient, duplicates, err := h.service.Create(req, userID)
 	if err != nil {
-		if errors.Is(err, ErrDuplicateMobile) {
+		if errors.Is(err, ErrDuplicateMobile) || errors.Is(err, ErrDuplicateWarning) {
 			dupResp := make([]PatientResponse, 0, len(duplicates))
+			expose := h.canExposeIDs(c)
 			for i := range duplicates {
-				dupResp = append(dupResp, toResponse(&duplicates[i]))
+				dupResp = append(dupResp, toResponseWithIDs(&duplicates[i], expose))
+			}
+			if errors.Is(err, ErrDuplicateWarning) {
+				c.JSON(http.StatusConflict, utils.APIResponse{
+					Success: false,
+					Error:   "possible duplicate match (name + age)",
+					Data: DuplicateMobileResponse{
+						Message:          "This registration has no date of birth, so it cannot be matched on name + DOB. It matches existing patient(s) by name + age — verify below and resubmit with force=true only if this is genuinely a different person.",
+						ExistingPatients: dupResp,
+					},
+				})
+				return
 			}
 			c.JSON(http.StatusConflict, utils.APIResponse{
 				Success: false,
@@ -223,7 +282,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	utils.Success(c, http.StatusCreated, "patient registered", toResponse(patient))
+	utils.Success(c, http.StatusCreated, "patient registered", toResponseWithIDs(patient, h.canExposeIDs(c)))
 	if h.audit != nil {
 		_ = h.audit.Log(c, "patient.create", "patient", patient.ID.String())
 	}
@@ -262,7 +321,7 @@ func (h *Handler) Update(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "failed to update patient: "+err.Error())
 		return
 	}
-	utils.Success(c, http.StatusOK, "patient updated", toResponse(patient))
+	utils.Success(c, http.StatusOK, "patient updated", toResponseWithIDs(patient, h.canExposeIDs(c)))
 	if h.audit != nil {
 		_ = h.audit.Log(c, "patient.update", "patient", id.String())
 	}

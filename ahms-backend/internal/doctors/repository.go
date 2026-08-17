@@ -32,6 +32,7 @@ type Repository interface {
 	EmailExists(email string) bool
 	MobileExists(mobile string) bool
 	DoctorRoleID() (uuid.UUID, error)
+	HasInConsultation(id uuid.UUID) (bool, error)
 }
 
 type repository struct {
@@ -132,4 +133,18 @@ func (r *repository) DoctorRoleID() (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 	return role.ID, nil
+}
+
+// HasInConsultation reports whether the doctor currently has an encounter
+// in the IN_CONSULTATION state — i.e. the doctor is actively seeing a
+// patient right now.
+func (r *repository) HasInConsultation(id uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.Encounter{}).
+		Where("doctor_id = ? AND status = ? AND deleted_at IS NULL", id, models.EncounterInConsultation).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

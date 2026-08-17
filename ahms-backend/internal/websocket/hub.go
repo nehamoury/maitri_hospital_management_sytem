@@ -158,7 +158,27 @@ func (c *Client) writePump() {
 }
 
 func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+	// Negotiate the client-proposed subprotocol. RFC-6455 / WHATWG require
+	// the server to echo the selected Sec-WebSocket-Protocol in its 101
+	// response; if it omits one while the client offered protocols, the
+	// browser fails the handshake ("Sent non-empty 'Sec-WebSocket-Protocol'
+	// header but no response was received"). The token rides in
+	// "ahms.<jwt>" and auth was validated before ServeWs, so echoing the
+	// matched protocol is all that's needed to complete the upgrade.
+	selected := ""
+	for _, p := range websocket.Subprotocols(r) {
+		if strings.HasPrefix(p, wsProtocolPrefix) {
+			selected = p
+			break
+		}
+	}
+
+	u := upgrader
+	if selected != "" {
+		u.Subprotocols = []string{selected}
+	}
+
+	conn, err := u.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("websocket upgrade error:", err)
 		return

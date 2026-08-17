@@ -19,6 +19,8 @@ var ErrNotFound = errors.New("patient not found")
 type Repository interface {
 	FindActiveByMobile(mobile string) ([]models.Patient, error)
 	FindDuplicates(mobile, alternateMobile, email, fullName string, dob *time.Time) ([]models.Patient, error)
+	FindAgeMatches(fullName string, age int) ([]models.Patient, error)
+	FindOrCreateByMobile(fullName, mobile, email string, registeredByUserID uuid.UUID) (*models.Patient, error)
 	CreateWithUHID(patient *models.Patient) error
 	FindAll(search string, scope *models.DataScope) ([]models.Patient, error)
 	FindByID(id uuid.UUID, scope *models.DataScope) (*models.Patient, error)
@@ -90,6 +92,50 @@ func (r *repository) FindDuplicates(mobile, alternateMobile, email, fullName str
 	return listOut, err
 }
 
+// FindAgeMatches is the soft-duplicate rule used only when a registration
+// has no date of birth (so name + DOB cannot be evaluated). Age is stored
+// at registration time and drifts over the years, so matches here are a
+// warning for the receptionist, not a hard rejection.
+func (r *repository) FindAgeMatches(fullName string, age int) ([]models.Patient, error) {
+	if fullName == "" || age <= 0 {
+		return []models.Patient{}, nil
+	}
+	var listOut []models.Patient
+	err := r.db.Where(
+		"is_active = ? AND lower(full_name) = lower(?) AND age = ?",
+		true, fullName, age,
+	).Order("created_at desc").Find(&listOut).Error
+	return listOut, err
+}
+
+// FindOrCreateByMobile reuses an existing active patient by mobile, or
+// registers a new one through the canonical CreateWithUHID path so the
+// row-locked UHID counter stays the single source of truth. Public
+// booking and the patient module both funnel new-patient creation here.
+func (r *repository) FindOrCreateByMobile(fullName, mobile, email string, registeredByUserID uuid.UUID) (*models.Patient, error) {
+	existing, err := r.FindActiveByMobile(mobile)
+	if err != nil {
+		return nil, err
+	}
+	if len(existing) > 0 {
+		return &existing[0], nil
+	}
+
+	patient := &models.Patient{
+		FullName:           fullName,
+		Mobile:             mobile,
+		Email:              email,
+		Gender:             "OTHER",
+		RegistrationType:   models.RegistrationTypeOnline,
+		RegisteredByUserID: registeredByUserID,
+		IsActive:           true,
+	}
+	if err := r.CreateWithUHID(patient); err != nil {
+		return nil, err
+	}
+	return patient, nil
+}
+
 // CreateWithUHID generates the next UHID for the current year and
 // creates the patient in a single transaction. The year's counter row
 // is row-locked (SELECT ... FOR UPDATE) for the duration of the
@@ -136,7 +182,7 @@ func (r *repository) FindAll(search string, scope *models.DataScope) ([]models.P
 	query := r.db.Order("created_at desc")
 	if search != "" {
 		like := "%" + search + "%"
-		query = query.Where("full_name ILIKE ? OR mobile ILIKE ? OR uhid ILIKE ?", like, like, like)
+		query = query.Where("full_name ILIKE ? OR mobile ILIKE ? OR uh_id ILIKE ?", like, like, like)
 	}
 
 	if scope != nil && scope.DoctorID != nil {

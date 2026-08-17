@@ -99,6 +99,54 @@ func (h *Handler) Photo(c *gin.Context) {
 	})
 }
 
+// DoctorPhoto handles uploading a doctor profile image.
+func (h *Handler) DoctorPhoto(c *gin.Context) {
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "file field 'file' required")
+		return
+	}
+	defer file.Close()
+
+	buf, err := io.ReadAll(io.LimitReader(file, h.maxBytes+1))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "failed to read file")
+		return
+	}
+	if int64(len(buf)) > h.maxBytes {
+		utils.Fail(c, http.StatusRequestEntityTooLarge, "file exceeds 2 MB limit")
+		return
+	}
+	if len(buf) == 0 {
+		utils.Fail(c, http.StatusBadRequest, "empty file")
+		return
+	}
+
+	contentType := http.DetectContentType(buf)
+	ext, ok := mimeExt[contentType]
+	if !ok {
+		utils.Fail(c, http.StatusBadRequest, "only JPG, PNG, or WEBP images are allowed")
+		return
+	}
+
+	subdir := filepath.Join(h.dir, "doctors")
+	if err := os.MkdirAll(subdir, 0o750); err != nil {
+		utils.Fail(c, http.StatusInternalServerError, "failed to prepare upload directory")
+		return
+	}
+
+	name := uuid.NewString() + ext
+	path := filepath.Join(subdir, name)
+	if err := os.WriteFile(path, buf, 0o640); err != nil {
+		utils.Fail(c, http.StatusInternalServerError, "failed to store file")
+		return
+	}
+
+	utils.Success(c, http.StatusCreated, "photo uploaded", gin.H{
+		"photo_url": "/uploads/doctors/" + name,
+	})
+}
+
 // RegisterRoutes mounts the upload endpoints guarded by auth + permission.
 func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.AuthMiddleware, permMW *middleware.PermissionMiddleware) {
 	group := rg.Group("/upload")
@@ -106,6 +154,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW *middleware.Au
 	{
 		// Only users who can register a patient may upload a patient photo.
 		group.POST("/patient-photo", permMW.RequirePermission(models.PermPatientCreate), handler.Photo)
+		// Only users who can create a doctor may upload a doctor photo.
+		group.POST("/doctor-photo", permMW.RequirePermission(models.PermDoctorCreate), handler.DoctorPhoto)
 	}
 }
 

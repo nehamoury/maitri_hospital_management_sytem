@@ -11,10 +11,10 @@ interface SectionProps {
 }
 
 const bgStyles: Record<string, string> = {
-  white:       'bg-white',
-  ivory:       'bg-white',
-  green:       'bg-[#0F766E]',
-  dark:        'bg-[#0F172A]',
+  white:       'bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/40',
+  ivory:       'bg-slate-50/50 dark:bg-slate-950/40 border-b border-slate-100 dark:border-slate-800/40',
+  green:       'bg-teal-900/10 dark:bg-teal-950/20 border-y border-teal-800/10 dark:border-teal-950/40',
+  dark:        'bg-slate-950/90 dark:bg-slate-950/95 border-b border-border/40',
   transparent: '',
 }
 
@@ -65,18 +65,16 @@ export function SectionTitle({ tag, title, subtitle, center = true, light = fals
         </div>
       )}
       <h2
-        className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
+        className={`text-3xl md:text-4xl lg:text-5xl font-bold mb-4 ${light ? 'text-white' : 'text-slate-900 dark:text-white'}`}
         style={{
           fontFamily: "'Poppins', sans-serif",
-          color: light ? '#FFFFFF' : '#0F172A',
           lineHeight: '1.15',
         }}
       >
         {title}
       </h2>
       {subtitle && (
-        <p className="text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
-          style={{ color: light ? 'rgba(255,255,255,0.75)' : '#64748B' }}>
+        <p className={`text-base md:text-lg max-w-2xl mx-auto leading-relaxed ${light ? 'text-white/75' : 'text-muted-foreground'}`}>
           {subtitle}
         </p>
       )}
@@ -107,7 +105,7 @@ export function PageHero({ title, subtitle, tag, bgImage }: PageHeroProps) {
         className="absolute inset-0"
         style={{
           background: bgImage
-            ? `linear-gradient(to bottom, rgba(15, 23, 42, 0.4), rgba(15, 118, 110, 0.8)), url(${bgImage}) center/cover no-repeat`
+            ? `linear-gradient(to bottom, rgba(15, 23, 42, 0.4), rgba(15, 118, 110, 0.8)), url("${bgImage}") center/cover no-repeat`
             : 'linear-gradient(135deg, #0F172A 0%, #0F766E 60%, #14B8A6 100%)',
         }}
       />

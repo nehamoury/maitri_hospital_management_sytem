@@ -32,15 +32,15 @@ export function DoctorSection({ doctors }: { doctors: Doctor[] | null }) {
           whileInView="visible"
           viewport={viewportOpts}
         >
-          <div className="text-xs font-bold uppercase tracking-widest text-[#0F766E] mb-3">
+          <div className="text-xs font-bold uppercase tracking-widest text-teal-700 dark:text-teal-400 mb-3">
             Head of Departments
           </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#0F172A] mb-8" style={{ fontFamily: "'Poppins', sans-serif" }}>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-8" style={{ fontFamily: "'Poppins', sans-serif" }}>
             Meet our senior physicians
           </h2>
           <Link 
             to="/doctors"
-            className="inline-flex items-center justify-center rounded-full border border-[#0F766E]/20 bg-card px-6 py-3 text-sm font-semibold text-[#0F766E] shadow-sm hover:border-[#0F766E] hover:bg-[#0F766E] hover:text-white transition-all duration-300"
+            className="inline-flex items-center justify-center rounded-full border border-teal-700/20 dark:border-teal-500/20 bg-card px-6 py-3 text-sm font-semibold text-teal-700 dark:text-teal-400 shadow-sm hover:border-teal-600 hover:bg-teal-700 hover:text-white transition-all duration-300"
           >
             View all doctors
           </Link>

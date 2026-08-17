@@ -70,10 +70,10 @@ export function DepartmentSection({ departments }: { departments: Department[] |
           whileInView="visible"
           viewport={viewportOpts}
         >
-          <div className="text-xs font-bold uppercase tracking-widest text-[#0F766E] mb-3">
+          <div className="text-xs font-bold uppercase tracking-widest text-teal-700 dark:text-teal-400 mb-3">
             Centres of Excellence
           </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#0F172A]" style={{ fontFamily: "'Poppins', sans-serif" }}>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white" style={{ fontFamily: "'Poppins', sans-serif" }}>
             Specialty departments<br />rooted in classical texts
           </h2>
         </motion.div>
@@ -86,7 +86,7 @@ export function DepartmentSection({ departments }: { departments: Department[] |
         >
           <Link 
             to="/departments"
-            className="inline-flex items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-semibold text-foreground hover:border-[#0F766E] hover:text-[#0F766E] transition-all duration-300"
+            className="inline-flex items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-semibold text-foreground hover:border-teal-700 dark:hover:border-teal-500 hover:text-teal-700 dark:hover:text-teal-400 transition-all duration-300"
           >
             All departments
           </Link>

@@ -28,10 +28,17 @@ func DataScopeMiddleware(db *gorm.DB) gin.HandlerFunc {
 			if exists {
 				userID, err := uuid.Parse(userIDVal.(string))
 				if err == nil {
-					var docID uuid.UUID
-					err := db.Table("doctors").Where("user_id = ? AND deleted_at IS NULL", userID).Select("id").Scan(&docID).Error
-					if err == nil && docID != uuid.Nil {
-						scope.DoctorID = &docID
+					var docIDStr string
+					// Scan into a string first: postgres returns the uuid
+					// column as text, and scanning straight into uuid.UUID
+					// fails ("converting driver.Value type string to uint8"),
+					// silently leaving DoctorID nil — which previously
+					// disabled doctor data-scoping everywhere.
+					err := db.Table("doctors").Where("user_id = ? AND deleted_at IS NULL", userID).Select("id").Scan(&docIDStr).Error
+					if err == nil && docIDStr != "" {
+						if docID, perr := uuid.Parse(docIDStr); perr == nil {
+							scope.DoctorID = &docID
+						}
 					}
 				}
 			}

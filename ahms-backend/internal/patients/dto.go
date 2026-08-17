@@ -32,6 +32,12 @@ type CreatePatientRequest struct {
 	EmergencyContact         string `json:"emergency_contact" binding:"omitempty,max=15"`
 	EmergencyContactAddress  string `json:"emergency_contact_address" binding:"max=500"`
 
+	AadhaarNo     string `json:"aadhaar_no" binding:"omitempty,numeric,min=12,max=12"`
+	PanNo         string `json:"pan_no" binding:"omitempty,alphanum,min=10,max=10"`
+	AbhaID        string `json:"abha_id" binding:"omitempty,max=50"`
+	OtherIDType   string `json:"other_id_type" binding:"omitempty,max=50"`
+	OtherIDNumber string `json:"other_id_number" binding:"omitempty,max=50"`
+
 	HeightCm          float64 `json:"height_cm" binding:"omitempty,gte=30,lte=250"`
 	WeightKg          float64 `json:"weight_kg" binding:"omitempty,gte=1,lte=300"`
 	BloodPressure     string  `json:"blood_pressure" binding:"max=20"`
@@ -75,6 +81,12 @@ type UpdatePatientRequest struct {
 	EmergencyContactRelation string `json:"emergency_contact_relation" binding:"max=50"`
 	EmergencyContact         string `json:"emergency_contact" binding:"omitempty,max=15"`
 	EmergencyContactAddress  string `json:"emergency_contact_address" binding:"max=500"`
+
+	AadhaarNo     string `json:"aadhaar_no" binding:"omitempty,numeric,min=12,max=12"`
+	PanNo         string `json:"pan_no" binding:"omitempty,alphanum,min=10,max=10"`
+	AbhaID        string `json:"abha_id" binding:"omitempty,max=50"`
+	OtherIDType   string `json:"other_id_type" binding:"omitempty,max=50"`
+	OtherIDNumber string `json:"other_id_number" binding:"omitempty,max=50"`
 
 	HeightCm          float64 `json:"height_cm" binding:"omitempty,gte=30,lte=250"`
 	WeightKg          float64 `json:"weight_kg" binding:"omitempty,gte=1,lte=300"`
@@ -122,6 +134,14 @@ type PatientResponse struct {
 	EmergencyContactRelation string `json:"emergency_contact_relation"`
 	EmergencyContact         string `json:"emergency_contact"`
 	EmergencyContactAddress  string `json:"emergency_contact_address"`
+
+	// Government / other identifiers. Masked for non-registration roles:
+	// the number keeps its last four characters, e.g. "****XXXX".
+	AadhaarNo     string `json:"aadhaar_no"`
+	PanNo         string `json:"pan_no"`
+	AbhaID        string `json:"abha_id"`
+	OtherIDType   string `json:"other_id_type"`
+	OtherIDNumber string `json:"other_id_number"`
 
 	HeightCm          float64 `json:"height_cm"`
 	WeightKg          float64 `json:"weight_kg"`

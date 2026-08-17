@@ -1,5 +1,9 @@
 import { PageHero, Section, CTASection } from '../../design-system/Layout'
 import { SEO } from '../../components/SEO'
+import blogHerbs from '../../assets/blog_herbs.jpg'
+import blogShirodhara from '../../assets/blog_shirodhara.jpg'
+import blogYoga from '../../assets/blog_yoga.jpg'
+import featuredImg from '../../assets/hero_treatment_room.png'
 
 export default function Blog() {
   const categories = ['All', 'Health Tips', 'Ayurvedic Diet', 'Yoga & Meditation', 'Case Studies']
@@ -9,7 +13,7 @@ export default function Blog() {
     excerpt: 'In Ayurveda, no two individuals are the same. Discover how identifying your unique Vata, Pitta, or Kapha constitution can transform your diet and lifestyle.',
     category: 'Health Tips',
     date: 'Oct 12, 2023',
-    image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'
+    image: featuredImg
   }
 
   const posts = [
@@ -19,7 +23,7 @@ export default function Blog() {
       excerpt: 'Prepare your body for the cold season with these powerful, easily accessible Ayurvedic herbs like Tulsi and Ashwagandha.',
       category: 'Ayurvedic Diet',
       date: 'Nov 05, 2023',
-      image: 'https://images.unsplash.com/photo-1466692476877-361ad3532646?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      image: blogHerbs
     },
     {
       id: 2,
@@ -27,7 +31,7 @@ export default function Blog() {
       excerpt: 'How a continuous stream of warm oil on the forehead can alleviate stress, anxiety, and insomnia naturally.',
       category: 'Treatments',
       date: 'Oct 28, 2023',
-      image: 'https://images.unsplash.com/photo-1599824640103-60589bd1423c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      image: blogShirodhara
     },
     {
       id: 3,
@@ -35,7 +39,7 @@ export default function Blog() {
       excerpt: 'Incorporate these simple daily stretches to stimulate Agni (digestive fire) and prevent bloating and acidity.',
       category: 'Yoga & Meditation',
       date: 'Oct 15, 2023',
-      image: 'https://images.unsplash.com/photo-1542840410-3092f99611a3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      image: blogYoga
     }
   ]
 

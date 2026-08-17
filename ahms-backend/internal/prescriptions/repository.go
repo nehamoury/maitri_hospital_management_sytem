@@ -130,7 +130,7 @@ func (r *repository) List(in ListInput, scope *models.DataScope) ([]models.Presc
 	if in.Search != "" {
 		like := "%" + in.Search + "%"
 		q = q.Where(
-			"EXISTS (SELECT 1 FROM encounters e JOIN patients p ON p.id = e.patient_id WHERE e.id = prescriptions.encounter_id AND (p.full_name ILIKE ? OR p.uhid ILIKE ?))",
+			"EXISTS (SELECT 1 FROM encounters e JOIN patients p ON p.id = e.patient_id WHERE e.id = prescriptions.encounter_id AND (p.full_name ILIKE ? OR p.uh_id ILIKE ?))",
 			like, like,
 		)
 	}

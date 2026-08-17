@@ -10,9 +10,15 @@ import (
 )
 
 // ErrDuplicateMobile signals that existing patients already match the
-// new registration (same mobile, alternate mobile, email, name+mobile, or
-// name+DOB) and the caller did not pass force=true.
+// new registration on a strong rule (same mobile, alternate mobile,
+// email, name+mobile, or name+DOB) and the caller did not pass force=true.
 var ErrDuplicateMobile = errors.New("one or more existing patients match this registration (mobile, alternate mobile, email, or name + DOB)")
+
+// ErrDuplicateWarning signals a soft duplicate: the new registration has
+// no date of birth, so it is matched against existing patients by name +
+// age. Age drifts over time, so this is a warning the receptionist can
+// override with force=true, never a hard rejection.
+var ErrDuplicateWarning = errors.New("possible duplicate: same name + age but no date of birth provided")
 
 // Service contains patient business logic.
 type Service interface {
@@ -54,6 +60,19 @@ func (s *service) Create(req CreatePatientRequest, registeredByUserID uuid.UUID)
 		if len(existing) > 0 {
 			return nil, existing, ErrDuplicateMobile
 		}
+
+		// Soft warning only: no DOB was supplied, so the strong name + DOB
+		// rule cannot run. Match on name + age instead and let the
+		// receptionist confirm — force=true registers anyway.
+		if dob == nil && req.Age > 0 {
+			ageMatches, err := s.repo.FindAgeMatches(req.FullName, req.Age)
+			if err != nil {
+				return nil, nil, err
+			}
+			if len(ageMatches) > 0 {
+				return nil, ageMatches, ErrDuplicateWarning
+			}
+		}
 	}
 
 	age := req.Age
@@ -89,7 +108,12 @@ func (s *service) Create(req CreatePatientRequest, registeredByUserID uuid.UUID)
 		EmergencyContactRelation: req.EmergencyContactRelation,
 		EmergencyContact:         req.EmergencyContact,
 		EmergencyContactAddress:  req.EmergencyContactAddress,
-		HeightCm:          req.HeightCm,
+		AadhaarNo:          req.AadhaarNo,
+		PanNo:              req.PanNo,
+		AbhaID:             req.AbhaID,
+		OtherIDType:        req.OtherIDType,
+		OtherIDNumber:      req.OtherIDNumber,
+		HeightCm:           req.HeightCm,
 		WeightKg:          req.WeightKg,
 		BMI:               computeBMI(req.HeightCm, req.WeightKg),
 		BloodPressure:     req.BloodPressure,
@@ -166,6 +190,11 @@ func (s *service) Update(id uuid.UUID, req UpdatePatientRequest, scope *models.D
 	patient.EmergencyContactRelation = req.EmergencyContactRelation
 	patient.EmergencyContact = req.EmergencyContact
 	patient.EmergencyContactAddress = req.EmergencyContactAddress
+	patient.AadhaarNo = req.AadhaarNo
+	patient.PanNo = req.PanNo
+	patient.AbhaID = req.AbhaID
+	patient.OtherIDType = req.OtherIDType
+	patient.OtherIDNumber = req.OtherIDNumber
 	patient.HeightCm = req.HeightCm
 	patient.WeightKg = req.WeightKg
 	patient.BMI = computeBMI(req.HeightCm, req.WeightKg)

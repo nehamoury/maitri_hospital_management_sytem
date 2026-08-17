@@ -364,148 +364,147 @@ export default function Billing() {
       </Card>
 
       {expanded && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setExpanded(null)}>
-          <Card className="max-h-[85vh] w-full max-w-lg overflow-y-auto" >
-            <div onClick={(e) => e.stopPropagation()}>
-              <CardHeader
-                title={expanded.bill_no}
-                subtitle={`${expanded.patient_name} (${expanded.patient_uhid || '-'}) • ${new Date(expanded.created_at).toLocaleString()}`}
-                action={<Badge color={statusColor(expanded.payment_status)}>{expanded.payment_status}</Badge>}
-              />
-              <div className="space-y-4 p-5">
-                {detailLoading && <Spinner label="Refreshing bill..." />}
-                <div className="rounded-xl border border-slate-100 bg-slate-50/30 p-4">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Bill Items</p>
-                  {expanded.items && expanded.items.length > 0 ? (
-                    <div className="space-y-2">
-                      {expanded.items.map((it, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <div>
-                            <span className="font-semibold text-slate-800">{it.description}</span>
-                            <span className="ml-2 text-xs text-slate-500">({it.quantity} × {fmt(it.rate)})</span>
-                          </div>
-                          <span className="font-mono font-medium text-slate-700">{fmt(it.quantity * it.rate)}</span>
+        <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setExpanded(null)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl bg-white rounded-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-100"
+          >
+            <CardHeader
+              title={expanded.bill_no}
+              subtitle={`${expanded.patient_name} (${expanded.patient_uhid || '-'}) • ${new Date(expanded.created_at).toLocaleString()}`}
+              action={<Badge color={statusColor(expanded.payment_status)}>{expanded.payment_status}</Badge>}
+            />
+            <div className="overflow-y-auto p-5 space-y-4 flex-1">
+              {detailLoading && <Spinner label="Refreshing bill..." />}
+              <div className="rounded-xl border border-slate-100 bg-slate-50/30 p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Bill Items</p>
+                {expanded.items && expanded.items.length > 0 ? (
+                  <div className="space-y-2">
+                    {expanded.items.map((it, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <div>
+                          <span className="font-semibold text-slate-800">{it.description}</span>
+                          <span className="ml-2 text-xs text-slate-500">({it.quantity} × {fmt(it.rate)})</span>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400">No items added to this bill</p>
-                  )}
-                </div>
-
-                <div className="rounded-lg bg-slate-50 p-4 text-sm">
-                  <div className="flex justify-between py-1">
-                    <span className="text-slate-500">Total</span>
-                    <span>{fmt(expanded.total_amount)}</span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-slate-500">Discount</span>
-                    <span>-{fmt(expanded.discount)}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-slate-200 py-1 font-medium">
-                    <span>Net</span>
-                    <span>{fmt(expanded.net_amount)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 text-emerald-700">
-                    <span>Paid</span>
-                    <span>{fmt(expanded.paid_amount)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 text-red-600">
-                    <span>Due</span>
-                    <span>{fmt(expanded.due_amount)}</span>
-                  </div>
-                </div>
-
-                <Button variant="secondary" className="w-full" onClick={() => printReceipt(expanded)}>
-                  Print Receipt
-                </Button>
-
-                <div className="rounded-xl border border-slate-100 p-4">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Payment Ledger</p>
-                  {expanded.payments && expanded.payments.length > 0 ? (
-                    <div className="space-y-2">
-                      {expanded.payments.map((p) => {
-                        const isRefund = p.amount < 0
-                        return (
-                          <div key={p.id} className="flex items-center justify-between text-sm">
-                            <div>
-                              <span className={`inline-block w-16 rounded-full py-0.5 text-center text-[10px] font-bold uppercase ${isRefund ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                {isRefund ? 'Refund' : p.method}
-                              </span>
-                              <span className="ml-2 text-xs text-slate-400">{new Date(p.created_at).toLocaleString()}</span>
-                            </div>
-                            <span className={`font-mono ${isRefund ? 'text-red-600' : 'text-emerald-700'}`}>
-                              {isRefund ? '-' : '+'}{fmtAbs(p.amount)}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400">No payments recorded</p>
-                  )}
-                </div>
-
-                {expanded.payment_status !== 'PAID' && (
-                  <Can permission="billing.payment">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                        pay(expanded.id)
-                      }}
-                      className="grid gap-3 sm:grid-cols-3"
-                    >
-                      <Field label="Amount *">
-                        <Input type="number" min={0} step="any" value={payAmt} onChange={(e) => setPayAmt(e.target.value)} required />
-                      </Field>
-                      <Field label="Method">
-                        <Select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
-                          <option value="CASH">Cash</option>
-                          <option value="CARD">Card</option>
-                          <option value="UPI">UPI</option>
-                          <option value="BANK_TRANSFER">Bank Transfer</option>
-                        </Select>
-                      </Field>
-                      <div className="flex items-end">
-                        <Button type="submit" disabled={loading}>
-                          {loading ? '...' : 'Pay'}
-                        </Button>
+                        <span className="font-mono font-medium text-slate-700">{fmt(it.quantity * it.rate)}</span>
                       </div>
-                    </form>
-                  </Can>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">No items added to this bill</p>
                 )}
-
-                {expanded.paid_amount > 0 && (
-                  <Can permission="billing.payment">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                        refund(expanded.id)
-                      }}
-                      className="rounded-xl border border-red-100 bg-red-50/50 p-4"
-                    >
-                      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-red-400">Refund</p>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Field label={`Amount (max ${expanded.paid_amount.toFixed(2)}) *`}>
-                          <Input type="number" min={0.01} max={expanded.paid_amount} step="any" value={refundAmt} onChange={(e) => setRefundAmt(e.target.value)} required />
-                        </Field>
-                        <Field label="Reason">
-                          <Input value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder="e.g. Overcharged, cancelled service" />
-                        </Field>
-                      </div>
-                      <Button type="submit" variant="danger" className="mt-3 w-full" disabled={loading}>
-                        {loading ? 'Processing...' : `Refund ${fmtAbs(Number(refundAmt) || 0)}`}
-                      </Button>
-                    </form>
-                  </Can>
-                )}
-
-                <button onClick={() => setExpanded(null)} className="w-full rounded-lg border border-slate-300 py-2 text-sm text-slate-600 hover:bg-slate-50">
-                  Close
-                </button>
               </div>
+
+              <div className="rounded-lg bg-slate-50 p-4 text-sm">
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-500">Total</span>
+                  <span>{fmt(expanded.total_amount)}</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-500">Discount</span>
+                  <span>-{fmt(expanded.discount)}</span>
+                </div>
+                <div className="flex justify-between border-t border-slate-200 py-1 font-medium">
+                  <span>Net</span>
+                  <span>{fmt(expanded.net_amount)}</span>
+                </div>
+                <div className="flex justify-between py-1 text-emerald-700">
+                  <span>Paid</span>
+                  <span>{fmt(expanded.paid_amount)}</span>
+                </div>
+                <div className="flex justify-between py-1 text-red-600">
+                  <span>Due</span>
+                  <span>{fmt(expanded.due_amount)}</span>
+                </div>
+              </div>
+
+              <Button variant="secondary" className="w-full" onClick={() => printReceipt(expanded)}>
+                Print Receipt
+              </Button>
+
+              <div className="rounded-xl border border-slate-100 p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Payment Ledger</p>
+                {expanded.payments && expanded.payments.length > 0 ? (
+                  <div className="space-y-2">
+                    {expanded.payments.map((p) => {
+                      const isRefund = p.amount < 0
+                      return (
+                        <div key={p.id} className="flex items-center justify-between text-sm">
+                          <div>
+                            <span className={`inline-block w-16 rounded-full py-0.5 text-center text-[10px] font-bold uppercase ${isRefund ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {isRefund ? 'Refund' : p.method}
+                            </span>
+                            <span className="ml-2 text-xs text-slate-400">{new Date(p.created_at).toLocaleString()}</span>
+                          </div>
+                          <span className={`font-mono ${isRefund ? 'text-red-600' : 'text-emerald-700'}`}>
+                            {isRefund ? '-' : '+'}{fmtAbs(p.amount)}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">No payments recorded</p>
+                )}
+              </div>
+
+              {expanded.payment_status !== 'PAID' && (
+                <Can permission="billing.payment">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      pay(expanded.id)
+                    }}
+                    className="grid gap-3 sm:grid-cols-3 items-end border-t border-slate-100 pt-4"
+                  >
+                    <Field label="Amount *">
+                      <Input type="number" min={0} step="any" value={payAmt} onChange={(e) => setPayAmt(e.target.value)} required />
+                    </Field>
+                    <Field label="Method">
+                      <Select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
+                        <option value="CASH">Cash</option>
+                        <option value="CARD">Card</option>
+                        <option value="UPI">UPI</option>
+                        <option value="BANK_TRANSFER">Bank Transfer</option>
+                      </Select>
+                    </Field>
+                    <Button type="submit" disabled={loading}>
+                      {loading ? '...' : 'Pay'}
+                    </Button>
+                  </form>
+                </Can>
+              )}
+
+              {expanded.paid_amount > 0 && (
+                <Can permission="billing.payment">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      refund(expanded.id)
+                    }}
+                    className="rounded-xl border border-red-100 bg-red-50/50 p-4 space-y-3"
+                  >
+                    <p className="text-xs font-bold uppercase tracking-wider text-red-500">Refund</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Field label={`Amount (max ${expanded.paid_amount.toFixed(2)}) *`}>
+                        <Input type="number" min={0.01} max={expanded.paid_amount} step="any" value={refundAmt} onChange={(e) => setRefundAmt(e.target.value)} required />
+                      </Field>
+                      <Field label="Reason">
+                        <Input value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder="e.g. Overcharged" />
+                      </Field>
+                    </div>
+                    <Button type="submit" variant="danger" className="w-full" disabled={loading}>
+                      {loading ? 'Processing...' : `Refund ${fmtAbs(Number(refundAmt) || 0)}`}
+                    </Button>
+                  </form>
+                </Can>
+              )}
+
+              <button onClick={() => setExpanded(null)} className="w-full rounded-xl border border-slate-300 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all duration-200">
+                Close
+              </button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>

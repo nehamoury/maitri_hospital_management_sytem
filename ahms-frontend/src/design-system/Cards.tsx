@@ -380,16 +380,30 @@ export function FeatureCard({ icon, title, desc }: FeatureCardProps) {
   return (
     <motion.div
       variants={fadeUp}
-      whileHover={{ y: -4, transition: { duration: 0.25 } }}
-      className="rounded-3xl p-8 bg-card shadow-soft border border-primary/10"
+      whileHover={{ 
+        y: -10, 
+        scale: 1.02,
+        boxShadow: '0 20px 40px rgba(15,118,110,0.12)',
+        borderColor: 'rgba(20, 184, 166, 0.3)',
+        transition: { type: 'spring', stiffness: 300, damping: 20 }
+      }}
+      className="group relative rounded-3xl p-8 bg-card border border-primary/10 transition-colors duration-300 overflow-hidden shadow-soft cursor-default"
     >
-      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl bg-primary/10 text-primary">
+      {/* Dynamic Background Glow on Hover */}
+      <div className="absolute -right-16 -bottom-16 w-32 h-32 rounded-full bg-teal-500/5 group-hover:bg-teal-500/10 group-hover:scale-150 transition-all duration-700 ease-out" />
+      
+      {/* Icon Container with custom hover animation */}
+      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl text-3xl bg-primary/5 text-primary border border-primary/10 group-hover:bg-gradient-to-tr group-hover:from-teal-500 group-hover:to-[#C8A14D] group-hover:text-white group-hover:border-transparent group-hover:shadow-lg group-hover:rotate-6 transition-all duration-500">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold mb-3 font-[family-name:var(--font-display)] text-foreground">
+      
+      {/* Title */}
+      <h3 className="text-xl font-bold mb-3 font-[family-name:var(--font-display)] text-foreground group-hover:text-primary transition-colors duration-300">
         {title}
       </h3>
-      <p className="text-sm leading-relaxed text-muted-foreground">
+      
+      {/* Description */}
+      <p className="text-sm leading-relaxed text-muted-foreground group-hover:text-foreground/90 transition-colors duration-300">
         {desc}
       </p>
     </motion.div>

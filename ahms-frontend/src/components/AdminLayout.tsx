@@ -76,7 +76,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
   return (
     <motion.aside
       animate={{ width: collapsed ? 80 : 280 }}
-      className="hidden flex-col border-r border-emerald-700/30 bg-emerald-900 md:flex shadow-2xl relative z-40"
+      className="hidden flex-col border-r border-emerald-700/30 dark:border-emerald-950/40 bg-emerald-900 dark:bg-[#031c18] md:flex shadow-2xl relative z-40"
     >
       {/* Logo */}
       <div className="flex h-20 shrink-0 items-center justify-between px-6">
@@ -100,7 +100,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         </AnimatePresence>
         <button
           onClick={onToggle}
-          className="rounded-xl p-2 text-emerald-300/70 transition-all hover:bg-emerald-800 hover:text-white"
+          className="rounded-xl p-2 text-emerald-300/70 transition-all hover:bg-emerald-800 dark:hover:bg-emerald-900/50 hover:text-white"
         >
           <motion.div animate={{ rotate: collapsed ? 0 : 180 }}>
             <ChevronRight className="h-5 w-5" />
@@ -142,7 +142,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
                     {isActive && (
                       <motion.div
                         layoutId="activeNavIndicator"
-                        className="absolute inset-0 rounded-xl bg-emerald-800/80 border border-emerald-700/50 shadow-inner"
+                        className="absolute inset-0 rounded-xl bg-emerald-800/80 dark:bg-emerald-900/60 border border-emerald-700/50 dark:border-emerald-800/30 shadow-inner"
                         initial={false}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                       />
@@ -183,9 +183,9 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-            className="absolute left-0 top-0 flex h-full w-72 flex-col bg-emerald-900 shadow-2xl"
+            className="absolute left-0 top-0 flex h-full w-72 flex-col bg-emerald-900 dark:bg-[#031c18] shadow-2xl"
           >
-            <div className="flex h-20 items-center justify-between px-6 border-b border-emerald-700/30">
+            <div className="flex h-20 items-center justify-between px-6 border-b border-emerald-700/30 dark:border-emerald-950/40">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white">
                   <Stethoscope className="h-6 w-6" />
@@ -195,7 +195,7 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
                   <span className="text-[11px] font-medium text-emerald-400/80 uppercase tracking-widest">Maitri</span>
                 </div>
               </div>
-              <button onClick={onClose} className="rounded-xl p-2 text-emerald-300/70 hover:bg-emerald-800 hover:text-white">
+              <button onClick={onClose} className="rounded-xl p-2 text-emerald-300/70 hover:bg-emerald-800 dark:hover:bg-emerald-900/50 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -216,7 +216,7 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
                           onClick={onClose}
                           className={({ isActive }) =>
                             `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
-                              isActive ? 'bg-emerald-800 text-white' : 'text-emerald-200/70 hover:bg-emerald-800/50 hover:text-white'
+                              isActive ? 'bg-emerald-800 dark:bg-emerald-900/60 text-white' : 'text-emerald-200/70 hover:bg-emerald-800/50 dark:hover:bg-emerald-900/40 hover:text-white'
                             }`
                           }
                         >

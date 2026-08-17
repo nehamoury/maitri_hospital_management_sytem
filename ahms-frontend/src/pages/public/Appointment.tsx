@@ -31,6 +31,12 @@ interface Doctor {
 
 const STEPS = ['Department', 'Doctor', 'Date & time', 'Your details', 'Confirm']
 
+const STATUS_META: Record<string, { label: string; dot: string; text: string }> = {
+  AVAILABLE: { label: 'Available now', dot: 'bg-emerald-500', text: 'text-emerald-700' },
+  IN_CONSULTATION: { label: 'In consultation', dot: 'bg-amber-500', text: 'text-amber-700' },
+  NOT_AVAILABLE: { label: 'Not available', dot: 'bg-slate-400', text: 'text-slate-500' },
+}
+
 interface Slot {
   slot: string
   available: boolean
@@ -38,6 +44,7 @@ interface Slot {
 
 export default function Appointment() {
   const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [doctorStatuses, setDoctorStatuses] = useState<Record<string, string>>({})
   const [staticDepts, setStaticDepts] = useState<{ slug: string; name: string; description: string }[]>([])
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -64,6 +71,31 @@ export default function Appointment() {
       .then(({ data }) => setDoctors(data.data || []))
       .catch(() => setError('Failed to load doctors list. Please reload.'))
   }, [])
+
+  // Live doctor status badges: AVAILABLE / IN_CONSULTATION / NOT_AVAILABLE.
+  // Advisory UI only — never blocks booking a future slot.
+  useEffect(() => {
+    if (doctors.length === 0) return
+    let active = true
+    const fetchStatuses = () => {
+      Promise.all(
+        doctors.map((d) =>
+          api
+            .get(`/public/doctors/${d.id}/status`)
+            .then(({ data }) => ({ id: d.id, status: data?.data?.status || '' }))
+            .catch(() => ({ id: d.id, status: '' }))
+        )
+      ).then((results) => {
+        if (!active) return
+        const map: Record<string, string> = {}
+        results.forEach((r) => { if (r.status) map[r.id] = r.status })
+        setDoctorStatuses(map)
+      })
+    }
+    fetchStatuses()
+    const timer = setInterval(fetchStatuses, 60000)
+    return () => { active = false; clearInterval(timer) }
+  }, [doctors])
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -363,6 +395,18 @@ export default function Appointment() {
                       >
                         <p className="text-base font-bold text-foreground">{d.name}</p>
                         <p className="text-muted-foreground mt-1 text-xs">{d.specialization}</p>
+                        <div className="mt-3 flex items-center gap-2">
+                          {STATUS_META[doctorStatuses[d.id]] ? (
+                            <>
+                              <span className={`h-2 w-2 rounded-full ${STATUS_META[doctorStatuses[d.id]].dot} animate-pulse`} />
+                              <span className={`text-[11px] font-semibold ${STATUS_META[doctorStatuses[d.id]].text}`}>
+                                {STATUS_META[doctorStatuses[d.id]].label}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-slate-400">Checking status...</span>
+                          )}
+                        </div>
                         <p className="text-primary mt-4 text-xs font-semibold">Consultation: ₹{d.consultation_fee}</p>
                       </button>
                     ))
@@ -388,6 +432,25 @@ export default function Appointment() {
                       onChange={(e) => setSelectedDate(e.target.value)}
                       className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none bg-card text-foreground"
                     />
+                    <div className="mt-4 flex items-center gap-2 rounded-xl border border-border/80 bg-muted/30 px-4 py-3">
+                      {STATUS_META[doctorStatuses[selectedDocId]] ? (
+                        <>
+                          <span className={`h-2 w-2 rounded-full ${STATUS_META[doctorStatuses[selectedDocId]].dot} animate-pulse`} />
+                          <span className={`text-xs font-semibold ${STATUS_META[doctorStatuses[selectedDocId]].text}`}>
+                            {selectedDoctor?.name} — {STATUS_META[doctorStatuses[selectedDocId]].label}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          {selectedDoctor?.name}
+                        </span>
+                      )}
+                      {doctorStatuses[selectedDocId] === 'IN_CONSULTATION' && (
+                        <span className="ml-auto text-[11px] text-muted-foreground">
+                          currently seeing a patient
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <span className="block text-sm font-semibold text-foreground mb-2">Available Slots</span>

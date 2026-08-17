@@ -17,6 +17,7 @@ export interface PublicDoctor {
   fee: number
   rating: number
   bio: string
+  image?: string
 }
 
 export interface PublicDepartment {
@@ -59,6 +60,7 @@ function mapStaticDoctors(): PublicDoctor[] {
     fee: d.fee,
     rating: d.rating,
     bio: d.bio,
+    image: undefined,
   }))
 }
 
@@ -97,6 +99,7 @@ export async function fetchDoctors(): Promise<PublicDoctor[]> {
         availability: staticDoc?.availability || DEFAULT_AVAILABILITY,
         fee: d.consultation_fee ?? staticDoc?.fee ?? 0,
         rating: staticDoc?.rating ?? 4.8,
+        image: d.image_url || undefined,
         bio:
           staticDoc?.bio ||
           `${d.name || 'Our physician'} is a specialist in ${d.specialization || 'Ayurvedic medicine'} with ${d.experience_years ?? 0} years of experience.`,
