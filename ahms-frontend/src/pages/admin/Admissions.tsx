@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, errorMessage } from '../../lib/api'
 import { Can } from '../../lib/can'
-import { Card, CardHeader, Badge, Table, EmptyState, Spinner, PageHeader, Button, Select, Input, Field } from '../../components/ui'
+import { Card, CardHeader, Badge, Table, Spinner, PageHeader, Button, Select, Input, Field } from '../../components/ui'
+import { PlusCircle, HelpCircle } from 'lucide-react'
 
 interface Admission {
   id: string
@@ -51,8 +52,20 @@ interface Bed {
   status: string
 }
 
-const statusColor = (s: string) =>
-  s === 'ADMITTED' ? 'green' : s === 'DISCHARGED' ? 'slate' : s === 'TRANSFERRED' ? 'blue' : s === 'CANCELLED' ? 'red' : 'amber'
+const statusColor = (s: string) => {
+  switch (s) {
+    case 'ADMITTED':
+      return 'green'
+    case 'DISCHARGED':
+      return 'slate'
+    case 'TRANSFERRED':
+      return 'blue'
+    case 'CANCELLED':
+      return 'red'
+    default:
+      return 'amber'
+  }
+}
 
 export default function Admissions() {
   const [admissions, setAdmissions] = useState<Admission[] | null>(null)
@@ -116,25 +129,32 @@ export default function Admissions() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="IPD Admissions"
-        subtitle="Admit patients to wards, allocate beds and track their stay"
+        subtitle="Manage inpatient stays, allocate ward beds, and track admission logs."
         action={
           <Can permission="admission.create">
-            <Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Close' : '+ Admit Patient'}</Button>
+            <Button onClick={() => setShowForm((v) => !v)} className="flex items-center gap-1.5 shadow-sm">
+              <PlusCircle className="h-4.5 w-4.5" />
+              {showForm ? 'Cancel Admission' : 'Admit Patient'}
+            </Button>
           </Can>
         }
       />
-      {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/20 dark:border-red-900/30 dark:text-red-400">
+          {error}
+        </div>
+      )}
 
       {showForm && (
-        <Card className="mb-6">
-          <CardHeader title="New Admission" />
-          <form onSubmit={admit} className="grid gap-4 p-5 sm:grid-cols-2">
-            <Field label="Patient *">
+        <Card className="mb-6 animate-in fade-in slide-in-from-top-2 duration-150">
+          <CardHeader title="New Inpatient Admission" />
+          <form onSubmit={admit} className="grid gap-4 p-6 sm:grid-cols-2">
+            <Field label="Patient Name *">
               <Select value={form.patient_id} onChange={(e) => setForm({ ...form, patient_id: e.target.value })} required>
-                <option value="">Select patient</option>
+                <option value="">Select a registered patient</option>
                 {patients.map((p) => (
                   <option key={p.id} value={p.id}>{p.full_name} ({p.uhid})</option>
                 ))}
@@ -156,7 +176,7 @@ export default function Admissions() {
                 ))}
               </Select>
             </Field>
-            <Field label="Bed (available)">
+            <Field label="Allocate Bed (available)">
               <Select value={form.bed_id} onChange={(e) => setForm({ ...form, bed_id: e.target.value })}>
                 <option value="">Allocate later</option>
                 {availableBeds.map((b) => (
@@ -182,7 +202,7 @@ export default function Admissions() {
             <Field label="Reason for Admission">
               <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="e.g. Severe vata disorder, needs Panchakarma" />
             </Field>
-            <Field label="Diagnosis">
+            <Field label="Initial Diagnosis">
               <Input value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} placeholder="e.g. Amavata (Rheumatoid Arthritis)" />
             </Field>
             <div className="sm:col-span-2">
@@ -191,11 +211,12 @@ export default function Admissions() {
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   rows={3}
-                  className="w-full rounded-xl border border-border bg-muted/30/50 px-4 py-2.5 text-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
+                  className="w-full rounded-xl border border-border bg-muted/30/50 px-4 py-2.5 text-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 placeholder:text-muted-foreground"
+                  placeholder="Clinical observations or instructions..."
                 />
               </Field>
             </div>
-            <div className="sm:col-span-2 flex gap-3">
+            <div className="sm:col-span-2 flex gap-3 pt-2 border-t border-border mt-2">
               <Button type="submit" disabled={loading}>{loading ? 'Admitting...' : 'Admit Patient'}</Button>
               <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
             </div>
@@ -207,29 +228,35 @@ export default function Admissions() {
         {!admissions ? (
           <Spinner label="Loading admissions..." />
         ) : admissions.length === 0 ? (
-          <EmptyState message="No admissions yet" />
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <HelpCircle className="h-10 w-10 text-muted-foreground/60 mb-3" />
+            <p className="text-sm font-semibold text-foreground">No IPD admissions found</p>
+            <p className="text-xs text-muted-foreground mt-1">There are no active or historic inpatient admission records recorded.</p>
+          </div>
         ) : (
           <Table headers={['Admission No', 'Patient', 'Department', 'Doctor', 'Bed', 'Type', 'Date', 'Status', '']}>
             {admissions.map((a) => (
-              <tr key={a.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-mono text-xs text-emerald-700">{a.admission_no}</td>
+              <tr key={a.id} className="hover:bg-muted/30 transition-colors">
+                <td className="px-4 py-3 font-mono text-xs text-primary font-semibold">{a.admission_no}</td>
                 <td className="px-4 py-3">
-                  <Link to={`/admin/patients/${a.patient_id}`} className="font-medium text-slate-800 hover:text-emerald-700">
-                    {a.patient_name?.trim() ? a.patient_name : <span className="italic text-slate-400">Unnamed Patient</span>}
-                  </Link>
-                  <span className="ml-2 font-mono text-[10px] text-slate-400">{a.uhid}</span>
+                  <div className="flex items-center gap-1.5">
+                    <Link to={`/admin/patients/${a.patient_id}`} className="font-semibold text-foreground hover:text-primary transition-colors">
+                      {a.patient_name?.trim() ? a.patient_name : <span className="italic text-muted-foreground">Unnamed Patient</span>}
+                    </Link>
+                    <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{a.uhid}</span>
+                  </div>
                 </td>
-                <td className="px-4 py-3 text-slate-600">{a.department_name}</td>
-                <td className="px-4 py-3 text-slate-600">{a.doctor_name}</td>
-                <td className="px-4 py-3 text-slate-600">{a.bed_no ? `${a.bed_no}${a.ward_name ? ` (${a.ward_name})` : ''}` : '—'}</td>
-                <td className="px-4 py-3 text-slate-600">{a.admission_type}</td>
-                <td className="px-4 py-3 text-slate-600">{new Date(a.admission_date).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">{a.department_name}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">{a.doctor_name}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">{a.bed_no ? `${a.bed_no}${a.ward_name ? ` (${a.ward_name})` : ''}` : '—'}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs font-semibold">{a.admission_type}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(a.admission_date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                 <td className="px-4 py-3">
                   <Badge color={statusColor(a.status)}>{a.status}</Badge>
                 </td>
-                <td className="px-4 py-3">
-                  <Link to={`/admin/admissions/${a.id}`} className="text-sm text-emerald-700 hover:underline">
-                    Open
+                <td className="px-4 py-3 text-right">
+                  <Link to={`/admin/admissions/${a.id}`} className="text-sm font-semibold text-primary hover:underline">
+                    View
                   </Link>
                 </td>
               </tr>

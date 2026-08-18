@@ -5,11 +5,12 @@ import { useAuth } from '../../lib/auth'
 import { AdminStatCard, AdminQuickAction, AdminSectionHeader, AdminAlertCard, AdminSkeleton } from '../../design-system/AdminComponents'
 import {
   Users, Calendar, Stethoscope, Building2, UserPlus, CalendarPlus,
-  ArrowLeftRight, Receipt, TrendingUp, Activity, AlertTriangle, Clock,
+  ArrowLeftRight, Receipt, Activity, AlertTriangle, Clock,
   Pill, FileText, ClipboardList, UserCheck, CreditCard, Banknote,
   Search, PillIcon, Package
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { cn } from '../../lib/utils'
 
 interface DashboardData {
   todays_patients_count: number
@@ -49,7 +50,7 @@ interface Bill {
   patient_name: string
   total_amount: number
   paid_amount: number
-  status: string
+  payment_status: string
   created_at: string
 }
 
@@ -101,26 +102,36 @@ export default function Dashboard() {
 
   if (error) return (
     <div className="flex items-center justify-center py-20">
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center dark:bg-red-950/20 dark:border-red-900/30">
         <AlertTriangle className="mx-auto h-8 w-8 text-red-400" />
-        <p className="mt-2 text-sm text-red-600">{error}</p>
+        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
       </div>
     </div>
   )
   if (!data) return <AdminSkeleton rows={4} />
 
-  const statusColor = (s: string) =>
-    s === 'COMPLETED' ? 'text-emerald-600 bg-emerald-50' : s === 'CANCELLED' ? 'text-red-600 bg-red-50' : s === 'IN_CONSULTATION' ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'
+  const statusColor = (s: string) => {
+    switch (s) {
+      case 'COMPLETED':
+        return 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30'
+      case 'CANCELLED':
+        return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/30'
+      case 'IN_CONSULTATION':
+        return 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/30'
+      default:
+        return 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30'
+    }
+  }
 
   const lowStockMeds = medicines.filter((m) => m.low_stock && !m.is_expired)
   const waitingCount = encounters.filter((e) => e.status === 'REGISTERED' || e.status === 'WAITING').length
   const inConsultCount = encounters.filter((e) => e.status === 'IN_CONSULTATION').length
   const completedTodayCount = encounters.filter((e) => e.status === 'COMPLETED').length
-  const pendingBills = bills.filter((b) => b.status === 'PENDING' || b.status === 'PARTIAL')
+  const pendingBills = bills.filter((b) => b.payment_status === 'UNPAID' || b.payment_status === 'PARTIAL')
   const todayBills = bills.filter((b) => {
-    const d = new Date(b.created_at)
+    const bd = new Date(b.created_at)
     const today = new Date()
-    return d.toDateString() === today.toDateString()
+    return bd.toDateString() === today.toDateString()
   })
   const todayRevenue = todayBills.reduce((sum, b) => sum + (b.paid_amount || 0), 0)
 
@@ -131,16 +142,21 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-border pb-5 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">{greeting}, {userName.split(' ')[0]}</h1>
-          <p className="text-sm text-slate-500">
-            {role.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())} Dashboard
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-400 mb-1">
+            {role.replace(/_/g, ' ')} / OVERVIEW
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight tracking-tight">
+            {greeting}, {userName}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your daily operations, clinical workflows, and system notifications.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <Clock className="h-4 w-4" />
-          <span>{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-xl px-4 py-2 ring-1 ring-border">
+          <Clock className="h-4 w-4 text-primary" />
+          <span className="font-medium">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>
       </div>
 
@@ -225,26 +241,26 @@ export default function Dashboard() {
           </div>
           {/* Low Stock Alert */}
           {lowStockMeds.length > 0 && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+            <div className="rounded-2xl border border-red-200 bg-red-50/50 p-5 dark:bg-red-950/10 dark:border-red-900/30">
               <div className="mb-3 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-500" />
-                <h3 className="text-sm font-semibold text-red-700">Low Stock Medicines ({lowStockMeds.length})</h3>
+                <h3 className="text-sm font-semibold text-red-750">Low Stock Medicines ({lowStockMeds.length})</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm whitespace-nowrap">
                   <thead>
-                    <tr className="text-left text-xs text-red-500">
-                      <th className="pb-2 pr-4">Medicine</th>
-                      <th className="pb-2 pr-4">Batch</th>
-                      <th className="pb-2">Stock</th>
+                    <tr className="text-left text-xs text-red-500/80 border-b border-red-100 dark:border-red-950/30">
+                      <th className="pb-2 pr-4 font-semibold uppercase tracking-wider">Medicine</th>
+                      <th className="pb-2 pr-4 font-semibold uppercase tracking-wider">Batch</th>
+                      <th className="pb-2 font-semibold uppercase tracking-wider">Stock</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-red-100">
+                  <tbody className="divide-y divide-red-100/50 dark:divide-red-950/20">
                     {lowStockMeds.slice(0, 5).map((m) => (
                       <tr key={m.id}>
-                        <td className="py-2 pr-4 font-medium text-red-800">{m.name}</td>
-                        <td className="py-2 pr-4 text-red-600">{m.batch_number || '—'}</td>
-                        <td className="py-2 font-bold text-red-700">{m.stock_qty} {m.unit}</td>
+                        <td className="py-2.5 pr-4 font-medium text-red-800 dark:text-red-300">{m.name}</td>
+                        <td className="py-2.5 pr-4 font-mono text-xs text-red-600 dark:text-red-400">{m.batch_number || '—'}</td>
+                        <td className="py-2.5 font-bold text-red-700 dark:text-red-400">{m.stock_qty} {m.unit}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -272,11 +288,11 @@ export default function Dashboard() {
             <AdminQuickAction label="New Bill" icon={<Receipt className="h-5 w-5" />} onClick={() => navigate('/admin/billing')} color="emerald" />
             <AdminQuickAction label="View All Bills" icon={<FileText className="h-5 w-5" />} onClick={() => navigate('/admin/billing')} color="blue" />
             <AdminQuickAction label="View Patients" icon={<Users className="h-5 w-5" />} onClick={() => navigate('/admin/patients')} color="amber" />
-            <AdminQuickAction label="Dashboard" icon={<TrendingUp className="h-5 w-5" />} onClick={() => navigate('/admin')} color="purple" />
+            <AdminQuickAction label="Dashboard" icon={<Activity className="h-5 w-5" />} onClick={() => navigate('/admin')} color="purple" />
           </div>
           {/* Pending Payments */}
           {pendingBills.length > 0 && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 dark:bg-amber-950/10 dark:border-amber-900/30">
               <div className="mb-3 flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-amber-500" />
                 <h3 className="text-sm font-semibold text-amber-700">Pending Payments ({pendingBills.length})</h3>
@@ -284,20 +300,20 @@ export default function Dashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm whitespace-nowrap">
                   <thead>
-                    <tr className="text-left text-xs text-amber-500">
-                      <th className="pb-2 pr-4">Bill No</th>
-                      <th className="pb-2 pr-4">Patient</th>
-                      <th className="pb-2 pr-4">Amount</th>
-                      <th className="pb-2">Status</th>
+                    <tr className="text-left text-xs text-amber-500/80 border-b border-amber-100 dark:border-amber-950/30">
+                      <th className="pb-2 pr-4 font-semibold uppercase tracking-wider">Bill No</th>
+                      <th className="pb-2 pr-4 font-semibold uppercase tracking-wider">Patient</th>
+                      <th className="pb-2 pr-4 font-semibold uppercase tracking-wider">Amount</th>
+                      <th className="pb-2 font-semibold uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-amber-100">
+                  <tbody className="divide-y divide-amber-100/50 dark:divide-amber-950/20">
                     {pendingBills.slice(0, 5).map((b) => (
                       <tr key={b.id}>
-                        <td className="py-2 pr-4 font-mono text-xs text-amber-700">{b.bill_no}</td>
-                        <td className="py-2 pr-4 font-medium text-amber-800">{b.patient_name}</td>
-                        <td className="py-2 pr-4 text-amber-700">₹{b.total_amount.toLocaleString('en-IN')}</td>
-                        <td className="py-2"><span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{b.status}</span></td>
+                        <td className="py-2.5 pr-4 font-mono text-xs text-amber-700 dark:text-amber-400">{b.bill_no}</td>
+                        <td className="py-2.5 pr-4 font-medium text-amber-850 dark:text-amber-300">{b.patient_name}</td>
+                        <td className="py-2.5 pr-4 font-mono text-amber-700 dark:text-amber-400">₹{b.total_amount.toLocaleString('en-IN')}</td>
+                        <td className="py-2.5"><span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">{b.payment_status}</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -335,15 +351,15 @@ export default function Dashboard() {
         <>
           {/* Charts + Alerts Row */}
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm lg:col-span-2">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm lg:col-span-2">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-800">Today's OPD Overview</h3>
-                  <p className="text-xs text-slate-500">Appointment status distribution</p>
+                  <h3 className="text-base font-semibold text-foreground">Today's OPD Overview</h3>
+                  <p className="text-xs text-muted-foreground">Appointment status distribution</p>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
+                <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400">
                   <Activity className="h-3.5 w-3.5" />
-                  Live
+                  Live Queue
                 </div>
               </div>
               {data.todays_appointments.length > 0 ? (
@@ -372,7 +388,7 @@ export default function Dashboard() {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="flex h-52 items-center justify-center text-sm text-slate-400">No appointment data today</div>
+                <div className="flex h-52 items-center justify-center text-sm text-muted-foreground">No appointment data today</div>
               )}
             </div>
             <div className="space-y-4">
@@ -381,9 +397,9 @@ export default function Dashboard() {
                 icon={<Activity className="h-4 w-4" />}
                 color="blue"
                 items={[
-                  { label: 'Waiting', value: String(waitingCount), color: 'text-amber-600' },
-                  { label: 'In Consultation', value: String(inConsultCount), color: 'text-blue-600' },
-                  { label: 'Completed', value: String(completedTodayCount), color: 'text-emerald-600' },
+                  { label: 'Waiting', value: String(waitingCount), color: 'text-amber-600 dark:text-amber-400' },
+                  { label: 'In Consultation', value: String(inConsultCount), color: 'text-blue-600 dark:text-blue-400' },
+                  { label: 'Completed', value: String(completedTodayCount), color: 'text-emerald-600 dark:text-emerald-400' },
                 ]}
               />
             </div>
@@ -391,34 +407,34 @@ export default function Dashboard() {
 
           {/* Tables Row */}
           <div className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <div className="rounded-2xl border border-border bg-card shadow-sm">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-800">Recent Registrations</h3>
-                  <p className="text-xs text-slate-500">Latest patient registrations</p>
+                  <h3 className="text-base font-semibold text-foreground">Recent Registrations</h3>
+                  <p className="text-xs text-muted-foreground">Latest patient registrations</p>
                 </div>
-                <Link to="/admin/patients" className="text-xs font-medium text-emerald-600 hover:text-emerald-700">View all →</Link>
+                <Link to="/admin/patients" className="text-xs font-medium text-primary hover:underline">View all →</Link>
               </div>
               {data.recent_registrations.length === 0 ? (
-                <div className="py-12 text-center text-sm text-slate-400">No patients registered yet</div>
+                <div className="py-12 text-center text-sm text-muted-foreground">No patients registered yet</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm whitespace-nowrap">
                     <thead>
-                      <tr className="border-b border-slate-100 text-left">
-                        <th className="px-5 py-3 text-xs font-medium text-slate-500">UHID</th>
-                        <th className="px-5 py-3 text-xs font-medium text-slate-500">Name</th>
-                        <th className="px-5 py-3 text-xs font-medium text-slate-500">Mobile</th>
+                      <tr className="border-b border-border text-left">
+                        <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">UHID</th>
+                        <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Name</th>
+                        <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mobile</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-border/50">
                       {data.recent_registrations.map((p) => (
-                        <tr key={p.id} className="transition-colors hover:bg-slate-50/50">
-                          <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-emerald-600">{p.uhid}</td>
+                        <tr key={p.id} className="transition-colors hover:bg-muted/30">
+                          <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-primary font-semibold">{p.uhid}</td>
                           <td className="px-5 py-3">
-                            <Link to={`/admin/patients/${p.id}`} className="font-medium text-slate-800 hover:text-emerald-600">{p.full_name}</Link>
+                            <Link to={`/admin/patients/${p.id}`} className="font-semibold text-foreground hover:text-primary">{p.full_name}</Link>
                           </td>
-                          <td className="px-5 py-3 text-slate-500">{p.mobile}</td>
+                          <td className="px-5 py-3 text-muted-foreground">{p.mobile}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -426,37 +442,37 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <div className="rounded-2xl border border-border bg-card shadow-sm">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-800">Today's Appointments</h3>
-                  <p className="text-xs text-slate-500">OPD schedule</p>
+                  <h3 className="text-base font-semibold text-foreground">Today's Appointments</h3>
+                  <p className="text-xs text-muted-foreground">OPD schedule</p>
                 </div>
-                <Link to="/admin/appointments" className="text-xs font-medium text-emerald-600 hover:text-emerald-700">View all →</Link>
+                <Link to="/admin/appointments" className="text-xs font-medium text-primary hover:underline">View all →</Link>
               </div>
               {data.todays_appointments.length === 0 ? (
-                <div className="py-12 text-center text-sm text-slate-400">No appointments today</div>
+                <div className="py-12 text-center text-sm text-muted-foreground">No appointments today</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm whitespace-nowrap">
                     <thead>
-                      <tr className="border-b border-slate-100 text-left">
-                        <th className="px-5 py-3 text-xs font-medium text-slate-500">Token</th>
-                        <th className="px-5 py-3 text-xs font-medium text-slate-500">Patient</th>
-                        <th className="px-5 py-3 text-xs font-medium text-slate-500">Doctor</th>
-                        <th className="px-5 py-3 text-xs font-medium text-slate-500">Status</th>
+                      <tr className="border-b border-border text-left">
+                        <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Token</th>
+                        <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Patient</th>
+                        <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Doctor</th>
+                        <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-border/50">
                       {data.todays_appointments.map((a) => (
-                        <tr key={a.id} className="transition-colors hover:bg-slate-50/50">
+                        <tr key={a.id} className="transition-colors hover:bg-muted/30">
                           <td className="whitespace-nowrap px-5 py-3">
-                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-700">{a.token_number}</span>
+                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-xs font-bold text-foreground">{a.token_number}</span>
                           </td>
-                          <td className="px-5 py-3 font-medium text-slate-800">{a.patient_name}</td>
-                          <td className="px-5 py-3 text-slate-500">{a.doctor_name}</td>
+                          <td className="px-5 py-3 font-semibold text-foreground">{a.patient_name}</td>
+                          <td className="px-5 py-3 text-muted-foreground">{a.doctor_name}</td>
                           <td className="px-5 py-3">
-                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(a.status)}`}>{a.status}</span>
+                            <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', statusColor(a.status))}>{a.status}</span>
                           </td>
                         </tr>
                       ))}

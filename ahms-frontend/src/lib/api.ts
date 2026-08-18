@@ -455,14 +455,32 @@ export const dietApi = {
     api.get<ApiResponse<any>>(`/diet/plans/active?admission_id=${admissionId}`),
   listDietPlans: (admissionId: string) =>
     api.get<ApiResponse<any[]>>(`/diet/plans?admission_id=${admissionId}`),
-  cancelDietPlan: (id: string) =>
-    api.put<ApiResponse<null>>(`/diet/plans/${id}/cancel`, {}),
+  updateDietPlan: (id: string, data: CreateDietPlanReq) =>
+    api.put<ApiResponse<any>>(`/diet/plans/${id}`, data),
+  renewDietPlan: (id: string, endDate: string) =>
+    api.post<ApiResponse<any>>(`/diet/plans/${id}/renew`, { end_date: endDate }),
+  cancelDietPlan: (id: string, reason?: string) =>
+    api.put<ApiResponse<null>>(`/diet/plans/${id}/cancel`, { reason }),
   generateDailyMeals: (date?: string) =>
     api.post<ApiResponse<{ count: number }>>('/diet/generate-meals', { date }),
   getKitchenSheet: (params?: Record<string, string | number>) =>
     api.get<ApiResponse<any[]>>('/diet/kitchen-sheet', { params }),
   updateMealStatus: (id: string, status: string, remarks?: string) =>
     api.put<ApiResponse<null>>(`/diet/meals/${id}/status`, { status, remarks }),
+  createManualMeal: (data: { admission_id: string; meal_type: string; scheduled_date?: string; special_instructions?: string }) =>
+    api.post<ApiResponse<any>>('/diet/meals', data),
+  cancelMeal: (id: string, reason: string) =>
+    api.put<ApiResponse<null>>(`/diet/meals/${id}/cancel`, { reason }),
+  getWardList: () =>
+    api.get<ApiResponse<any[]>>('/diet/ward-list'),
+  getKitchenAdmissions: () =>
+    api.get<ApiResponse<any[]>>('/diet/admissions'),
+  listDietTemplates: (activeOnly?: boolean) =>
+    api.get<ApiResponse<any[]>>('/diet/templates', { params: { active: activeOnly } }),
+  createDietTemplate: (data: { name: string; pathya?: string; apathya?: string; special_instructions?: string }) =>
+    api.post<ApiResponse<any>>('/diet/templates', data),
+  updateDietTemplate: (id: string, data: { name: string; pathya?: string; apathya?: string; special_instructions?: string; is_active?: boolean }) =>
+    api.put<ApiResponse<any>>(`/diet/templates/${id}`, data),
 }
 
 

@@ -31,13 +31,6 @@ func (h *Handler) SetAuditRecorder(r *audit.Recorder) { h.audit = r }
 // SetUploadDir sets the base directory used to persist patient photos.
 func (h *Handler) SetUploadDir(dir string) { h.uploadDir = dir }
 
-// toResponse builds a PatientResponse with sensitive government/other
-// identifiers masked. Registration/administration roles get the unmasked
-// form via toResponseWithIDs.
-func toResponse(p *models.Patient) PatientResponse {
-	return toResponseWithIDs(p, false)
-}
-
 // toResponseWithIDs builds a PatientResponse, exposing full government/
 // other identifiers only when expose is true (see Handler.canExposeIDs).
 func toResponseWithIDs(p *models.Patient, expose bool) PatientResponse {

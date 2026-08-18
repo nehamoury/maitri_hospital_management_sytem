@@ -497,3 +497,87 @@ func (h *Handler) SkipSession(c *gin.Context) {
 		_ = h.audit.Log(c, "treatment.session_skip", "treatment_session", id.String())
 	}
 }
+
+// ReassignTherapist godoc
+// @Summary      Reassign plan-level therapist
+// @Description  Changes the plan's default therapist and updates all PENDING sessions that have not been individually overridden.
+// @Tags         treatment
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path string true "Plan ID"
+// @Param        request body ReassignTherapistRequest true "New therapist"
+// @Success      200 {object} utils.APIResponse{data=PlanResponse}
+// @Failure      404 {object} utils.APIResponse
+// @Failure      409 {object} utils.APIResponse
+// @Router       /treatment-plans/{id}/reassign-therapist [post]
+func (h *Handler) ReassignTherapist(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid plan id")
+		return
+	}
+	var req ReassignTherapistRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid request payload: "+err.Error())
+		return
+	}
+	plan, err := h.service.ReassignTherapist(id, req)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrNotFound):
+			utils.Fail(c, http.StatusNotFound, "plan or therapist not found")
+		case errors.Is(err, ErrInvalidState):
+			utils.Fail(c, http.StatusConflict, "completed or cancelled plans cannot be reassigned")
+		default:
+			utils.Fail(c, http.StatusBadRequest, err.Error())
+		}
+		return
+	}
+	utils.Success(c, http.StatusOK, "therapist reassigned", toResponse(plan))
+	if h.audit != nil {
+		_ = h.audit.Log(c, "treatment.therapist_reassign", "treatment_plan", id.String())
+	}
+}
+
+// ReassignSessionTherapist godoc
+// @Summary      Override therapist on a single session
+// @Description  Changes the therapist on one PENDING session and marks it as overridden so plan-level reassignments preserve this choice.
+// @Tags         treatment
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path string true "Session ID"
+// @Param        request body ReassignSessionTherapistRequest true "New therapist"
+// @Success      200 {object} utils.APIResponse{data=SessionResponse}
+// @Failure      404 {object} utils.APIResponse
+// @Failure      409 {object} utils.APIResponse
+// @Router       /treatment-sessions/{id}/therapist [patch]
+func (h *Handler) ReassignSessionTherapist(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid session id")
+		return
+	}
+	var req ReassignSessionTherapistRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid request payload: "+err.Error())
+		return
+	}
+	session, err := h.service.ReassignSessionTherapist(id, req)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrNotFound):
+			utils.Fail(c, http.StatusNotFound, "session or therapist not found")
+		case errors.Is(err, ErrInvalidState):
+			utils.Fail(c, http.StatusConflict, "only PENDING sessions can have their therapist changed")
+		default:
+			utils.Fail(c, http.StatusBadRequest, err.Error())
+		}
+		return
+	}
+	utils.Success(c, http.StatusOK, "session therapist updated", toSessionResponse(session))
+	if h.audit != nil {
+		_ = h.audit.Log(c, "treatment.session_therapist_reassign", "treatment_session", id.String())
+	}
+}

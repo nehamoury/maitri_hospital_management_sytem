@@ -3,6 +3,8 @@ import { api, errorMessage } from '../../lib/api'
 import { Can } from '../../lib/can'
 import { hospitalInfo } from '../../design-system/tokens'
 import { Card, CardHeader, Badge, Table, EmptyState, Spinner, PageHeader, Button, Input, Select, Field } from '../../components/ui'
+import { Receipt, Trash2, Printer, AlertTriangle } from 'lucide-react'
+import { cn } from '../../lib/utils'
 
 interface Bill {
   id: string
@@ -43,8 +45,18 @@ interface Payment {
   created_at: string
 }
 
-const statusColor = (s: string) =>
-  s === 'PAID' ? 'green' : s === 'PARTIAL' ? 'amber' : s === 'UNPAID' ? 'red' : 'slate'
+const statusColor = (s: string) => {
+  switch (s) {
+    case 'PAID':
+      return 'green'
+    case 'PARTIAL':
+      return 'amber'
+    case 'UNPAID':
+      return 'red'
+    default:
+      return 'slate'
+  }
+}
 
 export default function Billing() {
   const [bills, setBills] = useState<Bill[] | null>(null)
@@ -94,8 +106,6 @@ export default function Billing() {
       setError(errorMessage(err, 'Failed to load bill details'))
     })
   }
-
-  // defaults for pay/refund are initialized inside openDetails
 
   const addLine = () => {
     if (!line.description.trim()) return
@@ -170,6 +180,7 @@ export default function Billing() {
 
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   const fmtAbs = (n: number) => `₹${Math.abs(n).toFixed(2)}`
+  const fmt = (n: number) => `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   const printReceipt = (b: Bill) => {
     const w = window.open('', '_blank', 'width=420,height=680')
@@ -225,29 +236,34 @@ export default function Billing() {
     w.print()
   }
 
-  const fmt = (n: number) => `₹${n.toFixed(2)}`
-
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        title="Billing"
-        subtitle="Bills and payments"
+        title="Billing & Invoices"
+        subtitle="Manage hospital invoices, payment receipts, and refunds."
         action={
           <Can permission="billing.create">
-            <Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Close' : '+ Create Bill'}</Button>
+            <Button onClick={() => setShowForm((v) => !v)} className="flex items-center gap-1.5 shadow-sm">
+              <Receipt className="h-4.5 w-4.5" />
+              {showForm ? 'Cancel Invoice' : 'Create Bill'}
+            </Button>
           </Can>
         }
       />
-      {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/20 dark:border-red-900/30 dark:text-red-400">
+          {error}
+        </div>
+      )}
 
       {showForm && (
-        <Card className="mb-6">
-          <CardHeader title="Create Bill" />
+        <Card className="mb-6 animate-in fade-in slide-in-from-top-2 duration-150">
+          <CardHeader title="Generate Invoice" />
           <form onSubmit={create} className="space-y-6 p-6">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Patient *">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Select Patient *">
                 <Select value={form.patient_id} onChange={(e) => setForm({ ...form, patient_id: e.target.value })} required>
-                  <option value="">Select patient</option>
+                  <option value="">Select a registered patient</option>
                   {patients.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.full_name} ({p.uhid})
@@ -255,23 +271,23 @@ export default function Billing() {
                   ))}
                 </Select>
               </Field>
-              <Field label="Discount (₹)">
+              <Field label="Flat Discount Amount (₹)">
                 <Input type="number" min={0} value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} placeholder="0.00" />
               </Field>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50/20 p-5">
-              <p className="mb-4 text-sm font-semibold text-slate-800">Add Bill Items (Consultation, Medicine, Therapies)</p>
+            <div className="rounded-xl border border-border bg-muted/20 p-5">
+              <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">Add Billing Line Items</h4>
               <div className="grid gap-3 items-end sm:grid-cols-5">
                 <div className="sm:col-span-2">
-                  <Field label="Item / Service Description">
-                    <Input value={line.description} onChange={(e) => setLine({ ...line, description: e.target.value })} placeholder="e.g. Consultation Fee, Ashwagandha..." />
+                  <Field label="Service / Item Description">
+                    <Input value={line.description} onChange={(e) => setLine({ ...line, description: e.target.value })} placeholder="e.g. Shirodhara Session, Consultation..." />
                   </Field>
                 </div>
-                <Field label="Qty">
+                <Field label="Quantity">
                   <Input type="number" min={1} value={line.quantity} onChange={(e) => setLine({ ...line, quantity: Number(e.target.value) })} />
                 </Field>
-                <Field label="Rate (₹)">
+                <Field label="Unit Rate (₹)">
                   <Input type="number" min={0} value={line.rate} onChange={(e) => setLine({ ...line, rate: Number(e.target.value) })} placeholder="0.00" />
                 </Field>
                 <div className="flex h-10 items-end">
@@ -282,19 +298,19 @@ export default function Billing() {
               </div>
 
               {form.items.length > 0 && (
-                <div className="mt-5 border-t border-slate-100 pt-4">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Added Items</p>
+                <div className="mt-5 border-t border-border pt-4">
+                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Invoice Preview</p>
                   <ul className="space-y-2">
                     {form.items.map((it, i) => (
-                      <li key={i} className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-4 py-2.5 text-sm shadow-sm">
+                      <li key={i} className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5 text-sm shadow-sm">
                         <div>
-                          <span className="font-semibold text-slate-800">{it.description}</span>
-                          <span className="ml-2 text-xs text-slate-500">({it.quantity} × {fmt(it.rate)})</span>
+                          <span className="font-semibold text-foreground">{it.description}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">({it.quantity} × {fmt(it.rate)})</span>
                         </div>
                         <div className="flex items-center gap-4">
-                          <span className="font-mono font-medium text-slate-700">{fmt(it.quantity * it.rate)}</span>
-                          <button type="button" onClick={() => removeLine(i)} className="text-xs font-semibold text-red-500 hover:text-red-700 hover:underline">
-                            Remove
+                          <span className="font-mono font-bold text-foreground">{fmt(it.quantity * it.rate)}</span>
+                          <button type="button" onClick={() => removeLine(i)} className="text-xs font-semibold text-destructive hover:underline cursor-pointer">
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </li>
@@ -302,27 +318,27 @@ export default function Billing() {
                   </ul>
 
                   {/* Summary Box */}
-                  <div className="mt-4 flex flex-col items-end border-t border-slate-100 pt-3 text-sm text-slate-600">
+                  <div className="mt-4 flex flex-col items-end border-t border-border pt-3 text-sm text-muted-foreground">
                     <div className="flex justify-between w-48 py-1">
                       <span>Subtotal:</span>
-                      <span className="font-mono">{fmt(form.items.reduce((s, it) => s + (it.quantity * it.rate), 0))}</span>
+                      <span className="font-mono text-foreground font-semibold">{fmt(form.items.reduce((s, it) => s + (it.quantity * it.rate), 0))}</span>
                     </div>
                     {Number(form.discount) > 0 && (
-                      <div className="flex justify-between w-48 py-1 text-red-600">
+                      <div className="flex justify-between w-48 py-1 text-red-500">
                         <span>Discount:</span>
                         <span className="font-mono">-{fmt(Number(form.discount))}</span>
                       </div>
                     )}
-                    <div className="flex justify-between w-48 py-1 border-t border-slate-200 font-bold text-slate-800 text-base">
+                    <div className="flex justify-between w-48 py-1 border-t border-border font-bold text-foreground text-base">
                       <span>Total Net:</span>
-                      <span className="font-mono">{fmt(Math.max(0, form.items.reduce((s, it) => s + (it.quantity * it.rate), 0) - (Number(form.discount) || 0)))}</span>
+                      <span className="font-mono text-primary">{fmt(Math.max(0, form.items.reduce((s, it) => s + (it.quantity * it.rate), 0) - (Number(form.discount) || 0)))}</span>
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-4 border-t border-border">
               <Button type="submit" disabled={loading || form.items.length === 0}>
                 {loading ? 'Creating...' : 'Create Bill'}
               </Button>
@@ -336,24 +352,24 @@ export default function Billing() {
 
       <Card>
         {!bills ? (
-          <Spinner label="Loading bills..." />
+          <Spinner label="Loading billing data..." />
         ) : bills.length === 0 ? (
-          <EmptyState message="No bills found" />
+          <EmptyState message="No bills generated yet" />
         ) : (
-          <Table headers={['Bill No', 'Patient', 'Date', 'Net', 'Paid', 'Due', 'Status', '']}>
+          <Table headers={['Bill No', 'Patient', 'Date', 'Net Total', 'Paid Amount', 'Due Balance', 'Status', '']}>
             {bills.map((b) => (
-              <tr key={b.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-mono text-xs text-emerald-700">{b.bill_no}</td>
-                <td className="px-4 py-3 font-medium text-slate-800">{b.patient_name}</td>
-                <td className="px-4 py-3 text-slate-600">{new Date(b.created_at).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-slate-700">{fmt(b.net_amount)}</td>
-                <td className="px-4 py-3 text-slate-600">{fmt(b.paid_amount)}</td>
-                <td className="px-4 py-3 text-slate-600">{fmt(b.due_amount)}</td>
+              <tr key={b.id} className="hover:bg-muted/30 transition-colors">
+                <td className="px-4 py-3 font-mono text-xs text-primary font-semibold">{b.bill_no}</td>
+                <td className="px-4 py-3 font-semibold text-foreground">{b.patient_name}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(b.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                <td className="px-4 py-3 text-foreground font-mono font-bold text-xs">{fmt(b.net_amount)}</td>
+                <td className="px-4 py-3 text-emerald-600 dark:text-emerald-400 font-mono font-semibold text-xs">{fmt(b.paid_amount)}</td>
+                <td className="px-4 py-3 text-destructive font-mono font-semibold text-xs">{fmt(b.due_amount)}</td>
                 <td className="px-4 py-3">
                   <Badge color={statusColor(b.payment_status)}>{b.payment_status}</Badge>
                 </td>
-                <td className="px-4 py-3">
-                  <button onClick={() => openDetails(b)} className="text-sm text-emerald-700 hover:underline">
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => openDetails(b)} className="text-sm font-semibold text-primary hover:underline cursor-pointer">
                     Details
                   </button>
                 </td>
@@ -367,63 +383,65 @@ export default function Billing() {
         <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setExpanded(null)}>
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl bg-white rounded-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-100"
+            className="w-full max-w-2xl bg-card text-foreground rounded-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden border border-border"
           >
             <CardHeader
               title={expanded.bill_no}
               subtitle={`${expanded.patient_name} (${expanded.patient_uhid || '-'}) • ${new Date(expanded.created_at).toLocaleString()}`}
               action={<Badge color={statusColor(expanded.payment_status)}>{expanded.payment_status}</Badge>}
             />
-            <div className="overflow-y-auto p-5 space-y-4 flex-1">
-              {detailLoading && <Spinner label="Refreshing bill..." />}
-              <div className="rounded-xl border border-slate-100 bg-slate-50/30 p-4">
-                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Bill Items</p>
+            <div className="overflow-y-auto p-6 space-y-4 flex-1">
+              {detailLoading && <Spinner label="Refreshing bill data..." />}
+              <div className="rounded-xl border border-border bg-muted/20 p-4">
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Bill Line Items</p>
                 {expanded.items && expanded.items.length > 0 ? (
                   <div className="space-y-2">
                     {expanded.items.map((it, idx) => (
                       <div key={idx} className="flex justify-between text-sm">
                         <div>
-                          <span className="font-semibold text-slate-800">{it.description}</span>
-                          <span className="ml-2 text-xs text-slate-500">({it.quantity} × {fmt(it.rate)})</span>
+                          <span className="font-semibold text-foreground">{it.description}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">({it.quantity} × {fmt(it.rate)})</span>
                         </div>
-                        <span className="font-mono font-medium text-slate-700">{fmt(it.quantity * it.rate)}</span>
+                        <span className="font-mono font-semibold text-foreground">{fmt(it.quantity * it.rate)}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-400">No items added to this bill</p>
+                  <p className="text-xs text-muted-foreground">No items added to this bill</p>
                 )}
               </div>
 
-              <div className="rounded-lg bg-slate-50 p-4 text-sm">
-                <div className="flex justify-between py-1">
-                  <span className="text-slate-500">Total</span>
-                  <span>{fmt(expanded.total_amount)}</span>
+              <div className="rounded-xl border border-border bg-muted/40 p-4 text-sm space-y-2">
+                <div className="flex justify-between py-1 text-muted-foreground">
+                  <span>Gross Total</span>
+                  <span className="font-mono font-semibold text-foreground">{fmt(expanded.total_amount)}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-slate-500">Discount</span>
-                  <span>-{fmt(expanded.discount)}</span>
+                <div className="flex justify-between py-1 text-red-500">
+                  <span>Discount</span>
+                  <span className="font-mono font-semibold">-{fmt(expanded.discount)}</span>
                 </div>
-                <div className="flex justify-between border-t border-slate-200 py-1 font-medium">
-                  <span>Net</span>
-                  <span>{fmt(expanded.net_amount)}</span>
+                <div className="flex justify-between border-t border-border pt-2 font-bold text-foreground">
+                  <span>Net Amount</span>
+                  <span className="font-mono text-primary">{fmt(expanded.net_amount)}</span>
                 </div>
-                <div className="flex justify-between py-1 text-emerald-700">
-                  <span>Paid</span>
-                  <span>{fmt(expanded.paid_amount)}</span>
+                <div className="flex justify-between py-1 text-emerald-600 dark:text-emerald-400">
+                  <span>Paid Total</span>
+                  <span className="font-mono font-semibold">{fmt(expanded.paid_amount)}</span>
                 </div>
-                <div className="flex justify-between py-1 text-red-600">
-                  <span>Due</span>
-                  <span>{fmt(expanded.due_amount)}</span>
+                <div className="flex justify-between py-1 text-destructive">
+                  <span>Outstanding Balance</span>
+                  <span className="font-mono font-bold">{fmt(expanded.due_amount)}</span>
                 </div>
               </div>
 
-              <Button variant="secondary" className="w-full" onClick={() => printReceipt(expanded)}>
-                Print Receipt
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" className="flex-1" onClick={() => printReceipt(expanded)}>
+                  <Printer className="h-4.5 w-4.5 mr-1.5" /> Print Invoice Receipt
+                </Button>
+              </div>
 
-              <div className="rounded-xl border border-slate-100 p-4">
-                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Payment Ledger</p>
+              <div className="rounded-xl border border-border p-4">
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Payment History Ledger</p>
                 {expanded.payments && expanded.payments.length > 0 ? (
                   <div className="space-y-2">
                     {expanded.payments.map((p) => {
@@ -431,12 +449,12 @@ export default function Billing() {
                       return (
                         <div key={p.id} className="flex items-center justify-between text-sm">
                           <div>
-                            <span className={`inline-block w-16 rounded-full py-0.5 text-center text-[10px] font-bold uppercase ${isRefund ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            <span className={cn('inline-block w-16 rounded-full py-0.5 text-center text-[10px] font-bold uppercase', isRefund ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700')}>
                               {isRefund ? 'Refund' : p.method}
                             </span>
-                            <span className="ml-2 text-xs text-slate-400">{new Date(p.created_at).toLocaleString()}</span>
+                            <span className="ml-2 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString('en-IN')}</span>
                           </div>
-                          <span className={`font-mono ${isRefund ? 'text-red-600' : 'text-emerald-700'}`}>
+                          <span className={cn('font-mono font-semibold', isRefund ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400')}>
                             {isRefund ? '-' : '+'}{fmtAbs(p.amount)}
                           </span>
                         </div>
@@ -444,7 +462,7 @@ export default function Billing() {
                     })}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-400">No payments recorded</p>
+                  <p className="text-xs text-muted-foreground">No payments recorded</p>
                 )}
               </div>
 
@@ -455,12 +473,12 @@ export default function Billing() {
                       e.preventDefault()
                       pay(expanded.id)
                     }}
-                    className="grid gap-3 sm:grid-cols-3 items-end border-t border-slate-100 pt-4"
+                    className="grid gap-3 sm:grid-cols-3 items-end border-t border-border pt-4"
                   >
-                    <Field label="Amount *">
-                      <Input type="number" min={0} step="any" value={payAmt} onChange={(e) => setPayAmt(e.target.value)} required />
+                    <Field label="Amount to Collect *">
+                      <Input type="number" min={0.01} step="any" value={payAmt} onChange={(e) => setPayAmt(e.target.value)} required />
                     </Field>
-                    <Field label="Method">
+                    <Field label="Payment Method">
                       <Select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
                         <option value="CASH">Cash</option>
                         <option value="CARD">Card</option>
@@ -468,8 +486,8 @@ export default function Billing() {
                         <option value="BANK_TRANSFER">Bank Transfer</option>
                       </Select>
                     </Field>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? '...' : 'Pay'}
+                    <Button type="submit" disabled={loading} className="w-full">
+                      {loading ? 'Processing...' : 'Collect Payment'}
                     </Button>
                   </form>
                 </Can>
@@ -482,26 +500,28 @@ export default function Billing() {
                       e.preventDefault()
                       refund(expanded.id)
                     }}
-                    className="rounded-xl border border-red-100 bg-red-50/50 p-4 space-y-3"
+                    className="rounded-xl border border-red-200 bg-red-50/50 p-4 space-y-3 dark:bg-red-950/10 dark:border-red-900/30"
                   >
-                    <p className="text-xs font-bold uppercase tracking-wider text-red-500">Refund</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-600 flex items-center gap-1.5">
+                      <AlertTriangle className="h-4 w-4" /> Issue Invoice Refund
+                    </p>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <Field label={`Amount (max ${expanded.paid_amount.toFixed(2)}) *`}>
+                      <Field label={`Refund Amount (Max ${expanded.paid_amount.toFixed(2)}) *`}>
                         <Input type="number" min={0.01} max={expanded.paid_amount} step="any" value={refundAmt} onChange={(e) => setRefundAmt(e.target.value)} required />
                       </Field>
-                      <Field label="Reason">
-                        <Input value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder="e.g. Overcharged" />
+                      <Field label="Refund Reason Description">
+                        <Input value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder="e.g. Overcharged, treatment cancelled" />
                       </Field>
                     </div>
                     <Button type="submit" variant="danger" className="w-full" disabled={loading}>
-                      {loading ? 'Processing...' : `Refund ${fmtAbs(Number(refundAmt) || 0)}`}
+                      {loading ? 'Processing...' : `Confirm Refund of ${fmtAbs(Number(refundAmt) || 0)}`}
                     </Button>
                   </form>
                 </Can>
               )}
 
-              <button onClick={() => setExpanded(null)} className="w-full rounded-xl border border-slate-300 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all duration-200">
-                Close
+              <button onClick={() => setExpanded(null)} className="w-full rounded-xl border border-border py-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted/50 transition-all duration-200 cursor-pointer">
+                Close Invoice Details
               </button>
             </div>
           </div>

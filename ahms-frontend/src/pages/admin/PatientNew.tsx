@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, errorMessage } from '../../lib/api'
 import { Card, CardHeader, Button, Input, Select, Textarea, Field, PageHeader } from '../../components/ui'
+import { Image as ImageIcon, AlertTriangle } from 'lucide-react'
 
 interface ExistingPatient {
   id: string
@@ -81,8 +82,6 @@ export default function PatientNew() {
     setPhotoUploading(true)
     setError('')
     try {
-      // Show an immediate local preview (photos are not served from a
-      // public /uploads path, so we never render the stored URL directly).
       setPhotoPreview(URL.createObjectURL(file))
       const fd = new FormData()
       fd.append('file', file)
@@ -125,22 +124,36 @@ export default function PatientNew() {
   }
 
   const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-    <h3 className="text-sm font-bold uppercase tracking-wide text-teal-800">{children}</h3>
+    <h3 className="text-xs font-bold uppercase tracking-[0.25em] text-teal-850 dark:text-teal-400 border-l-2 border-primary pl-2.5 mb-4">{children}</h3>
   )
 
-  const Divider = () => <div className="border-t border-slate-100 pt-4" />
+  const Divider = () => <div className="border-t border-border pt-6 mt-6" />
 
   return (
-    <div className="max-w-4xl">
-      <PageHeader title="Register Patient" subtitle="New patient registration with UHID generation" />
+    <div className="max-w-4xl space-y-6">
+      <PageHeader 
+        title="Register Patient" 
+        subtitle="Register new patients into the EMR system. Generates unique UHID upon saving." 
+      />
       <Card>
-        <CardHeader title="Patient Details" />
-        <form onSubmit={submit} className="space-y-6 p-5">
-          {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        <CardHeader title="New Patient Registration Form" />
+        <form onSubmit={submit} className="space-y-6 p-6">
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-750 dark:bg-red-950/20 dark:border-red-900/30 dark:text-red-400 flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <div>{error}</div>
+            </div>
+          )}
           {duplicates.length > 0 && (
-            <div className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              Possible duplicate found. Force registration if this is a new patient.
-              <ul className="mt-1 list-inside list-disc">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400">
+              <div className="flex items-center gap-2 font-semibold">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                <span>Possible Duplicate Records Found</span>
+              </div>
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                Please verify the existing records below. Check "Force register" if you still want to register this patient.
+              </p>
+              <ul className="mt-2 list-inside list-disc space-y-1 font-mono text-xs">
                 {duplicates.map((d) => (
                   <li key={d.id}>
                     {d.full_name} ({d.uhid}) — {d.mobile}
@@ -154,13 +167,14 @@ export default function PatientNew() {
           <section className="space-y-4">
             <SectionTitle>Basic Information</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="UHID" hint="Auto-generated on save">
-                <Input value="AHMS-YYYY-NNNNNN" disabled />
+              <Field label="UHID" hint="Auto-generated on saving record">
+                <Input value="AHMS-YYYY-NNNNNN" disabled className="bg-muted/50 font-mono text-xs" />
               </Field>
-              <Field label="Photo">
-                <div className="flex items-center gap-3">
-                  <label className="cursor-pointer rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-600 hover:border-teal-500 hover:text-teal-700">
-                    {photoUploading ? 'Uploading...' : form.photo_url ? 'Change photo' : 'Upload photo'}
+              <Field label="Photo Preview & Upload">
+                <div className="flex items-center gap-4">
+                  <label className="cursor-pointer flex items-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-2 text-xs font-semibold text-muted-foreground hover:border-primary hover:text-primary transition-all">
+                    <ImageIcon className="h-4 w-4" />
+                    {photoUploading ? 'Uploading...' : form.photo_url ? 'Change Photo' : 'Upload Patient Photo'}
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
@@ -172,7 +186,7 @@ export default function PatientNew() {
                       }}
                     />
                   </label>
-                  {photoPreview && <img src={photoPreview} alt="patient" className="h-14 w-14 rounded-xl object-cover ring-2 ring-teal-100" />}
+                  {photoPreview && <img src={photoPreview} alt="patient preview" className="h-12 w-12 rounded-xl object-cover ring-2 ring-primary/20" />}
                 </div>
               </Field>
               <Field label="Full Name *">
@@ -188,21 +202,21 @@ export default function PatientNew() {
               <Field label="Date of Birth">
                 <Input type="date" value={form.dob} onChange={(e) => onDobChange(e.target.value)} />
               </Field>
-              <Field label="Age" hint="Auto-calculated from DOB">
+              <Field label="Age" hint="Auto-calculated from DOB selection">
                 <Input type="number" min={0} max={150} value={form.age} onChange={(e) => set('age', e.target.value)} />
               </Field>
-              <Field label="Mobile *">
+              <Field label="Mobile Number *">
                 <Input value={form.mobile} onChange={(e) => set('mobile', e.target.value)} required />
               </Field>
               <Field label="Alternate Mobile">
                 <Input value={form.alternate_mobile} onChange={(e) => set('alternate_mobile', e.target.value)} />
               </Field>
-              <Field label="Email">
+              <Field label="Email Address">
                 <Input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
               </Field>
               <Field label="Blood Group">
                 <Select value={form.blood_group} onChange={(e) => set('blood_group', e.target.value)}>
-                  <option value="">Select</option>
+                  <option value="">Select Blood Group</option>
                   {BLOOD_GROUPS.map((bg) => (
                     <option key={bg} value={bg}>
                       {bg}
@@ -212,7 +226,7 @@ export default function PatientNew() {
               </Field>
               <Field label="Marital Status">
                 <Select value={form.marital_status} onChange={(e) => set('marital_status', e.target.value)}>
-                  <option value="">Select</option>
+                  <option value="">Select Marital Status</option>
                   <option value="MARRIED">Married</option>
                   <option value="UNMARRIED">Unmarried</option>
                   <option value="DIVORCED">Divorced</option>
@@ -228,11 +242,11 @@ export default function PatientNew() {
           {/* 2. Address */}
           <Divider />
           <section className="space-y-4">
-            <SectionTitle>Address</SectionTitle>
+            <SectionTitle>Address Details</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Field label="Address Line">
-                  <Textarea value={form.address} onChange={(e) => set('address', e.target.value)} />
+                  <Textarea value={form.address} onChange={(e) => set('address', e.target.value)} rows={2} />
                 </Field>
               </div>
               <Field label="City *">
@@ -276,7 +290,7 @@ export default function PatientNew() {
           {/* 4. Medical Information */}
           <Divider />
           <section className="space-y-4">
-            <SectionTitle>Medical Information</SectionTitle>
+            <SectionTitle>Medical Information & Vitals</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Height (cm)">
                 <Input type="number" min={30} max={250} value={form.height_cm} onChange={(e) => set('height_cm', e.target.value)} />
@@ -284,31 +298,31 @@ export default function PatientNew() {
               <Field label="Weight (kg)">
                 <Input type="number" min={1} max={300} value={form.weight_kg} onChange={(e) => set('weight_kg', e.target.value)} />
               </Field>
-              <Field label="BMI" hint="Auto-calculated">
-                <Input value={bmi()} disabled />
+              <Field label="BMI" hint="Calculated automatically">
+                <Input value={bmi()} disabled className="bg-muted/50 font-semibold" />
               </Field>
               <Field label="Blood Pressure">
                 <Input value={form.blood_pressure} onChange={(e) => set('blood_pressure', e.target.value)} placeholder="e.g. 120/80" />
               </Field>
-              <Field label="Pulse">
+              <Field label="Pulse Rate">
                 <Input value={form.pulse} onChange={(e) => set('pulse', e.target.value)} placeholder="e.g. 72 bpm" />
               </Field>
-              <Field label="Sugar">
+              <Field label="Blood Sugar">
                 <Input value={form.sugar} onChange={(e) => set('sugar', e.target.value)} placeholder="e.g. Fasting 90" />
               </Field>
               <div className="sm:col-span-2">
                 <Field label="Allergies">
-                  <Textarea value={form.allergies} onChange={(e) => set('allergies', e.target.value)} placeholder="e.g. Penicillin, Dust" />
+                  <Textarea value={form.allergies} onChange={(e) => set('allergies', e.target.value)} placeholder="e.g. Penicillin, Dust, Lactose" rows={2} />
                 </Field>
               </div>
               <div className="sm:col-span-2">
                 <Field label="Chronic Diseases">
-                  <Textarea value={form.chronic_diseases} onChange={(e) => set('chronic_diseases', e.target.value)} />
+                  <Textarea value={form.chronic_diseases} onChange={(e) => set('chronic_diseases', e.target.value)} rows={2} />
                 </Field>
               </div>
               <div className="sm:col-span-2">
                 <Field label="Current Medication">
-                  <Textarea value={form.current_medication} onChange={(e) => set('current_medication', e.target.value)} />
+                  <Textarea value={form.current_medication} onChange={(e) => set('current_medication', e.target.value)} rows={2} />
                 </Field>
               </div>
             </div>
@@ -327,22 +341,28 @@ export default function PatientNew() {
                 </Select>
               </Field>
               <Field label="Referred By">
-                <Input value={form.referred_by} onChange={(e) => set('referred_by', e.target.value)} placeholder="Doctor / hospital name" />
+                <Input value={form.referred_by} onChange={(e) => set('referred_by', e.target.value)} placeholder="Doctor or referral source" />
               </Field>
               <div className="sm:col-span-2">
                 <Field label="Remarks">
-                  <Textarea value={form.remarks} onChange={(e) => set('remarks', e.target.value)} />
+                  <Textarea value={form.remarks} onChange={(e) => set('remarks', e.target.value)} rows={2} />
                 </Field>
               </div>
             </div>
           </section>
 
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" checked={form.force} onChange={(e) => set('force', e.target.checked)} />
-            Force register (bypass duplicate check)
+          <label className="flex items-center gap-2.5 text-sm text-muted-foreground bg-muted/40 p-4 rounded-xl border border-border cursor-pointer transition-all hover:bg-muted/60">
+            <input 
+              type="checkbox" 
+              className="rounded border-border text-primary focus:ring-primary h-4.5 w-4.5 cursor-pointer" 
+              checked={form.force} 
+              onChange={(e) => set('force', e.target.checked)} 
+            />
+            <span className="font-medium text-foreground">Force register (bypass duplicate check)</span>
           </label>
-          <div className="flex gap-3">
-            <Button type="submit" disabled={loading || photoUploading}>
+
+          <div className="flex gap-3 border-t border-border pt-6">
+            <Button type="submit" disabled={loading || photoUploading} className="shadow-sm">
               {loading ? 'Registering...' : 'Register Patient'}
             </Button>
             <Button type="button" variant="secondary" onClick={() => navigate('/admin/patients')}>

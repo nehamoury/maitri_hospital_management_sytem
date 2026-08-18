@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { ReportFilters as Filters } from '@/lib/api'
 import { reportsApi } from '@/lib/api'
 import { ReportFilters } from './components/ReportFilters'
@@ -8,19 +8,21 @@ import { DepartmentDistribution } from './components/DepartmentDistribution'
 import { ReportTable } from './components/ReportTable'
 import { ExportButtons } from './components/ExportButtons'
 import { api } from '@/lib/api'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
+import { PageHeader } from '@/components/ui'
+import { cn } from '@/lib/utils'
 
 const TABS = [
-  { id: 'summary', label: 'Summary' },
+  { id: 'summary', label: 'Summary Overview' },
   { id: 'department-distribution', label: 'Department Distribution' },
-  { id: 'revenue', label: 'Revenue' },
+  { id: 'revenue', label: 'Revenue Trends' },
   { id: 'pharmacy-dispensing', label: 'Pharmacy Dispensing' },
-  { id: 'pharmacy-stock', label: 'Pharmacy Stock' },
-  { id: 'doctors', label: 'Doctors' },
-  { id: 'patients', label: 'Patients' },
-  { id: 'panchakarma', label: 'Panchakarma' },
-  { id: 'referrals', label: 'Referrals' },
+  { id: 'pharmacy-stock', label: 'Pharmacy Stock Ledger' },
+  { id: 'doctors', label: 'Practitioner Performance' },
+  { id: 'patients', label: 'Patient Demographics' },
+  { id: 'panchakarma', label: 'Panchakarma Cycles' },
+  { id: 'referrals', label: 'Referrals & Affiliates' },
 ]
 
 export default function Reports() {
@@ -42,6 +44,14 @@ export default function Reports() {
     }
   })
 
+  const sanitizedFilters = useMemo(() => {
+    const copy = { ...filters }
+    if (!['department-distribution', 'doctors'].includes(activeTab)) {
+      delete copy.department_id
+    }
+    return copy
+  }, [filters, activeTab])
+
   useEffect(() => {
     api.get('/departments').then(res => {
       if (res.data?.data) {
@@ -61,34 +71,34 @@ export default function Reports() {
       let data
       switch (activeTab) {
         case 'summary':
-          data = await reportsApi.getSummary(filters)
+          data = await reportsApi.getSummary(sanitizedFilters)
           break
         case 'department-distribution':
-          data = await reportsApi.getDepartmentDistribution(filters)
+          data = await reportsApi.getDepartmentDistribution(sanitizedFilters)
           break
         case 'revenue':
-          data = await reportsApi.getRevenue(filters)
+          data = await reportsApi.getRevenue(sanitizedFilters)
           break
         case 'pharmacy-dispensing':
-          data = await reportsApi.getPharmacyDispensing(filters)
+          data = await reportsApi.getPharmacyDispensing(sanitizedFilters)
           break
         case 'pharmacy-stock':
-          data = await reportsApi.getPharmacyStock(filters)
+          data = await reportsApi.getPharmacyStock(sanitizedFilters)
           break
         case 'doctors':
-          data = await reportsApi.getDoctors(filters)
+          data = await reportsApi.getDoctors(sanitizedFilters)
           break
         case 'patients':
-          data = await reportsApi.getPatients(filters)
+          data = await reportsApi.getPatients(sanitizedFilters)
           break
         case 'panchakarma':
-          data = await reportsApi.getPanchakarma(filters)
+          data = await reportsApi.getPanchakarma(sanitizedFilters)
           break
         case 'referrals':
-          data = await reportsApi.getReferrals(filters)
+          data = await reportsApi.getReferrals(sanitizedFilters)
           break
       }
-      setReportData(data)
+      setReportData(data?.data || null)
     } catch (err: any) {
       toast.error('Failed to load report data')
       console.error(err)
@@ -98,31 +108,32 @@ export default function Reports() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Reports & Analytics</h1>
-          <p className="text-sm text-slate-500 mt-1">Hospital performance, financials, and clinical insights.</p>
-        </div>
-        
-        {reportData && (
-          <ExportButtons reportType={activeTab} filters={filters} />
-        )}
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Reports & Analytics"
+        subtitle="Analyze clinical performance, pharmacy log streams, and financial distributions."
+        action={
+          reportData && (
+            <ExportButtons reportType={activeTab} filters={sanitizedFilters} />
+          )
+        }
+      />
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar Navigation */}
         <div className="w-full lg:w-64 shrink-0">
-          <nav className="flex flex-col space-y-1 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+          <nav className="flex flex-col space-y-1 bg-card p-3 rounded-2xl border border-border shadow-sm">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-3 mb-2">Available Reports</p>
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left ${
+                className={cn(
+                  'px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all text-left border',
                   activeTab === tab.id
-                    ? 'bg-teal-50 text-teal-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
+                    ? 'bg-primary/10 text-primary border-primary/20 font-bold'
+                    : 'text-muted-foreground border-transparent hover:bg-muted/40 hover:text-foreground'
+                )}
               >
                 {tab.label}
               </button>
@@ -131,7 +142,7 @@ export default function Reports() {
         </div>
 
         {/* Report Content */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-6">
           <ReportFilters 
             filters={filters} 
             setFilters={setFilters} 
@@ -141,11 +152,11 @@ export default function Reports() {
           />
 
           {loading && !reportData ? (
-            <div className="flex items-center justify-center p-12 bg-white rounded-xl border border-slate-200 shadow-sm">
-              <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+            <div className="flex items-center justify-center p-16 bg-card rounded-2xl border border-border shadow-sm">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : reportData ? (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-6 animate-in fade-in duration-200">
               {activeTab === 'summary' && (
                 <>
                   <SummaryCards summary={reportData} />
@@ -169,8 +180,10 @@ export default function Reports() {
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-center p-12 bg-white rounded-xl border border-slate-200 shadow-sm text-slate-500">
-              Select a report to view data
+            <div className="flex flex-col items-center justify-center p-16 bg-card rounded-2xl border border-border shadow-sm text-center">
+              <ShieldAlert className="h-10 w-10 text-muted-foreground/60 mb-2" />
+              <p className="text-sm font-semibold text-foreground">Select a report</p>
+              <p className="text-xs text-muted-foreground mt-1">Please select an analytics category from the sidebar navigation panel.</p>
             </div>
           )}
         </div>

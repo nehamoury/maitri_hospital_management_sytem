@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { api, errorMessage } from '../../lib/api'
 import { Can } from '../../lib/can'
 import { Card, CardHeader, Badge, Table, EmptyState, Spinner, PageHeader, Button, Input, Select, Field } from '../../components/ui'
+import { Search, FolderPlus, Trash2, Edit, Eye, X } from 'lucide-react'
+import { cn } from '../../lib/utils'
 
 interface Department {
   id: string
@@ -21,7 +23,6 @@ interface Doctor {
   department_id: string
 }
 
-// Department types come from the backend's Department Master allow-list.
 const DEPARTMENT_TYPES = ['OPD', 'Procedure', 'Wellness', 'Clinical', 'Pharmacy', 'Emergency']
 
 export default function Departments() {
@@ -115,7 +116,6 @@ export default function Departments() {
     }
   }
 
-  // Derived calculations: map and filter departments list
   const processedDepartments = useMemo(() => {
     if (!departments) return []
     return departments.map((d) => {
@@ -141,10 +141,10 @@ export default function Departments() {
   const navigate = useNavigate()
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        title="Departments"
-        subtitle="Department Master — clinical departments of the hospital"
+        title="Departments Master"
+        subtitle="Configure hospital specialty clinics, consultation pricing, and operational types."
         action={
           <Can permission="department.create">
             <Button
@@ -160,53 +160,60 @@ export default function Departments() {
                 }
                 setShowForm((v) => !v)
               }}
+              className="flex items-center gap-1.5 shadow-sm"
             >
-              {showForm ? 'Close' : '+ Add Department'}
+              <FolderPlus className="h-4.5 w-4.5" />
+              {showForm ? 'Cancel Editor' : 'Add Department'}
             </Button>
           </Can>
         }
       />
-      {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/20 dark:border-red-900/30 dark:text-red-400">
+          {error}
+        </div>
+      )}
 
-      {/* Add / Edit Form Card */}
       {showForm && (
-        <Card className="mb-6 max-w-2xl">
-          <CardHeader title={editingId ? 'Edit Department' : 'Add Department'} />
-          <form onSubmit={save} className="grid gap-4 p-5 sm:grid-cols-2">
+        <Card className="mb-6 max-w-2xl animate-in fade-in slide-in-from-top-2 duration-150">
+          <CardHeader title={editingId ? 'Edit Department Record' : 'Create Hospital Department'} />
+          <form onSubmit={save} className="grid gap-4 p-6 sm:grid-cols-2">
             <Field label="Department Name *">
-              <Input value={formName} onChange={(e) => setFormName(e.target.value)} required placeholder="e.g. Panchakarma" />
+              <Input value={formName} onChange={(e) => setFormName(e.target.value)} required placeholder="e.g. Panchakarma Therapy Unit" />
             </Field>
             <Field label="Department Code (Auto-generated)">
-              <Input value={formCode} readOnly className="bg-slate-50 cursor-not-allowed text-slate-500" />
+              <Input value={formCode} disabled className="bg-muted/50 cursor-not-allowed font-mono text-xs" />
             </Field>
             <Field label="Department Type *">
               <Select value={formType} onChange={(e) => setFormType(e.target.value)} required>
                 {DEPARTMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </Select>
             </Field>
-            <Field label="Default Consultation Fee (₹)" hint="Base fee used if doctor doesn't have a specific fee">
-              <Input type="number" min={0} value={formFee} onChange={(e) => setFormFee(e.target.value)} placeholder="e.g. 500" />
+            <Field label="Default Consultation Fee (₹)" hint="Used if practitioner fee is not defined">
+              <Input type="number" min={0} value={formFee} onChange={(e) => setFormFee(e.target.value)} placeholder="500.00" />
             </Field>
             {editingId && (
-              <Field label="Status">
-                <select
+              <Field label="Operational Status">
+                <Select
                   value={formIsActive ? 'true' : 'false'}
                   onChange={(e) => setFormIsActive(e.target.value === 'true')}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring text-slate-800"
                 >
                   <option value="true">ACTIVE</option>
                   <option value="false">INACTIVE</option>
-                </select>
+                </Select>
               </Field>
             )}
             <div className="sm:col-span-2">
-              <Field label="Description">
-                <Input value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Brief description of clinical functions" />
+              <Field label="Brief Description">
+                <Input value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="e.g. Traditional Ayurvedic detoxification treatments and therapies." />
               </Field>
             </div>
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-2 pt-2 border-t border-border mt-2 flex gap-3">
               <Button type="submit" disabled={loading}>
-                {loading ? 'Saving...' : editingId ? 'Update Department' : 'Add Department'}
+                {loading ? 'Saving...' : editingId ? 'Update Department' : 'Create Department'}
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+                Cancel
               </Button>
             </div>
           </form>
@@ -214,24 +221,37 @@ export default function Departments() {
       )}
 
       {/* Filter and Search controls */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="w-full sm:max-w-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-muted/20 border border-border p-4 rounded-2xl">
+        <div className="w-full sm:max-w-sm relative">
+          <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">
+            <Search className="h-4 w-4" />
+          </span>
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, code or type..."
+            placeholder="Search department name, code, type..."
+            className="pl-9 pr-8"
           />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
-        <div className="flex gap-2">
-          {['ALL', 'ACTIVE', 'INACTIVE'].map((status) => (
+        <div className="flex gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0">
+          {(['ALL', 'ACTIVE', 'INACTIVE'] as const).map((status) => (
             <button
               key={status}
-              onClick={() => setStatusFilter(status as any)}
-              className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all ${
+              onClick={() => setStatusFilter(status)}
+              className={cn(
+                'px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
                 statusFilter === status
-                  ? 'bg-teal-700 text-white border-teal-700 shadow-sm'
-                  : 'border-slate-200 text-slate-500 hover:border-slate-300 bg-white'
-              }`}
+                  ? 'bg-card text-foreground shadow border border-border'
+                  : 'text-muted-foreground hover:text-foreground border border-transparent'
+              )}
             >
               {status}
             </button>
@@ -242,37 +262,39 @@ export default function Departments() {
       {/* Department List Table */}
       <Card>
         {!departments ? (
-          <Spinner label="Loading departments..." />
+          <Spinner label="Loading departments inventory..." />
         ) : processedDepartments.length === 0 ? (
-          <EmptyState message="No departments found" />
+          <EmptyState message="No departments registered" />
         ) : (
-          <Table headers={['Code', 'Name', 'Type', 'Doctors', 'Fee', 'Status', 'Actions']}>
+          <Table headers={['Code', 'Name', 'Type', 'Practitioners Assigned', 'Default Fee', 'Status', '']}>
             {processedDepartments.map((d) => (
-              <tr key={d.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-semibold text-teal-700">
+              <tr key={d.id} className="hover:bg-muted/30 transition-colors">
+                <td className="px-4 py-3 font-mono text-xs text-primary font-semibold">
                   <code>{d.code || '—'}</code>
                 </td>
-                <td className="px-4 py-3 font-medium text-slate-800">{d.name}</td>
-                <td className="px-4 py-3 text-slate-600">{d.type || '—'}</td>
-                <td className="px-4 py-3 text-slate-600 font-semibold">{d.doctorCount}</td>
-                <td className="px-4 py-3 text-slate-600">₹{d.default_fee || 0}</td>
+                <td className="px-4 py-3 font-semibold text-foreground">{d.name}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">{d.type || '—'}</td>
+                <td className="px-4 py-3 text-foreground font-mono font-bold text-xs">{d.doctorCount}</td>
+                <td className="px-4 py-3 text-foreground font-mono font-bold text-xs">₹{(d.default_fee || 0).toFixed(2)}</td>
                 <td className="px-4 py-3">
                   <Badge color={d.is_active ? 'green' : 'red'}>{d.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge>
                 </td>
-                <td className="px-4 py-3 flex gap-2">
-                  <Button variant="ghost" className="px-3 py-1.5 text-xs font-semibold" onClick={() => navigate(`/admin/departments/${d.id}`)}>
-                    View
-                  </Button>
-                  <Can permission="department.update">
-                    <Button variant="secondary" className="px-3 py-1.5 text-xs font-semibold" onClick={() => startEdit(d)}>
-                      Edit
-                    </Button>
-                  </Can>
-                  <Can permission="department.delete">
-                    <Button variant="danger" className="px-3 py-1.5 text-xs font-semibold" onClick={() => remove(d.id)}>
-                      Delete
-                    </Button>
-                  </Can>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={() => navigate(`/admin/departments/${d.id}`)} className="text-xs font-bold text-primary hover:underline cursor-pointer" title="View details">
+                      <Eye className="h-4.5 w-4.5" />
+                    </button>
+                    <Can permission="department.update">
+                      <button onClick={() => startEdit(d)} className="text-xs font-bold text-primary hover:underline cursor-pointer" title="Edit department">
+                        <Edit className="h-4.5 w-4.5" />
+                      </button>
+                    </Can>
+                    <Can permission="department.delete">
+                      <button onClick={() => remove(d.id)} className="text-xs font-bold text-destructive hover:underline cursor-pointer" title="Delete department">
+                        <Trash2 className="h-4.5 w-4.5" />
+                      </button>
+                    </Can>
+                  </div>
                 </td>
               </tr>
             ))}

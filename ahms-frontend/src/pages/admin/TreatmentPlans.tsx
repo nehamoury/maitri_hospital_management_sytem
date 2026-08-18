@@ -29,12 +29,17 @@ interface Session {
   id: string
   session_number: number
   session_date: string
+  therapist_user_id?: string
   therapist_name?: string
+  therapist_overridden?: boolean
   status: string
+  duration_minutes?: number
+  materials_used?: string
   before_condition?: string
   after_condition?: string
   complications?: string
   observations?: string
+  notes?: string
   started_at?: string
   completed_at?: string
 }
@@ -111,6 +116,16 @@ export default function TreatmentPlans() {
   const [selected, setSelected] = useState<Plan | null>(null)
   const [assessment, setAssessment] = useState('')
 
+  // New states for expanded UI
+  const [expandedSession, setExpandedSession] = useState<string | null>(null)
+  const [activeSession, setActiveSession] = useState<Session | null>(null)
+  const [sessionMode, setSessionMode] = useState<'start' | 'complete' | 'skip' | null>(null)
+  const [sessionForm, setSessionForm] = useState({ duration_minutes: '', materials_used: '', before_condition: '', after_condition: '', complications: '', observations: '', notes: '', reason: '' })
+  
+  const [reassignMode, setReassignMode] = useState<'plan' | 'session' | null>(null)
+  const [reassignSessionId, setReassignSessionId] = useState<string | null>(null)
+  const [reassignTherapistId, setReassignTherapistId] = useState<string>('')
+
   const load = () => {
     api
       .get<{ data: PlanListItem[] }>('/treatment-plans', { params: { status: statusFilter || undefined, search: search || undefined } })
@@ -129,7 +144,10 @@ export default function TreatmentPlans() {
   const openPlan = (id: string) => {
     api
       .get<{ data: Plan }>(`/treatment-plans/${id}`)
-      .then((res) => setSelected(res.data.data))
+      .then((res) => {
+        setSelected(res.data.data)
+        setAssessment(res.data.data.final_assessment || '')
+      })
       .catch((err) => setError(errorMessage(err, 'Failed to load plan')))
   }
 
@@ -172,6 +190,7 @@ export default function TreatmentPlans() {
   }
 
   const cancel = async (id: string) => {
+    if (!confirm('Are you sure you want to cancel this plan?')) return
     try {
       await api.post(`/treatment-plans/${id}/cancel`)
       load()
@@ -183,12 +202,12 @@ export default function TreatmentPlans() {
 
   const complete = async (id: string) => {
     if (!assessment.trim()) {
-      setError('Final assessment is required to complete the plan')
+      alert('Final assessment is required to complete the plan')
       return
     }
+    if (!confirm('Mark this plan as complete?')) return
     try {
       await api.post(`/treatment-plans/${id}/complete`, { final_assessment: assessment })
-      setAssessment('')
       load()
       if (selected?.id === id) openPlan(id)
     } catch (err) {
@@ -196,7 +215,96 @@ export default function TreatmentPlans() {
     }
   }
 
+  // Session actions
+  const startSession = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!activeSession) return
+    try {
+      await api.post(`/treatment-sessions/${activeSession.id}/start`, { before_condition: sessionForm.before_condition })
+      closeSessionModal()
+      if (selected) openPlan(selected.id)
+      load()
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to start session'))
+    }
+  }
+
+  const completeSession = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!activeSession) return
+    try {
+      await api.post(`/treatment-sessions/${activeSession.id}/complete`, {
+        duration_minutes: parseInt(sessionForm.duration_minutes || '0', 10),
+        materials_used: sessionForm.materials_used,
+        after_condition: sessionForm.after_condition,
+        complications: sessionForm.complications,
+        observations: sessionForm.observations,
+        notes: sessionForm.notes
+      })
+      closeSessionModal()
+      if (selected) openPlan(selected.id)
+      load()
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to complete session'))
+    }
+  }
+
+  const skipSession = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!activeSession) return
+    try {
+      await api.post(`/treatment-sessions/${activeSession.id}/skip`, { reason: sessionForm.reason })
+      closeSessionModal()
+      if (selected) openPlan(selected.id)
+      load()
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to skip session'))
+    }
+  }
+
+  const handleReassignPlan = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selected) return
+    try {
+      await api.post(`/treatment-plans/${selected.id}/reassign-therapist`, { therapist_user_id: reassignTherapistId })
+      setReassignMode(null)
+      openPlan(selected.id)
+      load()
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to reassign plan therapist'))
+    }
+  }
+
+  const handleReassignSession = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!reassignSessionId || !selected) return
+    try {
+      await api.patch(`/treatment-sessions/${reassignSessionId}/therapist`, { therapist_user_id: reassignTherapistId })
+      setReassignMode(null)
+      setReassignSessionId(null)
+      openPlan(selected.id)
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to reassign session therapist'))
+    }
+  }
+
+  const openSessionModal = (session: Session, mode: 'start' | 'complete' | 'skip') => {
+    setActiveSession(session)
+    setSessionMode(mode)
+    setSessionForm({ duration_minutes: session.duration_minutes?.toString() || '', materials_used: session.materials_used || '', before_condition: session.before_condition || '', after_condition: session.after_condition || '', complications: session.complications || '', observations: session.observations || '', notes: session.notes || '', reason: '' })
+  }
+
+  const closeSessionModal = () => {
+    setActiveSession(null)
+    setSessionMode(null)
+  }
+
   const panchakarma = procedureTypes.filter((p) => p.category === 'PANCHAKARMA')
+
+  // Calculate progress
+  const totalSessions = selected?.sessions.length || 0
+  const completedSessions = selected?.sessions.filter(s => s.status === 'COMPLETED' || s.status === 'SKIPPED').length || 0
+  const progressPercent = totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0
 
   return (
     <div>
@@ -366,121 +474,279 @@ export default function TreatmentPlans() {
         </Card>
       )}
 
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={() => setSelected(null)}>
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-bold text-slate-800" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                    {selected.plan_no} — {selected.procedure_name}
-                  </h2>
-                  <Badge color={planStatusColor(selected.status)}>{selected.status}</Badge>
-                </div>
-                <p className="mt-1 text-sm text-slate-500">
-                  {selected.patient_name} ({selected.patient_uh_id}) · {selected.doctor_name}
-                </p>
-              </div>
-              <button onClick={() => setSelected(null)} className="rounded-xl px-3 py-1.5 text-slate-500 hover:bg-slate-100">
-                ✕
-              </button>
-            </div>
-
-            <div className="grid gap-4 border-b border-slate-100 p-6 sm:grid-cols-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Frequency</p>
-                <p className="mt-1 text-sm font-medium text-slate-800">{selected.frequency}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Schedule</p>
-                <p className="mt-1 text-sm font-medium text-slate-800">
-                  {selected.start_date} → {selected.end_date || '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Therapist</p>
-                <p className="mt-1 text-sm font-medium text-slate-800">{selected.therapist_name || 'Unassigned'}</p>
-              </div>
-              {selected.indication && (
-                <div className="sm:col-span-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Indication</p>
-                  <p className="mt-1 text-sm text-slate-700">{selected.indication}</p>
-                </div>
-              )}
-              {selected.notes && (
-                <div className="sm:col-span-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Notes</p>
-                  <p className="mt-1 text-sm text-slate-700">{selected.notes}</p>
-                </div>
-              )}
-              {selected.approved_by && (
-                <div className="sm:col-span-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Approved by</p>
-                  <p className="mt-1 text-sm text-slate-700">{selected.approved_by}</p>
-                </div>
-              )}
-              {selected.final_assessment && (
-                <div className="sm:col-span-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Final Assessment</p>
-                  <p className="mt-1 text-sm text-slate-700">{selected.final_assessment}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="p-6">
-              <p className="mb-3 text-sm font-bold text-slate-800">Sessions ({selected.sessions.length})</p>
-              <div className="space-y-3">
-                {selected.sessions.map((s) => (
-                  <div key={s.id} className="rounded-xl border border-slate-100 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs text-emerald-700">Session {s.session_number}</span>
-                        <span className="text-sm text-slate-600">{s.session_date}</span>
-                        <Badge color={sessionStatusColor(s.status)}>{s.status}</Badge>
-                      </div>
-                      {s.therapist_name && <span className="text-xs text-slate-400">{s.therapist_name}</span>}
-                    </div>
-                    {(s.before_condition || s.after_condition || s.observations || s.complications) && (
-                      <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-                        {s.before_condition && <p><span className="font-medium text-slate-500">Before:</span> {s.before_condition}</p>}
-                        {s.after_condition && <p><span className="font-medium text-slate-500">After:</span> {s.after_condition}</p>}
-                        {s.observations && <p><span className="font-medium text-slate-500">Observations:</span> {s.observations}</p>}
-                        {s.complications && <p><span className="font-medium text-slate-500">Complications:</span> {s.complications}</p>}
-                      </div>
-                    )}
+      {/* Plan Details Modal */}
+      {selected && !reassignMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm" onClick={() => setSelected(null)}>
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Header */}
+            <div className="flex-none border-b border-slate-100 px-6 py-5 bg-white sticky top-0 z-10">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold text-slate-800" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                      {selected.plan_no} — {selected.procedure_name}
+                    </h2>
+                    <Badge color={planStatusColor(selected.status)}>{selected.status}</Badge>
                   </div>
-                ))}
+                  <p className="mt-1 text-sm text-slate-500">
+                    <span className="font-medium text-slate-700">{selected.patient_name}</span> ({selected.patient_uh_id}) · Prescribed by <span className="font-medium">{selected.doctor_name}</span>
+                  </p>
+                </div>
+                <button onClick={() => setSelected(null)} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 transition-colors">
+                  ✕
+                </button>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-6 flex items-center justify-between text-sm font-medium text-slate-700 mb-2">
+                <span>Treatment Progress</span>
+                <span>{completedSessions} of {totalSessions} Sessions</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${progressPercent === 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                  style={{ width: `${progressPercent}%` }}
+                />
               </div>
             </div>
 
-            <div className="flex flex-wrap items-end gap-3 border-t border-slate-100 p-6">
-              {(selected.status === 'PLANNED' || selected.status === 'APPROVED' || selected.status === 'IN_PROGRESS') && (
-                <Can permission="treatment.complete">
-                  <div className="flex-1">
-                    <Field label="Final Assessment">
-                      <Input value={assessment} onChange={(e) => setAssessment(e.target.value)} placeholder="Treatment outcome summary..." />
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto bg-slate-50">
+              {/* Plan Info Grid */}
+              <div className="grid gap-4 border-b border-slate-200 bg-white p-6 sm:grid-cols-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Frequency</p>
+                  <p className="mt-1 text-sm font-medium text-slate-800">{selected.frequency}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Schedule</p>
+                  <p className="mt-1 text-sm font-medium text-slate-800">
+                    {selected.start_date} → {selected.end_date || '—'}
+                  </p>
+                </div>
+                <div className="sm:col-span-2 flex justify-between items-start">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Assigned Therapist</p>
+                    <p className="mt-1 text-sm font-medium text-slate-800">{selected.therapist_name || 'Unassigned'}</p>
+                  </div>
+                  <Can permission="treatment.update">
+                    {(selected.status === 'PLANNED' || selected.status === 'APPROVED' || selected.status === 'IN_PROGRESS') && (
+                      <button 
+                        onClick={() => setReassignMode('plan')}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                      >
+                        Change
+                      </button>
+                    )}
+                  </Can>
+                </div>
+                {selected.indication && (
+                  <div className="sm:col-span-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Indication / Notes</p>
+                    <p className="mt-1 text-sm text-slate-700">{selected.indication} {selected.notes ? `— ${selected.notes}` : ''}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Sessions List */}
+              <div className="p-6">
+                <h3 className="mb-4 text-base font-bold text-slate-800">Execution Schedule</h3>
+                <div className="space-y-3">
+                  {selected.sessions.map((s) => (
+                    <div key={s.id} className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-all hover:shadow-md">
+                      {/* Session Header */}
+                      <div 
+                        className="flex cursor-pointer flex-wrap items-center justify-between gap-4 p-4 hover:bg-slate-50"
+                        onClick={() => setExpandedSession(expandedSession === s.id ? null : s.id)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${s.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : s.status === 'SKIPPED' ? 'bg-red-100 text-red-700' : s.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                            {s.session_number}
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900">{s.session_date}</p>
+                            <p className="text-xs text-slate-500">
+                              {s.therapist_name || selected.therapist_name || 'Unassigned Therapist'}
+                              {s.therapist_overridden && <span className="ml-1 text-amber-600 font-medium">(Override)</span>}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge color={sessionStatusColor(s.status)}>{s.status}</Badge>
+                          <span className="text-slate-400 text-xs">{expandedSession === s.id ? '▲' : '▼'}</span>
+                        </div>
+                      </div>
+
+                      {/* Expanded Session Detail */}
+                      {expandedSession === s.id && (
+                        <div className="border-t border-slate-100 bg-slate-50 p-4 animate-in fade-in slide-in-from-top-2">
+                          
+                          {/* Clinical Data */}
+                          {(s.before_condition || s.after_condition || s.observations || s.complications || s.materials_used) ? (
+                            <div className="mb-4 grid gap-4 rounded-lg bg-white p-4 text-sm text-slate-700 border border-slate-100 shadow-sm sm:grid-cols-2">
+                              {s.before_condition && <div><p className="font-semibold text-slate-500 text-xs uppercase mb-1">Before Session</p><p>{s.before_condition}</p></div>}
+                              {s.after_condition && <div><p className="font-semibold text-slate-500 text-xs uppercase mb-1">After Session</p><p>{s.after_condition}</p></div>}
+                              {s.materials_used && <div><p className="font-semibold text-slate-500 text-xs uppercase mb-1">Materials Used</p><p>{s.materials_used}</p></div>}
+                              {s.duration_minutes && <div><p className="font-semibold text-slate-500 text-xs uppercase mb-1">Duration</p><p>{s.duration_minutes} mins</p></div>}
+                              {s.observations && <div className="sm:col-span-2"><p className="font-semibold text-slate-500 text-xs uppercase mb-1">Observations</p><p>{s.observations}</p></div>}
+                              {s.complications && <div className="sm:col-span-2"><p className="font-semibold text-red-400 text-xs uppercase mb-1">Complications</p><p className="text-red-700">{s.complications}</p></div>}
+                            </div>
+                          ) : (
+                            <div className="mb-4 text-sm text-slate-500 italic">No clinical notes recorded yet.</div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <Can permission="treatment.session">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {s.status === 'PENDING' && (
+                                <>
+                                  <Button onClick={() => openSessionModal(s, 'start')}>Start Session</Button>
+                                  <Button variant="danger" onClick={() => openSessionModal(s, 'skip')}>Skip Session</Button>
+                                  <Can permission="treatment.update">
+                                    <Button variant="secondary" onClick={() => { setReassignMode('session'); setReassignSessionId(s.id) }}>Reassign Therapist</Button>
+                                  </Can>
+                                </>
+                              )}
+                              {s.status === 'IN_PROGRESS' && (
+                                <Button onClick={() => openSessionModal(s, 'complete')} className="bg-emerald-600 hover:bg-emerald-700">Complete Session</Button>
+                              )}
+                            </div>
+                          </Can>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Plan Footer Actions */}
+            <div className="flex-none bg-white p-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] sticky bottom-0 z-10 border-t border-slate-200">
+              <div className="flex flex-wrap items-end gap-3">
+                {(selected.status === 'PLANNED' || selected.status === 'APPROVED' || selected.status === 'IN_PROGRESS') && (
+                  <Can permission="treatment.complete">
+                    <div className="flex-1">
+                      <Field label="Final Clinical Assessment">
+                        <Input value={assessment} onChange={(e) => setAssessment(e.target.value)} placeholder="Final treatment outcome summary..." />
+                      </Field>
+                    </div>
+                  </Can>
+                )}
+                <div className="flex items-center gap-2">
+                  {selected.status === 'PLANNED' && (
+                    <Can permission="treatment.approve">
+                      <Button onClick={() => approve(selected.id)}>Approve Plan</Button>
+                    </Can>
+                  )}
+                  {(selected.status === 'PLANNED' || selected.status === 'APPROVED' || selected.status === 'IN_PROGRESS') && (
+                    <Can permission="treatment.update">
+                      <Button variant="danger" onClick={() => cancel(selected.id)}>Cancel Plan</Button>
+                    </Can>
+                  )}
+                  {selected.status !== 'COMPLETED' && selected.status !== 'CANCELLED' && (
+                    <Can permission="treatment.complete">
+                      <Button onClick={() => complete(selected.id)} disabled={!assessment.trim()}>
+                        Complete Plan
+                      </Button>
+                    </Can>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Session Action Modal (Start / Complete / Skip) */}
+      {activeSession && sessionMode && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm" onClick={closeSessionModal}>
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+              <h3 className="text-lg font-bold text-slate-800">
+                {sessionMode === 'start' && `Start Session ${activeSession.session_number}`}
+                {sessionMode === 'complete' && `Complete Session ${activeSession.session_number}`}
+                {sessionMode === 'skip' && `Skip Session ${activeSession.session_number}`}
+              </h3>
+            </div>
+            <form onSubmit={sessionMode === 'start' ? startSession : sessionMode === 'complete' ? completeSession : skipSession} className="p-6 grid gap-4">
+              
+              {sessionMode === 'start' && (
+                <Field label="Before Condition (Optional)">
+                  <Input value={sessionForm.before_condition} onChange={(e) => setSessionForm({...sessionForm, before_condition: e.target.value})} placeholder="Patient's condition before starting..." />
+                </Field>
+              )}
+
+              {sessionMode === 'complete' && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Duration (minutes)">
+                      <Input type="number" min={1} value={sessionForm.duration_minutes} onChange={(e) => setSessionForm({...sessionForm, duration_minutes: e.target.value})} required />
+                    </Field>
+                    <Field label="Materials Used">
+                      <Input value={sessionForm.materials_used} onChange={(e) => setSessionForm({...sessionForm, materials_used: e.target.value})} />
                     </Field>
                   </div>
-                </Can>
+                  <Field label="After Condition">
+                    <Input value={sessionForm.after_condition} onChange={(e) => setSessionForm({...sessionForm, after_condition: e.target.value})} placeholder="Patient's condition after session..." />
+                  </Field>
+                  <Field label="Observations">
+                    <Input value={sessionForm.observations} onChange={(e) => setSessionForm({...sessionForm, observations: e.target.value})} />
+                  </Field>
+                  <Field label="Complications">
+                    <Input value={sessionForm.complications} onChange={(e) => setSessionForm({...sessionForm, complications: e.target.value})} placeholder="Any adverse reactions..." />
+                  </Field>
+                </>
               )}
-              {selected.status === 'PLANNED' && (
-                <Can permission="treatment.approve">
-                  <Button onClick={() => approve(selected.id)}>Approve Plan</Button>
-                </Can>
+
+              {sessionMode === 'skip' && (
+                <Field label="Reason for Skipping *">
+                  <Input value={sessionForm.reason} onChange={(e) => setSessionForm({...sessionForm, reason: e.target.value})} required placeholder="E.g., Patient felt unwell, missed appointment..." />
+                </Field>
               )}
-              {(selected.status === 'PLANNED' || selected.status === 'APPROVED' || selected.status === 'IN_PROGRESS') && (
-                <Can permission="treatment.update">
-                  <Button variant="danger" onClick={() => cancel(selected.id)}>Cancel Plan</Button>
-                </Can>
-              )}
-              {selected.status !== 'COMPLETED' && selected.status !== 'CANCELLED' && (
-                <Can permission="treatment.complete">
-                  <Button onClick={() => complete(selected.id)} disabled={!assessment.trim()}>
-                    Complete Plan
-                  </Button>
-                </Can>
-              )}
+
+              <div className="mt-2 flex justify-end gap-3">
+                <Button variant="secondary" type="button" onClick={closeSessionModal}>Cancel</Button>
+                <Button type="submit" variant={sessionMode === 'skip' ? 'danger' : 'primary'}>
+                  {sessionMode === 'start' && 'Start Session'}
+                  {sessionMode === 'complete' && 'Complete Session'}
+                  {sessionMode === 'skip' && 'Skip Session'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Therapist Reassignment Modal */}
+      {reassignMode && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm" onClick={() => setReassignMode(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+              <h3 className="text-lg font-bold text-slate-800">
+                {reassignMode === 'plan' ? 'Reassign Plan Therapist' : 'Reassign Session Therapist'}
+              </h3>
             </div>
+            <form onSubmit={reassignMode === 'plan' ? handleReassignPlan : handleReassignSession} className="p-6">
+              <div className="mb-4 text-sm text-slate-600">
+                {reassignMode === 'plan' 
+                  ? "Select a new default therapist. This will update all pending sessions that haven't been individually reassigned."
+                  : "Override the therapist for this specific session only."}
+              </div>
+              <Field label="Select New Therapist *">
+                <Select value={reassignTherapistId} onChange={(e) => setReassignTherapistId(e.target.value)} required>
+                  <option value="">Select a therapist</option>
+                  {therapists.map(t => (
+                    <option key={t.id} value={t.id}>{t.full_name}</option>
+                  ))}
+                </Select>
+              </Field>
+              <div className="mt-6 flex justify-end gap-3">
+                <Button variant="secondary" type="button" onClick={() => setReassignMode(null)}>Cancel</Button>
+                <Button type="submit">Reassign</Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

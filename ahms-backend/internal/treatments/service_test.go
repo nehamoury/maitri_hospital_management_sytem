@@ -116,6 +116,15 @@ func (f *fakeRepo) ListTherapists() ([]models.User, error) {
 	return []models.User{}, nil
 }
 
+func (f *fakeRepo) UpdatePendingSessionsTherapist(planID uuid.UUID, therapistID *uuid.UUID) error {
+	return nil
+}
+
+func (f *fakeRepo) ReassignPlanTherapistTx(plan *models.TreatmentPlan, therapistID *uuid.UUID) error {
+	plan.AssignedTherapistUserID = therapistID
+	return nil
+}
+
 func newTestService(f *fakeRepo) Service {
 	return NewService(f)
 }

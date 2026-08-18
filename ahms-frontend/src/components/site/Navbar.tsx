@@ -1,36 +1,36 @@
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { Menu, Phone, X, Leaf, ChevronDown, Stethoscope, Building2, FlaskConical, Image, BookOpen, Layers3, UserCircle2 } from 'lucide-react'
+import { Menu, Phone, X, Leaf, ChevronDown, Stethoscope, Building2, FlaskConical, Image, BookOpen, Layers3, UserCircle2, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '../ThemeToggle'
 
-// ─── Primary links always visible in desktop nav ────────────────────────────
-const primaryLinks = [
+// ─── All links for mobile drawer ─────────────────────────────────────────────
+const allLinks = [
   { to: '/', label: 'Home' },
-  { to: '/about', label: 'About' },
+  { to: '/about', label: 'About Us', icon: Info },
+  { to: '/facilities', label: 'Facilities', icon: Building2 },
   { to: '/departments', label: 'Departments' },
   { to: '/doctors', label: 'Doctors' },
+  { to: '/treatments', label: 'Treatments', icon: Stethoscope },
+  { to: '/panchakarma', label: 'Panchakarma', icon: Layers3 },
+  { to: '/research', label: 'Research', icon: FlaskConical },
+  { to: '/blog', label: 'Blog', icon: BookOpen },
+  { to: '/gallery', label: 'Gallery', icon: Image },
   { to: '/contact', label: 'Contact' },
 ] as const
 
-// ─── Secondary links inside "More" dropdown ─────────────────────────────────
-const moreLinks = [
-  { to: '/treatments', label: 'Treatments', icon: Stethoscope },
-  { to: '/panchakarma', label: 'Panchakarma', icon: Layers3 },
-  { to: '/facilities', label: 'Facilities', icon: Building2 },
-  { to: '/research', label: 'Research', icon: FlaskConical },
-  { to: '/gallery', label: 'Gallery', icon: Image },
-  { to: '/blog', label: 'Blog', icon: BookOpen },
-] as const
+// ─── Custom Nav Dropdown ──────────────────────────────────────────────────────
+interface NavDropdownProps {
+  label: string
+  scrolled: boolean
+  links: { to: string; label: string; icon: any }[]
+}
 
-// ─── All links for mobile drawer ─────────────────────────────────────────────
-const allLinks = [...primaryLinks, ...moreLinks] as const
-
-// ─── More Dropdown ────────────────────────────────────────────────────────────
-function MoreDropdown({ scrolled }: { scrolled: boolean }) {
+function NavDropdown({ label, scrolled, links }: NavDropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const location = useLocation()
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -40,31 +40,33 @@ function MoreDropdown({ scrolled }: { scrolled: boolean }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  const hasActiveChild = links.some(l => location.pathname === l.to)
+
   return (
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(v => !v)}
         className={cn(
           'flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium transition-colors cursor-pointer',
-          scrolled 
-            ? 'text-muted-foreground hover:text-primary' 
-            : 'text-white/80 hover:text-white',
+          hasActiveChild
+            ? (scrolled ? 'text-primary' : 'text-white')
+            : (scrolled ? 'text-muted-foreground hover:text-primary' : 'text-white/80 hover:text-white'),
           open && (scrolled ? 'text-primary' : 'text-white'),
         )}
         aria-expanded={open}
       >
-        More
+        {label}
         <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200', open && 'rotate-180')} />
       </button>
 
       {open && (
         <div
           className={cn(
-            'absolute top-full right-0 mt-2 w-52 rounded-2xl p-2 z-50',
-            'glass-panel shadow-lift bg-card/95 text-foreground',
+            'absolute top-full left-0 mt-2 w-52 rounded-2xl p-2 z-50',
+            'glass-panel shadow-lift bg-card/95 text-foreground animate-in fade-in slide-in-from-top-2 duration-150',
           )}
         >
-          {moreLinks.map(({ to, label, icon: Icon }) => (
+          {links.map(({ to, label: childLabel, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -79,7 +81,7 @@ function MoreDropdown({ scrolled }: { scrolled: boolean }) {
               }
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {label}
+              {childLabel}
             </NavLink>
           ))}
         </div>
@@ -116,6 +118,23 @@ export function Navbar() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
+  const aboutLinks = [
+    { to: '/about', label: 'About Us', icon: Info },
+    { to: '/departments', label: 'Departments', icon: Building2 },
+    { to: '/facilities', label: 'Facilities', icon: Layers3 },
+  ]
+
+  const treatmentLinks = [
+    { to: '/treatments', label: 'Treatments', icon: Stethoscope },
+    { to: '/panchakarma', label: 'Panchakarma', icon: Layers3 },
+    { to: '/research', label: 'Research', icon: FlaskConical },
+  ]
+
+  const mediaLinks = [
+    { to: '/blog', label: 'Blog', icon: BookOpen },
+    { to: '/gallery', label: 'Gallery', icon: Image },
+  ]
+
   return (
     <header
       className={cn(
@@ -125,7 +144,7 @@ export function Navbar() {
           : 'border-b border-transparent py-3 bg-transparent',
       )}
     >
-      <div className="container-page flex items-center justify-between gap-3">
+      <div className="w-full max-w-[96%] mx-auto px-4 md:px-8 flex items-center justify-between gap-3">
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 shrink-0" onClick={() => setOpen(false)}>
@@ -156,29 +175,58 @@ export function Navbar() {
 
         {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center gap-0.5">
-          {primaryLinks.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              end={l.to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'relative rounded-full px-3 py-2 text-sm font-medium transition-colors',
-                  'after:absolute after:inset-x-3 after:bottom-1 after:h-px after:origin-left after:bg-current after:transition-transform',
-                  isActive
-                    ? (scrolled ? 'text-primary after:scale-x-100' : 'text-white after:scale-x-100')
-                    : (scrolled ? 'text-muted-foreground hover:text-primary after:scale-x-0 hover:after:scale-x-100' : 'text-white/80 hover:text-white after:scale-x-0 hover:after:scale-x-100'),
-                )
-              }
-            >
-              {l.label}
-            </NavLink>
-          ))}
-          <MoreDropdown scrolled={scrolled} />
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              cn(
+                'relative rounded-full px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? (scrolled ? 'text-primary' : 'text-white')
+                  : (scrolled ? 'text-muted-foreground hover:text-primary' : 'text-white/80 hover:text-white'),
+              )
+            }
+          >
+            Home
+          </NavLink>
+
+          <NavDropdown label="About" scrolled={scrolled} links={aboutLinks} />
+
+
+          <NavLink
+            to="/doctors"
+            className={({ isActive }) =>
+              cn(
+                'relative rounded-full px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? (scrolled ? 'text-primary' : 'text-white')
+                  : (scrolled ? 'text-muted-foreground hover:text-primary' : 'text-white/80 hover:text-white'),
+              )
+            }
+          >
+            Doctors
+          </NavLink>
+
+          <NavDropdown label="Treatments" scrolled={scrolled} links={treatmentLinks} />
+          <NavDropdown label="Media" scrolled={scrolled} links={mediaLinks} />
+
+          <NavLink
+            to="/contact"
+            className={({ isActive }) =>
+              cn(
+                'relative rounded-full px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? (scrolled ? 'text-primary' : 'text-white')
+                  : (scrolled ? 'text-muted-foreground hover:text-primary' : 'text-white/80 hover:text-white'),
+              )
+            }
+          >
+            Contact
+          </NavLink>
         </nav>
 
         {/* Desktop Right Actions */}
-        <div className="hidden lg:flex items-center gap-2">
+        <div className="hidden lg:flex items-center gap-2.5">
           <Link
             to="/portal/login"
             className={cn(
@@ -271,7 +319,7 @@ export function Navbar() {
 
       {/* Mobile + Tablet Drawer */}
       {open && (
-        <div className="lg:hidden glass-panel container-page mt-2 rounded-2xl p-3 grid gap-1">
+        <div className="lg:hidden glass-panel max-w-[96%] mx-auto mt-2 rounded-2xl p-3 grid gap-1">
           {/* Book Appointment CTA */}
           <Link
             to="/appointment"
@@ -298,7 +346,7 @@ export function Navbar() {
                   )
                 }
               >
-                {'icon' in l && (
+                {'icon' in l && l.icon && (
                   <l.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                 )}
                 {l.label}

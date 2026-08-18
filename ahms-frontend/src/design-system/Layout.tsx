@@ -21,7 +21,7 @@ const bgStyles: Record<string, string> = {
 export function Section({ children, className = '', id, bg = 'transparent' }: SectionProps) {
   return (
     <section id={id} className={`py-16 md:py-24 lg:py-[120px] ${bgStyles[bg]} ${className}`}>
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-12">
+      <div className="mx-auto max-w-[96%] px-4 sm:px-6 lg:px-12">
         {children}
       </div>
     </section>
@@ -123,7 +123,7 @@ export function PageHero({ title, subtitle, tag, bgImage }: PageHeroProps) {
       <div className="absolute -left-12 bottom-0 w-64 h-64 rounded-full opacity-8"
         style={{ background: 'radial-gradient(circle, #14B8A6, transparent)' }} />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center pt-8 md:pt-12">
+      <div className="relative mx-auto max-w-[96%] px-4 sm:px-6 lg:px-8 text-center pt-8 md:pt-12">
 
         {tag && (
           <div className="inline-flex items-center gap-2 mb-4">

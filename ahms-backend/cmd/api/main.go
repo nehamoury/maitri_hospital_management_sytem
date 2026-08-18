@@ -12,6 +12,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -97,6 +98,9 @@ func main() {
 	}
 	if err := database.SeedLabTests(db); err != nil {
 		log.Fatalf("lab tests seeding error: %v", err)
+	}
+	if err := database.SeedDietTemplates(db); err != nil {
+		log.Fatalf("diet templates seeding error: %v", err)
 	}
 
 	if cfg.IsProduction() {
@@ -339,6 +343,9 @@ func main() {
 			dietHandler := diet.NewHandler(dietService)
 			dietHandler.SetAuditRecorder(auditRecorder)
 			diet.RegisterRoutes(staffGroup, dietHandler, authMiddleware, permissionMiddleware, dataScopeMiddleware)
+
+			// Automatic daily meal generation (Asia/Kolkata, configurable time).
+			go diet.NewScheduler(dietService, cfg.MealAutoGen, cfg.MealGenTime).Run(context.Background())
 
 			uploadsHandler := uploads.NewHandler(uploadDir)
 			uploads.RegisterRoutes(staffGroup, uploadsHandler, authMiddleware, permissionMiddleware)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -103,6 +104,7 @@ func Migrate(db *gorm.DB) error {
 		// Diet / Kitchen
 		&models.DietPlan{},
 		&models.MealOrder{},
+		&models.DietTemplate{},
 
 		// IPD / Ward management
 		&models.Ward{},
@@ -117,6 +119,17 @@ func Migrate(db *gorm.DB) error {
 	); err != nil {
 		return fmt.Errorf("database: migration failed: %w", err)
 	}
+
+	// Diet: migrate legacy meal statuses to the new lifecycle. Historical
+	// PREPARED rows mean "meal ready for serving" (the old flow had no
+	// separate PREPARING step), so they map one-time to READY — never to
+	// PREPARING. Idempotent: after the first run no PREPARED rows remain.
+	if err := db.Model(&models.MealOrder{}).
+		Where("status = ?", models.MealStatusPrepared).
+		Update("status", models.MealStatusReady).Error; err != nil {
+		return fmt.Errorf("database: failed to migrate legacy meal statuses: %w", err)
+	}
+
 	log.Println("database: migrations complete")
 	return nil
 }
@@ -414,7 +427,7 @@ func SeedPermissions(db *gorm.DB) error {
 		}, append(viewClinical, treatmentView...)...),
 		models.RoleDietKitchen: append([]string{
 			models.PermPatientView, models.PermDoctorView, models.PermDashboardView,
-			models.PermDietServe,
+			models.PermDietServe, models.PermDietManage,
 		}, append(viewClinical, treatmentView...)...),
 		models.RoleLabStaff: append([]string{
 			models.PermPatientView, models.PermDoctorView, models.PermDashboardView,
@@ -873,6 +886,145 @@ func SeedLabTests(db *gorm.DB) error {
 	}
 
 	log.Println("database: lab investigation categories and tests seeded")
+	return nil
+}
+
+// dietTemplateRows is the baseline Ayurvedic diet template master. Templates
+// are read-only presets — administrators can add/edit them via the API, and
+// existing rows are never overwritten at startup (FirstOrCreate by name).
+type dietTemplateRow struct {
+	Name                string
+	Pathya              string
+	Apathya             string
+	SpecialInstructions string
+}
+
+var dietTemplateRows = []dietTemplateRow{
+	{
+		Name:                "Laghu Ahar",
+		Pathya:              "Warm moong dal khichdi, steamed vegetables, rice gruel, warm water",
+		Apathya:             "Cold food, fried & oily items, heavy grains, raw salads",
+		SpecialInstructions: "Serve warm; small frequent portions.",
+	},
+	{
+		Name:                "Peyadi",
+		Pathya:              "Rice peya (thin gruel), mung peya, diluted buttermilk with cumin",
+		Apathya:             "Solids, heavy preparations, legumes other than moong",
+		SpecialInstructions: "Liquid consistency; do not thicken.",
+	},
+	{
+		Name:                "Yushadi",
+		Pathya:              "Moong dal soup, vegetable soups, shatavari ksheera if tolerated",
+		Apathya:             "Fried items, spicy curries, heavy breads",
+		SpecialInstructions: "Soups only; no solid mains.",
+	},
+	{
+		Name:                "Sarvanga Ahar (Panchakarma)",
+		Pathya:              "Warm sattvic meals, khichdi, boiled vegetables, ghee in moderation",
+		Apathya:             "Cold, stale, spicy, sour & fermented foods; non-vegetarian items",
+		SpecialInstructions: "Ideal during Panchakarma therapies; keep meals warm and light.",
+	},
+	{
+		Name:                "Santarpana Ahar",
+		Pathya:              "Milk, ghee, sweet preparations, rice with jaggery, nourishing kheer",
+		Apathya:             "Rough, dry, bitter and astringent foods; fasting",
+		SpecialInstructions: "Nourishing regimen; monitor weight and digestion.",
+	},
+	{
+		Name:                "Apatarpana Ahar",
+		Pathya:              "Light soups, rice water, boiled leafy greens in small quantity",
+		Apathya:             "Rich, heavy, sweet and oily preparations",
+		SpecialInstructions: "Reduction diet; small frequent light meals.",
+	},
+	{
+		Name:                "Vata-Pacifying Diet",
+		Pathya:              "Warm oily foods, cooked grains, root vegetables, ghee, buttermilk",
+		Apathya:             "Cold & dry foods, raw vegetables, excessive bitter/astringent items",
+		SpecialInstructions: "Serve warm; include ghee/oil in moderation.",
+	},
+	{
+		Name:                "Pitta-Pacifying Diet",
+		Pathya:              "Cooling foods, sweet fruits, ghee, milk, cucumber, leafy greens",
+		Apathya:             "Spicy, sour, salty, fried and fermented items",
+		SpecialInstructions: "Avoid hot spices; keep meals bland and cooling.",
+	},
+	{
+		Name:                "Kapha-Pacifying Diet",
+		Pathya:              "Warm light food, barley, honey in moderation, bitter greens, dry cooking",
+		Apathya:             "Heavy, sweet, oily, cold and dairy-heavy items",
+		SpecialInstructions: "Minimal oil; prefer dry heat preparations.",
+	},
+	{
+		Name:                "Hridaya & Vrana Diet",
+		Pathya:              "Light digestible foods, soft khichdi, saindhava salt, warm water",
+		Apathya:             "Heavy, hard, stale, spicy and salty foods; cold items",
+		SpecialInstructions: "Soft consistency; easy to digest.",
+	},
+}
+
+// SeedDietTemplates inserts the baseline Ayurvedic diet templates if the
+// table is empty. Each template is attributed to the bootstrap super admin
+// (or the first active admin user) so the created_by_user_id FK is valid.
+// It is idempotent and safe to run on every startup.
+func SeedDietTemplates(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&models.DietTemplate{}).Count(&count).Error; err != nil {
+		return fmt.Errorf("database: failed to count diet templates: %w", err)
+	}
+	if count > 0 {
+		return nil
+	}
+
+	// Resolve an attributing user: bootstrap super admin → any super
+	// admin/hospital admin → any active user. Skip seeding if none exists.
+	var seedUserID *uuid.UUID
+	var byEmail models.User
+	if err := db.Where("email = ?", os.Getenv("SEED_SUPER_ADMIN_EMAIL")).First(&byEmail).Error; err == nil {
+		seedUserID = &byEmail.ID
+	}
+	if seedUserID == nil {
+		var admin models.User
+		err := db.Joins("JOIN roles ON roles.id = users.role_id").
+			Where("users.is_active = ? AND roles.name IN ?", true, []string{models.RoleSuperAdmin, models.RoleHospitalAdmin}).
+			First(&admin).Error
+		if err == nil {
+			seedUserID = &admin.ID
+		}
+	}
+	if seedUserID == nil {
+		var anyUser models.User
+		if err := db.Where("is_active = ?", true).First(&anyUser).Error; err == nil {
+			seedUserID = &anyUser.ID
+		}
+	}
+	if seedUserID == nil {
+		log.Println("database: no user found to attribute diet templates; skipping seed")
+		return nil
+	}
+
+	for _, t := range dietTemplateRows {
+		template := models.DietTemplate{
+			BaseModel:           models.BaseModel{ID: uuid.New()},
+			Name:                t.Name,
+			Pathya:              t.Pathya,
+			Apathya:             t.Apathya,
+			SpecialInstructions: t.SpecialInstructions,
+			IsActive:            true,
+			CreatedByUserID:     *seedUserID,
+		}
+		var existing models.DietTemplate
+		err := db.Where("name = ?", t.Name).First(&existing).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := db.Create(&template).Error; err != nil {
+					return fmt.Errorf("database: failed to seed diet template %s: %w", t.Name, err)
+				}
+			} else {
+				return fmt.Errorf("database: failed to query diet template %s: %w", t.Name, err)
+			}
+		}
+	}
+	log.Println("database: diet templates seeded")
 	return nil
 }
 

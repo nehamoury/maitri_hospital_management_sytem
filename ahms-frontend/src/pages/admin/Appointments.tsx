@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { api, errorMessage } from '../../lib/api'
 import { Can } from '../../lib/can'
-import { Card, CardHeader, Badge, Table, EmptyState, Spinner, PageHeader, Button, Input, Select, Field } from '../../components/ui'
+import { Card, CardHeader, Badge, Table, Spinner, PageHeader, Button, Input, Select, Field } from '../../components/ui'
+import { Search, Calendar, Filter, X, CalendarPlus } from 'lucide-react'
 
 interface Appointment {
   id: string
@@ -115,11 +116,9 @@ export default function Appointments() {
     }
   }
 
-  // Filtered & Sorted Appointments list
   const filteredAppointments = useMemo(() => {
     if (!appointments) return []
 
-    // Sort: Latest date first, then lowest token number first (1, 2, 3...)
     const sorted = [...appointments].sort((a, b) => {
       const dateA = new Date(a.appointment_date).getTime()
       const dateB = new Date(b.appointment_date).getTime()
@@ -142,7 +141,6 @@ export default function Appointments() {
     })
   }, [appointments, searchQuery, dateFilter, statusFilter])
 
-  // Reset pagination to page 1 on filter update
   useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery, dateFilter, statusFilter])
@@ -154,29 +152,45 @@ export default function Appointments() {
     return filteredAppointments.slice(start, start + pageSize)
   }, [filteredAppointments, currentPage])
 
-  const statusColor = (s: string) =>
-    s === 'COMPLETED' ? 'green' : s === 'CANCELLED' ? 'red' : 'amber'
+  const statusColor = (s: string) => {
+    switch (s) {
+      case 'COMPLETED':
+        return 'green'
+      case 'CANCELLED':
+        return 'red'
+      default:
+        return 'amber'
+    }
+  }
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Appointments"
-        subtitle="Schedule and manage patient appointments"
+        subtitle="Manage scheduled patient visits, doctor allocations, and token queue."
         action={
           <Can permission="appointment.create">
-            <Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Close' : '+ Book Appointment'}</Button>
+            <Button onClick={() => setShowForm((v) => !v)} className="flex items-center gap-1.5 shadow-sm">
+              <CalendarPlus className="h-4.5 w-4.5" />
+              {showForm ? 'Cancel Booking' : 'Book Appointment'}
+            </Button>
           </Can>
         }
       />
-      {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/20 dark:border-red-900/30 dark:text-red-400">
+          {error}
+        </div>
+      )}
 
       {showForm && (
-        <Card className="mb-6">
-          <CardHeader title="Book Appointment" />
-          <form onSubmit={create} className="grid gap-4 p-5 sm:grid-cols-2">
-            <Field label="Patient *">
+        <Card className="mb-6 animate-in fade-in slide-in-from-top-2 duration-150">
+          <CardHeader title="Book Appointment Record" />
+          <form onSubmit={create} className="grid gap-4 p-6 sm:grid-cols-2">
+            <Field label="Select Patient *">
               <Select value={form.patient_id} onChange={(e) => setForm({ ...form, patient_id: e.target.value })} required>
-                <option value="">Select patient</option>
+                <option value="">Select a registered patient</option>
                 {patients.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.full_name} ({p.uhid})
@@ -184,7 +198,7 @@ export default function Appointments() {
                 ))}
               </Select>
             </Field>
-            <Field label="Doctor *">
+            <Field label="Select Doctor *">
               <Select value={form.doctor_id} onChange={(e) => setForm({ ...form, doctor_id: e.target.value })} required>
                 <option value="">Select doctor</option>
                 {doctors.map((d) => (
@@ -194,13 +208,13 @@ export default function Appointments() {
                 ))}
               </Select>
             </Field>
-            <Field label="Date *">
+            <Field label="Appointment Date *">
               <Input type="date" value={form.appointment_date} onChange={(e) => setForm({ ...form, appointment_date: e.target.value })} required />
             </Field>
-            <Field label="Reason">
-              <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
+            <Field label="Reason / Chief Complaints">
+              <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="e.g. Chronic back pain, Nadi consultation" />
             </Field>
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-2 pt-2 border-t border-border mt-2">
               <Button type="submit" disabled={loading}>
                 {loading ? 'Booking...' : 'Book Appointment'}
               </Button>
@@ -210,47 +224,82 @@ export default function Appointments() {
       )}
 
       {/* Filters & Search Controls */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Field label="Search Patient/Doctor">
-          <Input 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name or UHID..."
-          />
+      <div className="grid gap-4 sm:grid-cols-3 bg-muted/20 border border-border p-4 rounded-2xl">
+        <Field label="Search Query">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">
+              <Search className="h-4 w-4" />
+            </span>
+            <Input 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search patient, doctor, UHID..."
+              className="pl-9 pr-8"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </Field>
         <Field label="Filter by Date">
-          <Input 
-            type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-          />
+          <div className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+            </span>
+            <Input 
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </Field>
         <Field label="Filter by Status">
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="ALL">All Statuses</option>
-            <option value="SCHEDULED">SCHEDULED</option>
-            <option value="COMPLETED">COMPLETED</option>
-            <option value="CANCELLED">CANCELLED</option>
-          </Select>
+          <div className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">
+              <Filter className="h-4 w-4" />
+            </span>
+            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="pl-9">
+              <option value="ALL">All Statuses</option>
+              <option value="SCHEDULED">SCHEDULED</option>
+              <option value="COMPLETED">COMPLETED</option>
+              <option value="CANCELLED">CANCELLED</option>
+            </Select>
+          </div>
         </Field>
       </div>
 
       <Card>
         {!appointments ? (
-          <Spinner label="Loading appointments..." />
+          <Spinner label="Loading appointments log..." />
         ) : paginatedAppointments.length === 0 ? (
-          <EmptyState message="No appointments found matching filters" />
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-sm font-semibold text-foreground">No appointments found</p>
+            <p className="text-xs text-muted-foreground mt-1">No scheduled slots matched your current filter selection criteria.</p>
+            {(searchQuery || dateFilter || statusFilter !== 'ALL') && (
+              <Button variant="secondary" onClick={() => { setSearchQuery(''); setDateFilter(''); setStatusFilter('ALL') }} className="mt-4">
+                Clear Filters
+              </Button>
+            )}
+          </div>
         ) : (
           <div>
             <Table headers={['Date', 'Token', 'Patient', 'Doctor', 'Status', 'Actions']}>
               {paginatedAppointments.map((a) => (
-                <tr key={a.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-slate-600">{new Date(a.appointment_date).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{a.token_number}</td>
+                <tr key={a.id} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(a.appointment_date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="inline-flex h-6.5 w-6.5 items-center justify-center rounded-lg bg-muted text-xs font-bold text-foreground font-mono">{a.token_number}</span>
+                  </td>
                   <td className="px-4 py-3">
                     <LinkPatient id={a.patient_id} name={a.patient_name} uhid={a.patient_uhid} />
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{a.doctor_name}</td>
+                  <td className="px-4 py-3 text-foreground font-medium text-xs">{a.doctor_name}</td>
                   <td className="px-4 py-3">
                     <Badge color={statusColor(a.status)}>{a.status}</Badge>
                   </td>
@@ -258,16 +307,16 @@ export default function Appointments() {
                     {a.status === 'SCHEDULED' && (
                       <Can permission="appointment.update">
                         <div className="flex gap-3">
-                          <button onClick={() => updateStatus(a, 'COMPLETED')} className="text-sm font-semibold text-emerald-700 hover:underline">
+                          <button onClick={() => updateStatus(a, 'COMPLETED')} className="text-xs font-bold text-primary hover:underline cursor-pointer">
                             Complete
                           </button>
-                          <button onClick={() => updateStatus(a, 'CANCELLED')} className="text-sm font-semibold text-red-600 hover:underline">
+                          <button onClick={() => updateStatus(a, 'CANCELLED')} className="text-xs font-bold text-destructive hover:underline cursor-pointer">
                             Cancel
                           </button>
                         </div>
                       </Can>
                     )}
-                    {a.status !== 'SCHEDULED' && <span className="text-xs text-slate-400">—</span>}
+                    {a.status !== 'SCHEDULED' && <span className="text-xs text-muted-foreground/60">—</span>}
                   </td>
                 </tr>
               ))}
@@ -275,14 +324,13 @@ export default function Appointments() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-                <span className="text-sm text-slate-500">
+              <div className="flex items-center justify-between border-t border-border px-6 py-4 bg-muted/10">
+                <span className="text-xs text-muted-foreground font-medium">
                   Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredAppointments.length)} of {filteredAppointments.length} appointments
                 </span>
                 <div className="flex gap-2">
                   <Button
                     variant="secondary"
-                    className="px-3 py-1.5 text-xs font-semibold"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                   >
@@ -290,7 +338,6 @@ export default function Appointments() {
                   </Button>
                   <Button
                     variant="secondary"
-                    className="px-3 py-1.5 text-xs font-semibold"
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                   >
@@ -308,9 +355,9 @@ export default function Appointments() {
 
 function LinkPatient({ id, name, uhid }: { id: string; name: string; uhid: string }) {
   return (
-    <Link to={`/admin/patients/${id}`} className="font-medium text-slate-800 hover:text-emerald-700">
+    <Link to={`/admin/patients/${id}`} className="font-semibold text-foreground hover:text-primary transition-colors flex items-center gap-1.5">
       {name}
-      <span className="ml-1 font-mono text-xs text-slate-400">{uhid}</span>
+      <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{uhid}</span>
     </Link>
   )
 }

@@ -35,6 +35,10 @@ type Config struct {
 
 	AllowedOrigins []string
 	UploadDir      string
+
+	// Diet / kitchen automation.
+	MealAutoGen bool   // MEAL_AUTO_GEN (default true) — automatic daily meal generation
+	MealGenTime string // MEAL_GEN_TIME "HH:MM" Asia/Kolkata (default 05:00)
 }
 
 // Load reads configuration from the environment. It attempts to read a
@@ -62,6 +66,9 @@ func Load() (*Config, error) {
 
 		JWTSecret: getEnv("JWT_SECRET", ""),
 		UploadDir: getEnv("UPLOAD_DIR", "uploads"),
+
+		MealAutoGen: getEnvBool("MEAL_AUTO_GEN", true),
+		MealGenTime: getEnv("MEAL_GEN_TIME", "05:00"),
 	}
 
 	accessTTLMinutes := getEnvInt("JWT_ACCESS_TOKEN_TTL_MINUTES", 60)

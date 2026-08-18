@@ -8,7 +8,7 @@ import {
   Pill, Receipt, UserCog, Building2, FileText, Search, Bell, LogOut,
   Menu, X, ChevronRight, ChevronDown, Settings, User as UserIcon,
   Leaf, CalendarClock, ShieldCheck, MonitorPlay, BedDouble, Hospital,
-  FlaskConical, ChefHat
+  FlaskConical
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ThemeToggle } from './ThemeToggle'
@@ -42,7 +42,6 @@ const navSections = [
     items: [
       { to: '/admin/pharmacy', label: 'Pharmacy', icon: Pill, perm: 'pharmacy.view' },
       { to: '/admin/billing', label: 'Billing', icon: Receipt, perm: 'billing.view' },
-      { to: '/admin/diet', label: 'Diet & Kitchen', icon: ChefHat, perm: 'diet.serve' },
       { to: '/admin/reports', label: 'Reports', icon: FileText, perm: 'reports.view' },
     ],
   },
@@ -56,18 +55,14 @@ const navSections = [
       { to: '/admin/audit', label: 'Audit Logs', icon: FileText, perm: 'audit.view' },
     ],
   },
-  {
-    label: 'Account',
-    items: [
-      { to: '/admin/profile', label: 'My Profile', icon: UserIcon },
-    ],
-  },
 ] as const
 
 // ─── Sidebar ────────────────────────────────────────────────────────
 function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const location = useLocation()
   const { can } = useCan()
+  const { logout } = useAuth()
+  const navigate = useNavigate()
 
   const visibleSections = navSections
     .map((section) => ({ ...section, items: section.items.filter((item) => !('perm' in item) || can(item.perm)) }))
@@ -155,6 +150,22 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
             </div>
           </div>
         ))}
+
+        <div className="mt-8 mb-4">
+          <p className={`mb-2 pl-3 text-xs font-bold uppercase tracking-wider text-emerald-400/50 ${collapsed ? 'hidden' : 'block'}`}>
+            Account
+          </p>
+          <div className="space-y-1">
+            <button
+              onClick={async () => { await logout(); navigate('/login') }}
+              className={`w-full group relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-300 text-rose-200/70 hover:text-white hover:bg-rose-900/40 ${collapsed ? 'justify-center' : ''}`}
+              title={collapsed ? 'Log Out' : undefined}
+            >
+              <LogOut className={`relative z-10 h-[22px] w-[22px] transition-transform duration-300 group-hover:scale-110`} />
+              {!collapsed && <span className="relative z-10 truncate">Log Out</span>}
+            </button>
+          </div>
+        </div>
       </nav>
     </motion.aside>
   )
@@ -163,6 +174,8 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 // ─── Mobile Nav ─────────────────────────────────────────────────────
 function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { can } = useCan()
+  const { logout } = useAuth()
+  const navigate = useNavigate()
   const visibleSections = navSections
     .map((section) => ({ ...section, items: section.items.filter((item) => !('perm' in item) || can(item.perm)) }))
     .filter((section) => section.items.length > 0)
@@ -229,6 +242,15 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
                 </div>
               ))}
             </nav>
+            <div className="p-4 border-t border-emerald-700/30 dark:border-emerald-950/40">
+              <button
+                onClick={async () => { onClose(); await logout(); navigate('/login') }}
+                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all text-rose-200/70 hover:bg-rose-900/40 hover:text-white"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Log Out</span>
+              </button>
+            </div>
           </motion.div>
         </div>
       )}

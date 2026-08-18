@@ -66,12 +66,12 @@ export function CardHeader({ title, subtitle, action }: { title: string; subtitl
 
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="mb-8 flex items-center justify-between">
+    <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between border-b border-border pb-5 gap-4">
       <div>
-        <h1 className="text-3xl font-bold text-foreground tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>{title}</h1>
-        {subtitle && <p className="mt-1.5 text-sm text-muted-foreground max-w-2xl">{subtitle}</p>}
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight tracking-tight">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm text-muted-foreground max-w-2xl">{subtitle}</p>}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   )
 }

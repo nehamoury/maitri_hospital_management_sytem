@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, errorMessage, dietApi } from '../../lib/api'
 import { Can } from '../../lib/can'
 import { Card, CardHeader, Badge, EmptyState, Spinner, PageHeader, Button, Input, Select, Field, Textarea } from '../../components/ui'
+import { toast } from 'sonner'
+import { X } from 'lucide-react'
 import { PrescribeDietModal } from './diet/components/PrescribeDietModal'
 
 interface Bed {
@@ -139,6 +141,13 @@ export default function AdmissionDetail() {
   })
   const [dietPlans, setDietPlans] = useState<any[]>([])
   const [showPrescribe, setShowPrescribe] = useState(false)
+  const [editPlan, setEditPlan] = useState<any>(null)
+  const [renewPlan, setRenewPlan] = useState<any>(null)
+  const [renewEndDate, setRenewEndDate] = useState('')
+  const [cancelPlan, setCancelPlan] = useState<any>(null)
+  const [cancelPlanReason, setCancelPlanReason] = useState('')
+  const [renewing, setRenewing] = useState(false)
+  const [cancellingPlan, setCancellingPlan] = useState(false)
 
   const load = useCallback(() => {
     if (!id) return
@@ -218,6 +227,52 @@ export default function AdmissionDetail() {
       setError(errorMessage(err, 'Failed to add diet order'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const openRenew = (plan: any) => {
+    setRenewPlan(plan)
+    setRenewEndDate(plan.end_date?.slice(0, 10) ?? new Date().toISOString().split('T')[0])
+  }
+
+  const handleRenew = async () => {
+    if (!renewPlan) return
+    if (!renewEndDate) {
+      setError('End date is required')
+      return
+    }
+    setRenewing(true)
+    setError('')
+    try {
+      await dietApi.renewDietPlan(renewPlan.id, renewEndDate)
+      setRenewPlan(null)
+      toast.success('Diet plan renewed')
+      load()
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to renew diet plan'))
+    } finally {
+      setRenewing(false)
+    }
+  }
+
+  const openCancelPlan = (plan: any) => {
+    setCancelPlan(plan)
+    setCancelPlanReason('')
+  }
+
+  const handleCancelPlan = async () => {
+    if (!cancelPlan) return
+    setCancellingPlan(true)
+    setError('')
+    try {
+      await dietApi.cancelDietPlan(cancelPlan.id, cancelPlanReason.trim() || undefined)
+      setCancelPlan(null)
+      toast.success('Diet plan cancelled')
+      load()
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to cancel diet plan'))
+    } finally {
+      setCancellingPlan(false)
     }
   }
 
@@ -529,7 +584,7 @@ export default function AdmissionDetail() {
               </form>
             )}
             <div className="p-5 space-y-4">
-              {/* Diet Plans History (SOW 16) */}
+              {/* Diet Plans History — active plan + renewal/cancel + history (SOW 16) */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-teal-800 mb-2">Active Diet Plan (SOW 16)</h4>
                 {dietPlans.filter(p => p.is_active).length === 0 ? (
@@ -544,7 +599,18 @@ export default function AdmissionDetail() {
                             Validity: {new Date(plan.start_date).toLocaleDateString()} to {new Date(plan.end_date).toLocaleDateString()}
                           </p>
                         </div>
-                        <Badge color="green">Active</Badge>
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge color="green">Active</Badge>
+                            <div className="flex gap-1">
+                              <Can permission="diet.order">
+                                <Button variant="secondary" className="px-2.5 py-1 text-xs" onClick={() => setEditPlan(plan)}>Edit</Button>
+                                <Button variant="secondary" className="px-2.5 py-1 text-xs" onClick={() => openRenew(plan)}>Renew</Button>
+                                <Button variant="ghost" className="px-2.5 py-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => openCancelPlan(plan)}>Cancel</Button>
+                              </Can>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                       {plan.pathya && <p className="text-xs text-slate-700 mt-2"><span className="font-semibold text-slate-900">Pathya:</span> {plan.pathya}</p>}
                       {plan.apathya && <p className="text-xs text-slate-700 mt-1"><span className="font-semibold text-slate-900">Apathya:</span> {plan.apathya}</p>}
@@ -553,7 +619,35 @@ export default function AdmissionDetail() {
                     </div>
                   ))
                 )}
+                {dietPlans.filter(p => p.is_active).length === 0 && (
+                  <Can permission="diet.order">
+                    <p className="text-[10px] text-slate-400 italic">Use "+ Diet Plan" to prescribe one.</p>
+                  </Can>
+                )}
               </div>
+
+              {/* Diet Plan History (previously active / cancelled) */}
+              {dietPlans.filter(p => !p.is_active).length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Diet Plan History</h4>
+                  <div className="space-y-2">
+                    {dietPlans.filter(p => !p.is_active).map(plan => (
+                      <div key={plan.id} className="rounded-lg border border-slate-100 px-3 py-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-700">{plan.diet_type}</p>
+                          <Badge color={plan.cancelled_at ? 'red' : 'slate'}>{plan.cancelled_at ? 'Cancelled' : 'Inactive'}</Badge>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {new Date(plan.start_date).toLocaleDateString()} → {new Date(plan.end_date).toLocaleDateString()} {plan.ordered_by_name && `• By ${plan.ordered_by_name}`}
+                        </p>
+                        {plan.cancelled_at && (
+                          <p className="text-[10px] text-rose-500 mt-0.5">Cancelled {new Date(plan.cancelled_at).toLocaleString()}{plan.cancelled_by_name && ` by ${plan.cancelled_by_name}`}{plan.cancellation_reason && ` — ${plan.cancellation_reason}`}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Legacy/Simple Diet Instructions */}
               <div>
@@ -708,16 +802,74 @@ export default function AdmissionDetail() {
 
       <Button variant="secondary" onClick={() => navigate('/admin/admissions')}>← Back to Admissions</Button>
 
-      {showPrescribe && (
+      {(showPrescribe || editPlan) && (
         <PrescribeDietModal
           admissionId={adm.id}
           patientId={adm.patient_id}
-          onClose={() => setShowPrescribe(false)}
+          plan={editPlan ?? undefined}
+          onClose={() => {
+            setShowPrescribe(false)
+            setEditPlan(null)
+          }}
           onDone={() => {
             setShowPrescribe(false)
+            setEditPlan(null)
             load()
           }}
         />
+      )}
+
+      {/* Renew Diet Plan Modal */}
+      {renewPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-2xl border border-border w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+              <h2 className="font-bold text-foreground">Renew Diet Plan</h2>
+              <button onClick={() => setRenewPlan(null)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Extend <span className="font-semibold text-foreground">{renewPlan.diet_type}</span> (current end:{' '}
+                {new Date(renewPlan.end_date).toLocaleDateString()}) to a new end date.
+              </p>
+              <Field label="New End Date *">
+                <Input type="date" value={renewEndDate} onChange={e => setRenewEndDate(e.target.value)} />
+              </Field>
+              <div className="pt-4 border-t border-border flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setRenewPlan(null)}>Back</Button>
+                <Button variant="primary" onClick={handleRenew} disabled={renewing}>
+                  {renewing ? 'Renewing...' : 'Confirm Renewal'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Diet Plan Modal */}
+      {cancelPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-2xl border border-border w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+              <h2 className="font-bold text-foreground">Cancel Diet Plan</h2>
+              <button onClick={() => setCancelPlan(null)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Deactivate <span className="font-semibold text-foreground">{cancelPlan.diet_type}</span> for this admission. History is preserved.
+              </p>
+              <Field label="Reason (optional)">
+                <Input value={cancelPlanReason} onChange={e => setCancelPlanReason(e.target.value)} placeholder="e.g., switched to another regimen" />
+              </Field>
+              <div className="pt-4 border-t border-border flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setCancelPlan(null)}>Back</Button>
+                <Button variant="danger" onClick={handleCancelPlan} disabled={cancellingPlan}>
+                  {cancellingPlan ? 'Cancelling...' : 'Confirm Cancel'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

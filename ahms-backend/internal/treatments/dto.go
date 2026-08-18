@@ -63,12 +63,24 @@ type SkipSessionRequest struct {
 	Reason string `json:"reason"`
 }
 
+// ReassignTherapistRequest is the payload for POST /treatment-plans/:id/reassign-therapist.
+type ReassignTherapistRequest struct {
+	TherapistUserID string `json:"therapist_user_id" binding:"required"`
+}
+
+// ReassignSessionTherapistRequest is the payload for PATCH /treatment-sessions/:id/therapist.
+type ReassignSessionTherapistRequest struct {
+	TherapistUserID string `json:"therapist_user_id" binding:"required"`
+}
+
 // SessionResponse is the public shape of one executed session.
 type SessionResponse struct {
 	ID             string  `json:"id"`
 	SessionNumber  int     `json:"session_number"`
 	SessionDate    string  `json:"session_date"`
+	TherapistUserID string `json:"therapist_user_id,omitempty"`
 	TherapistName  string  `json:"therapist_name,omitempty"`
+	TherapistOverridden bool `json:"therapist_overridden"`
 	Status         string  `json:"status"`
 	Duration       int     `json:"duration_minutes"`
 	MaterialsUsed  string  `json:"materials_used,omitempty"`
@@ -149,6 +161,7 @@ func toSessionResponse(s *models.TreatmentSession) SessionResponse {
 		ID:             s.ID.String(),
 		SessionNumber:  s.SessionNumber,
 		SessionDate:    s.SessionDate.Format("2006-01-02"),
+		TherapistOverridden: s.TherapistOverridden,
 		Status:         s.Status,
 		Duration:       s.Duration,
 		MaterialsUsed:  s.MaterialsUsed,
@@ -157,6 +170,9 @@ func toSessionResponse(s *models.TreatmentSession) SessionResponse {
 		Complications:   s.Complications,
 		Observations:    s.Observations,
 		Notes:           s.Notes,
+	}
+	if s.TherapistUserID != nil {
+		r.TherapistUserID = s.TherapistUserID.String()
 	}
 	if s.TherapistUser != nil {
 		r.TherapistName = s.TherapistUser.FullName

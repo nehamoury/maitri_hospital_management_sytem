@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api, errorMessage } from '../../lib/api'
 import { Can } from '../../lib/can'
 import { Card, Badge, Table, EmptyState, Spinner, PageHeader, Input, Button } from '../../components/ui'
+import { Search, X, User } from 'lucide-react'
 
 interface Patient {
   id: string
@@ -33,55 +34,81 @@ export default function Patients() {
   }, [query])
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Patients"
-        subtitle="Register and manage patient records"
+        subtitle="Manage registered patients and their clinical charts."
         action={
           <Can permission="patient.create">
             <Link to="/admin/patients/new">
-              <Button>+ Register Patient</Button>
+              <Button className="flex items-center gap-1.5 shadow-sm">
+                <User className="h-4 w-4" /> Register Patient
+              </Button>
             </Link>
           </Can>
         }
       />
+
       <Card>
-        <div className="border-b border-slate-200 p-4">
+        {/* Search input with icon */}
+        <div className="relative border-b border-border p-4 bg-muted/10">
+          <div className="pointer-events-none absolute inset-y-0 left-7 flex items-center pl-1">
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </div>
           <Input
-            placeholder="Search by name, UHID, or mobile..."
+            placeholder="Search by patient name, UHID, or mobile number..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            className="pl-9 pr-8"
           />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              className="absolute inset-y-0 right-7 flex items-center pr-1 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
+
         {error ? (
           <EmptyState message={error} />
         ) : !patients ? (
-          <Spinner label="Loading patients..." />
+          <Spinner label="Loading patient records..." />
         ) : patients.length === 0 ? (
-          <EmptyState message="No patients found" />
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-sm font-semibold text-foreground">No patients found</p>
+            <p className="text-xs text-muted-foreground mt-1">Try modifying your search query or registering a new patient.</p>
+            {query && (
+              <Button variant="secondary" onClick={() => setQuery('')} className="mt-4">
+                Clear Filters
+              </Button>
+            )}
+          </div>
         ) : (
           <>
             <Table headers={['UHID', 'Name', 'Gender', 'Age', 'Mobile', 'Status', '']}>
               {patients.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE).map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono text-xs text-emerald-700">{p.uhid}</td>
-                  <td className="px-4 py-3 font-medium text-slate-800">{p.full_name}</td>
-                  <td className="px-4 py-3 text-slate-600">{p.gender}</td>
-                  <td className="px-4 py-3 text-slate-600">{p.age}</td>
-                  <td className="px-4 py-3 text-slate-600">{p.mobile}</td>
+                <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs text-primary font-semibold">{p.uhid}</td>
+                  <td className="px-4 py-3 font-semibold text-foreground">{p.full_name}</td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">{p.gender}</td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">{p.age}</td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">{p.mobile}</td>
                   <td className="px-4 py-3">
                     <Badge color={p.is_active ? 'green' : 'red'}>{p.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link to={`/admin/patients/${p.id}`} className="text-sm font-medium text-emerald-700 hover:underline">
-                      View
+                    <Link to={`/admin/patients/${p.id}`} className="text-sm font-semibold text-primary hover:underline">
+                      View Profile
                     </Link>
                   </td>
                 </tr>
               ))}
             </Table>
-            <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
-              <span className="text-sm text-slate-500">
+            <div className="flex items-center justify-between border-t border-border px-4 py-3 bg-muted/10">
+              <span className="text-xs text-muted-foreground font-medium">
                 Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, patients.length)} of {patients.length} patients
               </span>
               <div className="flex gap-2">

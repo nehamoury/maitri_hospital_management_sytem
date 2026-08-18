@@ -42,6 +42,14 @@ type Repository interface {
 	CountCompletedSessions(planID uuid.UUID) (int, error)
 	ListProcedureTypes() ([]models.ProcedureType, error)
 	ListTherapists() ([]models.User, error)
+
+	// UpdatePendingSessionsTherapist bulk-updates the therapist on all PENDING
+	// sessions of the plan that have NOT been individually overridden.
+	UpdatePendingSessionsTherapist(planID uuid.UUID, therapistID *uuid.UUID) error
+
+	// ReassignPlanTherapistTx updates the plan's therapist and all eligible
+	// pending sessions in a single database transaction.
+	ReassignPlanTherapistTx(plan *models.TreatmentPlan, therapistID *uuid.UUID) error
 }
 
 type repository struct {
@@ -235,4 +243,21 @@ func (r *repository) ListTherapists() ([]models.User, error) {
 		Order("users.full_name asc").
 		Find(&users).Error
 	return users, err
+}
+
+func (r *repository) UpdatePendingSessionsTherapist(planID uuid.UUID, therapistID *uuid.UUID) error {
+	return r.db.Model(&models.TreatmentSession{}).
+		Where("plan_id = ? AND status = ? AND therapist_overridden = false", planID, models.SessionPending).
+		Update("therapist_user_id", therapistID).Error
+}
+
+func (r *repository) ReassignPlanTherapistTx(plan *models.TreatmentPlan, therapistID *uuid.UUID) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(plan).Update("assigned_therapist_user_id", therapistID).Error; err != nil {
+			return err
+		}
+		return tx.Model(&models.TreatmentSession{}).
+			Where("plan_id = ? AND status = ? AND therapist_overridden = false", plan.ID, models.SessionPending).
+			Update("therapist_user_id", therapistID).Error
+	})
 }

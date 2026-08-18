@@ -22,6 +22,15 @@ type Service interface {
 	TodaySessions(therapistUserID uuid.UUID) ([]models.TreatmentPlan, error)
 	ListProcedureTypes() ([]models.ProcedureType, error)
 	ListTherapists() ([]models.User, error)
+
+	// ReassignTherapist changes the plan's default therapist and bulk-updates
+	// all PENDING sessions that have NOT been individually overridden.
+	ReassignTherapist(planID uuid.UUID, req ReassignTherapistRequest) (*models.TreatmentPlan, error)
+
+	// ReassignSessionTherapist overrides the therapist on a single PENDING
+	// session. Sets the therapist_overridden flag so plan-level reassignments
+	// preserve this override.
+	ReassignSessionTherapist(sessionID uuid.UUID, req ReassignSessionTherapistRequest) (*models.TreatmentSession, error)
 }
 
 type service struct {
@@ -405,4 +414,58 @@ func (s *service) ListProcedureTypes() ([]models.ProcedureType, error) {
 
 func (s *service) ListTherapists() ([]models.User, error) {
 	return s.repo.ListTherapists()
+}
+
+func (s *service) ReassignTherapist(planID uuid.UUID, req ReassignTherapistRequest) (*models.TreatmentPlan, error) {
+	plan, err := s.repo.FindPlanByID(planID)
+	if err != nil {
+		return nil, err
+	}
+	// Allow reassignment on PLANNED, APPROVED, or IN_PROGRESS plans.
+	if plan.Status == models.TreatmentCompleted || plan.Status == models.TreatmentCancelled {
+		return nil, ErrInvalidState
+	}
+	tID, err := parseUUID(req.TherapistUserID)
+	if err != nil {
+		return nil, err
+	}
+	ok, err := s.repo.TherapistExists(tID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrNotFound
+	}
+	// Single transaction: update plan + eligible PENDING sessions.
+	if err := s.repo.ReassignPlanTherapistTx(plan, &tID); err != nil {
+		return nil, err
+	}
+	return s.repo.FindPlanByID(plan.ID)
+}
+
+func (s *service) ReassignSessionTherapist(sessionID uuid.UUID, req ReassignSessionTherapistRequest) (*models.TreatmentSession, error) {
+	session, err := s.repo.FindSessionByID(sessionID)
+	if err != nil {
+		return nil, err
+	}
+	if session.Status != models.SessionPending {
+		return nil, ErrInvalidState
+	}
+	tID, err := parseUUID(req.TherapistUserID)
+	if err != nil {
+		return nil, err
+	}
+	ok, err := s.repo.TherapistExists(tID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrNotFound
+	}
+	session.TherapistUserID = &tID
+	session.TherapistOverridden = true
+	if err := s.repo.UpdateSession(session); err != nil {
+		return nil, err
+	}
+	return s.repo.FindSessionByID(session.ID)
 }

@@ -21,8 +21,7 @@ export function Hero() {
 
   return (
     <div
-      className="relative w-full flex flex-col justify-between overflow-hidden"
-      style={{ minHeight: '100vh', paddingTop: '120px', paddingBottom: '60px' }}
+      className="relative w-full flex flex-col justify-center overflow-hidden pt-28 pb-12 min-h-screen"
     >
       {/* Animated Carousel Background */}
       <div className="absolute inset-0 z-0 bg-foreground">
@@ -79,7 +78,7 @@ export function Hero() {
 
           <motion.h1
             variants={heroTextVariants}
-            className="text-4xl md:text-[4rem] lg:text-[4.5rem] font-bold leading-[1.02] tracking-tighter mb-8"
+            className="text-4xl md:text-[3.5rem] lg:text-[4.2rem] font-bold leading-[1.05] tracking-tighter mb-5"
             style={{ fontFamily: "'Outfit', 'Inter', sans-serif", color: '#ffffff' }}
           >
             Ancient healing,<br />
@@ -89,7 +88,7 @@ export function Hero() {
 
           <motion.p
             variants={fadeUp}
-            className="text-lg md:text-xl max-w-3xl leading-snug mb-10 font-medium"
+            className="text-base md:text-lg max-w-2xl leading-relaxed mb-6 font-medium"
             style={{ color: 'rgba(255,255,255,0.95)' }}
           >
             Eight specialty departments, dedicated Panchakarma suites and an
@@ -139,7 +138,7 @@ export function Hero() {
         </div>
 
         {/* Stats Bar (Inside Content Flow for Responsiveness) */}
-        <div className="mt-16 w-full max-w-[1200px]">
+        <div className="mt-8 w-full max-w-[1200px]">
           <HeroStatistics />
         </div>
       </motion.div>

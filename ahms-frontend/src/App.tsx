@@ -28,7 +28,6 @@ const AdmissionDetail = lazy(() => import('./pages/admin/AdmissionDetail'))
 const Wards = lazy(() => import('./pages/admin/Wards'))
 const Reports = lazy(() => import('./pages/admin/reports/Reports'))
 const Lab = lazy(() => import('./pages/admin/lab/Lab'))
-const KitchenDashboard = lazy(() => import('./pages/admin/diet/KitchenDashboard'))
 const Doctors = lazy(() => import('./pages/admin/Doctors'))
 const Departments = lazy(() => import('./pages/admin/Departments'))
 const DepartmentDetail = lazy(() => import('./pages/admin/DepartmentDetail'))
@@ -51,6 +50,9 @@ const Research = lazy(() => import('./pages/public/Research'))
 const Gallery = lazy(() => import('./pages/public/Gallery'))
 const Blog = lazy(() => import('./pages/public/Blog'))
 const NotFound = lazy(() => import('./pages/public/NotFound'))
+const Terms = lazy(() => import('@/pages/public/Terms'))
+const Privacy = lazy(() => import('@/pages/public/Privacy'))
+const FAQ = lazy(() => import('@/pages/public/FAQ'))
 
 const PatientLogin = lazy(() => import('./pages/portal/PatientLogin'))
 const PortalHome = lazy(() => import('./pages/portal/PortalHome'))
@@ -58,6 +60,8 @@ const PortalAppointments = lazy(() => import('./pages/portal/PortalAppointments'
 const PortalPrescriptions = lazy(() => import('./pages/portal/PortalPrescriptions'))
 const PortalBills = lazy(() => import('./pages/portal/PortalBills'))
 const PortalProfile = lazy(() => import('./pages/portal/PortalProfile'))
+const PortalTreatmentPlans = lazy(() => import('@/pages/portal/PortalTreatmentPlans')) // new page
+const PortalSessions = lazy(() => import('@/pages/portal/PortalSessions')) // new page
 
 function PortalProtected({ children }: { children: React.ReactNode }) {
   const { token, user } = useAuth()
@@ -123,7 +127,6 @@ export default function App() {
               <Route path="wards" element={<PermissionGate permission="ward.view"><Wards /></PermissionGate>} />
               <Route path="reports" element={<PermissionGate permission="reports.view"><Reports /></PermissionGate>} />
               <Route path="lab" element={<PermissionGate permission="lab.view"><Lab /></PermissionGate>} />
-              <Route path="diet" element={<PermissionGate permission="diet.serve"><KitchenDashboard /></PermissionGate>} />
               <Route path="doctors" element={<PermissionGate permission="doctor.view"><Doctors /></PermissionGate>} />
               <Route path="departments" element={<PermissionGate permission="department.view"><Departments /></PermissionGate>} />
               <Route path="departments/:id" element={<PermissionGate permission="department.view"><DepartmentDetail /></PermissionGate>} />
@@ -149,6 +152,8 @@ export default function App() {
               <Route path="prescriptions" element={<PortalPrescriptions />} />
               <Route path="bills" element={<PortalBills />} />
               <Route path="profile" element={<PortalProfile />} />
+              <Route path="treatment-plans" element={<PortalTreatmentPlans />} />
+              <Route path="sessions" element={<PortalSessions />} />
             </Route>
 
             <Route path="/" element={<PublicPage><Home /></PublicPage>} />
@@ -164,6 +169,9 @@ export default function App() {
             <Route path="/blog" element={<PublicPage><Blog /></PublicPage>} />
             <Route path="/appointment" element={<PublicPage><Appointment /></PublicPage>} />
             <Route path="/contact" element={<PublicPage><Contact /></PublicPage>} />
+            <Route path="/terms" element={<PublicPage><Terms /></PublicPage>} />
+            <Route path="/privacy" element={<PublicPage><Privacy /></PublicPage>} />
+            <Route path="/faq" element={<PublicPage><FAQ /></PublicPage>} />
 
             <Route path="*" element={<PublicPage><NotFound /></PublicPage>} />
           </Routes>

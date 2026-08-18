@@ -113,6 +113,11 @@ type TreatmentSession struct {
 	TherapistUserID *uuid.UUID `gorm:"type:uuid;index" json:"therapist_user_id,omitempty"`
 	TherapistUser   *User      `gorm:"foreignKey:TherapistUserID" json:"therapist_user,omitempty"`
 
+	// TherapistOverridden is true when this session's therapist was explicitly
+	// set via session-level reassignment (as opposed to inheriting the plan
+	// default). Plan-level reassignment skips overridden sessions.
+	TherapistOverridden bool `gorm:"not null;default:false" json:"therapist_overridden"`
+
 	Status         string     `gorm:"type:varchar(20);not null;default:'PENDING'" json:"status"`
 	Duration       int        `gorm:"not null;default:0" json:"duration_minutes"`
 	MaterialsUsed  string     `gorm:"type:text" json:"materials_used"`

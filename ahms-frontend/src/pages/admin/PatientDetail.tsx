@@ -274,15 +274,15 @@ const TABS: { key: TabKey; label: string }[] = [
 
 function TabBar({ active, onChange }: { active: TabKey; onChange: (k: TabKey) => void }) {
   return (
-    <div className="mb-6 flex flex-wrap gap-1 border-b border-slate-200">
+    <div className="mb-6 flex flex-wrap gap-1 border-b border-border">
       {TABS.map((t) => (
         <button
           key={t.key}
           onClick={() => onChange(t.key)}
-          className={`-mb-px rounded-t-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
+          className={`-mb-px px-4 py-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
             active === t.key
-              ? 'border border-b-0 border-slate-200 bg-white text-teal-700'
-              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           {t.label}
@@ -295,9 +295,9 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (k: TabKey) =>
 function InfoItem({ label, value }: { label: string; value?: string | number }) {
   const v = value === undefined || value === null || value === '' ? '—' : value
   return (
-    <div className="bg-slate-50/50 p-2.5 rounded-xl border border-slate-100/50">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
-      <p className="mt-0.5 text-sm font-semibold text-slate-800">{v}</p>
+    <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
+      <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+      <p className="mt-1.5 text-sm font-semibold text-foreground">{v}</p>
     </div>
   )
 }
@@ -605,8 +605,8 @@ export default function PatientDetail() {
               </Field>
             </div>
 
-            <div className="border-t border-slate-100 pt-4">
-              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-teal-800">Address Details</p>
+            <div className="border-t border-border pt-6 mt-6">
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-teal-850 dark:text-teal-400 border-l-2 border-primary pl-2.5">Address Details</h3>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="sm:col-span-2">
                   <Field label="Address">
@@ -628,8 +628,8 @@ export default function PatientDetail() {
               </div>
             </div>
 
-            <div className="border-t border-slate-100 pt-4">
-              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-teal-800">Physical Parameters</p>
+            <div className="border-t border-border pt-6 mt-6">
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-teal-850 dark:text-teal-400 border-l-2 border-primary pl-2.5">Physical Parameters</h3>
               <div className="grid gap-4 sm:grid-cols-5">
                 <Field label="Height (cm)">
                   <Input type="number" value={form.height_cm} onChange={(e) => setForm({ ...form, height_cm: e.target.value })} />
@@ -649,8 +649,8 @@ export default function PatientDetail() {
               </div>
             </div>
 
-            <div className="border-t border-slate-100 pt-4">
-              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-teal-800">Medical Information</p>
+            <div className="border-t border-border pt-6 mt-6">
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-teal-850 dark:text-teal-400 border-l-2 border-primary pl-2.5">Medical Information</h3>
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field label="Allergies">
                   <Input value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} placeholder="e.g. Peanuts, Penicillin" />
@@ -664,8 +664,8 @@ export default function PatientDetail() {
               </div>
             </div>
 
-            <div className="border-t border-slate-100 pt-4">
-              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-teal-800">Emergency Contact</p>
+            <div className="border-t border-border pt-6 mt-6">
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-teal-850 dark:text-teal-400 border-l-2 border-primary pl-2.5">Emergency Contact</h3>
               <div className="grid gap-4 sm:grid-cols-4">
                 <Field label="Contact Name">
                   <Input value={form.emergency_contact_name} onChange={(e) => setForm({ ...form, emergency_contact_name: e.target.value })} />
@@ -682,8 +682,8 @@ export default function PatientDetail() {
               </div>
             </div>
 
-            <div className="border-t border-slate-100 pt-4">
-              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-teal-800">Status & Remarks</p>
+            <div className="border-t border-border pt-6 mt-6">
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-teal-850 dark:text-teal-400 border-l-2 border-primary pl-2.5">Status & Remarks</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Status">
                   <Select value={form.is_active ? 'true' : 'false'} onChange={(e) => setForm({ ...form, is_active: e.target.value === 'true' })}>

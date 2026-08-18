@@ -1,4 +1,4 @@
-import { Input } from '@/components/ui'
+import { Input, Select } from '@/components/ui'
 
 interface ReportFiltersProps {
   filters: {
@@ -6,6 +6,7 @@ interface ReportFiltersProps {
     to?: string
     department_id?: string
     group_by?: string
+    expiry_days?: number
   }
   setFilters: (f: any) => void
   showDepartment?: boolean
@@ -21,9 +22,9 @@ export function ReportFilters({
   departments = [],
 }: ReportFiltersProps) {
   return (
-    <div className="flex flex-wrap items-end gap-4 mb-6 p-4 bg-white rounded-lg shadow-sm border border-slate-200">
+    <div className="flex flex-wrap items-end gap-4 mb-6 p-4 bg-muted/20 rounded-2xl border border-border">
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-slate-700">From Date</label>
+        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">From Date</label>
         <Input
           type="date"
           value={filters.from || ''}
@@ -33,7 +34,7 @@ export function ReportFilters({
       </div>
       
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-slate-700">To Date</label>
+        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">To Date</label>
         <Input
           type="date"
           value={filters.to || ''}
@@ -44,11 +45,11 @@ export function ReportFilters({
 
       {showDepartment && (
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-slate-700">Department</label>
-          <select
-            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Department</label>
+          <Select
             value={filters.department_id || ''}
             onChange={(e) => setFilters({ ...filters, department_id: e.target.value })}
+            className="w-48"
           >
             <option value="">All Departments</option>
             {departments.map((d) => (
@@ -56,22 +57,22 @@ export function ReportFilters({
                 {d.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
 
       {showGroupBy && (
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-slate-700">Group By</label>
-          <select
-            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Group By</label>
+          <Select
             value={filters.group_by || 'day'}
             onChange={(e) => setFilters({ ...filters, group_by: e.target.value })}
+            className="w-40"
           >
             <option value="day">Day</option>
             <option value="department">Department</option>
             <option value="service">Service</option>
-          </select>
+          </Select>
         </div>
       )}
     </div>

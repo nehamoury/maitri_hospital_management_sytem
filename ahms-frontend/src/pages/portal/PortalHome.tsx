@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Calendar, FileText, IndianRupee, LogOut, ArrowRight, User2, MapPin, Phone, Droplet } from 'lucide-react'
+import { Calendar, FileText, IndianRupee, LogOut, ArrowRight, User2, MapPin, Phone, Droplet, Activity } from 'lucide-react'
 import { portalApi, getPortalUser, clearPortalAuth, errorMessage } from '../../lib/api'
 import { Card, CardHeader, Badge, Spinner, EmptyState, Button } from '../../components/ui'
 
@@ -119,7 +119,12 @@ export default function PortalHome() {
                 <Calendar className="mr-2 h-4 w-4" /> Book Appointment
               </Button>
             </Link>
-            <Button variant="secondary" onClick={logout} className="bg-emerald-900/40 text-white hover:bg-emerald-900/60 border-emerald-700/40">
+            <Link to="/portal/sessions">
+              <Button className="bg-emerald-950/40 text-emerald-100 hover:bg-emerald-900/60 border border-emerald-700/30 transition-transform hover:-translate-y-0.5">
+                <Activity className="mr-2 h-4 w-4" /> Therapy Sessions
+              </Button>
+            </Link>
+            <Button variant="secondary" onClick={logout} className="bg-emerald-900/40 text-white hover:bg-emerald-900/60 border border-emerald-700/40">
               <LogOut className="mr-2 h-4 w-4" /> Logout
             </Button>
           </div>
@@ -161,7 +166,7 @@ export default function PortalHome() {
       {error && <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700 border border-red-100">{error}</div>}
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Link to="/portal/appointments" className="group">
           <Card className="p-6 relative overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 border-slate-100">
             <div className="absolute right-3 top-3 rounded-2xl bg-teal-50 p-3 text-teal-600 transition-colors group-hover:bg-teal-600 group-hover:text-white">
@@ -197,6 +202,19 @@ export default function PortalHome() {
             <p className="mt-1 text-sm font-semibold text-slate-500">Outstanding Balance</p>
             <span className={`mt-4 inline-flex items-center gap-1 text-xs font-semibold ${dueTotal > 0 ? 'text-rose-600' : 'text-emerald-700'} group-hover:underline`}>
               Invoices & Payments <ArrowRight className="h-3 w-3" />
+            </span>
+          </Card>
+        </Link>
+
+        <Link to="/portal/treatment-plans" className="group">
+          <Card className="p-6 relative overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 border-slate-100">
+            <div className="absolute right-3 top-3 rounded-2xl bg-amber-50 p-3 text-amber-600 transition-colors group-hover:bg-amber-600 group-hover:text-white">
+              <Activity className="h-6 w-6" />
+            </div>
+            <p className="text-3xl font-extrabold text-slate-800">1</p>
+            <p className="mt-1 text-sm font-semibold text-slate-500">Active Plans</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-amber-600 group-hover:underline">
+              Track Progress <ArrowRight className="h-3 w-3" />
             </span>
           </Card>
         </Link>
