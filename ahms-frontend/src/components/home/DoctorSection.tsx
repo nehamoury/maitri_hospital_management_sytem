@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { DoctorCard, DoctorSkeleton } from '../../design-system/Cards'
 import { staggerContainer, fadeUp, viewportOpts } from '../../design-system/animations'
 import { Section } from '../../design-system/Layout'
+import { AutoScrollCarousel } from '../../design-system/Carousel'
 
 interface Doctor {
   id: string
@@ -52,21 +53,25 @@ export function DoctorSection({ doctors }: { doctors: Doctor[] | null }) {
         initial="hidden"
         whileInView="visible"
         viewport={viewportOpts}
+        className="w-full"
       >
         {!doctors ? (
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 px-4">
             {Array.from({ length: 4 }).map((_, i) => <DoctorSkeleton key={i} />)}
           </div>
         ) : (
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {doctors.slice(0, 4).map((d, i) => (
-              <DoctorCard 
-                key={d.id} 
-                {...d} 
-                image={drImages[i % drImages.length]}
-                rating={4.8 + (Math.random() * 0.2)}
-              />
-            ))}
+          <div className="-mx-4 sm:-mx-6 lg:-mx-12">
+            <AutoScrollCarousel speed="slow" gap="gap-6" className="py-4">
+              {doctors.map((d, i) => (
+                <div key={d.id} className="w-[260px] sm:w-[280px]">
+                  <DoctorCard 
+                    {...d} 
+                    image={(d as any).image || drImages[i % drImages.length]}
+                    rating={4.8 + (Math.random() * 0.2)}
+                  />
+                </div>
+              ))}
+            </AutoScrollCarousel>
           </div>
         )}
       </motion.div>

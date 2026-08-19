@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, errorMessage } from '../../lib/api'
+import { api, errorMessage, reportsApi } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { AdminStatCard, AdminQuickAction, AdminSectionHeader, AdminAlertCard, AdminSkeleton } from '../../design-system/AdminComponents'
 import {
   Users, Calendar, Stethoscope, Building2, UserPlus, CalendarPlus,
   ArrowLeftRight, Receipt, Activity, AlertTriangle, Clock,
   Pill, FileText, ClipboardList, UserCheck, CreditCard, Banknote,
-  Search, PillIcon, Package
+  Search, PillIcon, Package, Bed, BriefcaseMedical
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { cn } from '../../lib/utils'
@@ -74,6 +74,7 @@ export default function Dashboard() {
   const [medicines, setMedicines] = useState<Medicine[]>([])
   const [bills, setBills] = useState<Bill[]>([])
   const [encounters, setEncounters] = useState<EncounterLight[]>([])
+  const [reportSummary, setReportSummary] = useState<any>(null)
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
@@ -97,6 +98,15 @@ export default function Dashboard() {
     }
     if (isAdmin || role === 'RECEPTIONIST' || role === 'DOCTOR' || role === 'PANCHAKARMA_DOCTOR') {
       api.get<{ data: EncounterLight[] }>(`/encounters?date=${todayISO}`).then((r) => setEncounters(r.data.data)).catch(() => {})
+    }
+    if (isAdmin) {
+      const td = new Date()
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(td.getDate() - 30)
+      reportsApi.getSummary({
+        from: thirtyDaysAgo.toISOString().split('T')[0],
+        to: td.toISOString().split('T')[0]
+      }).then(res => setReportSummary(res.data)).catch(() => {})
     }
   }, [role, isAdmin, todayISO])
 
@@ -175,8 +185,21 @@ export default function Dashboard() {
             <AdminStatCard title="In Consultation" value={inConsultCount} icon={<Activity className="h-6 w-6" />} color="blue" subtitle="Currently with doctor" />
             <AdminStatCard title="Completed Today" value={completedTodayCount} icon={<UserCheck className="h-6 w-6" />} color="purple" subtitle="OPD visits finished" />
           </div>
+          
+          {reportSummary && (
+            <>
+              <AdminSectionHeader title="30-Day Hospital Overview" subtitle="Essential metrics from Reports" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <AdminStatCard title="New Patients" value={reportSummary.new_patients} icon={<Users className="h-6 w-6" />} color="emerald" subtitle="Last 30 days" />
+                <AdminStatCard title="IPD Admissions" value={reportSummary.ipd_admissions} icon={<Bed className="h-6 w-6" />} color="blue" subtitle="Last 30 days" />
+                <AdminStatCard title="Current Active IPD" value={reportSummary.current_ipd} icon={<Activity className="h-6 w-6" />} color="amber" subtitle="Currently admitted" />
+                <AdminStatCard title="Treatment Plans" value={reportSummary.treatment_plans} icon={<BriefcaseMedical className="h-6 w-6" />} color="purple" subtitle="Last 30 days" />
+              </div>
+            </>
+          )}
+
           <AdminSectionHeader title="Quick Actions" subtitle="Frequently used actions" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <AdminQuickAction label="Register Patient" icon={<UserPlus className="h-5 w-5" />} onClick={() => navigate('/admin/patients/new')} color="emerald" />
             <AdminQuickAction label="Book Appointment" icon={<CalendarPlus className="h-5 w-5" />} onClick={() => navigate('/admin/appointments')} color="blue" />
             <AdminQuickAction label="Create Referral" icon={<ArrowLeftRight className="h-5 w-5" />} onClick={() => navigate('/admin/referrals')} color="amber" />
@@ -195,7 +218,7 @@ export default function Dashboard() {
             <AdminStatCard title="Active Doctors" value={data.active_doctors_count} icon={<Stethoscope className="h-6 w-6" />} color="purple" subtitle="Available" />
           </div>
           <AdminSectionHeader title="Quick Actions" subtitle="Front desk operations" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <AdminQuickAction label="Register Patient" icon={<UserPlus className="h-5 w-5" />} onClick={() => navigate('/admin/patients/new')} color="emerald" />
             <AdminQuickAction label="Book Appointment" icon={<CalendarPlus className="h-5 w-5" />} onClick={() => navigate('/admin/appointments')} color="blue" />
             <AdminQuickAction label="New Encounter" icon={<ClipboardList className="h-5 w-5" />} onClick={() => navigate('/admin/encounters')} color="amber" />
@@ -214,7 +237,7 @@ export default function Dashboard() {
             <AdminStatCard title="Active Doctors" value={data.active_doctors_count} icon={<Stethoscope className="h-6 w-6" />} color="purple" subtitle="Colleagues" />
           </div>
           <AdminSectionHeader title="Quick Actions" subtitle="Clinical workflow" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <AdminQuickAction label="View Encounters" icon={<Stethoscope className="h-5 w-5" />} onClick={() => navigate('/admin/encounters')} color="emerald" />
             <AdminQuickAction label="View Patients" icon={<Users className="h-5 w-5" />} onClick={() => navigate('/admin/patients')} color="blue" />
             <AdminQuickAction label="Referrals" icon={<ArrowLeftRight className="h-5 w-5" />} onClick={() => navigate('/admin/referrals')} color="amber" />
@@ -233,7 +256,7 @@ export default function Dashboard() {
             <AdminStatCard title="Expired" value={medicines.filter((m) => m.is_expired).length} icon={<Package className="h-6 w-6" />} color="red" subtitle="Cannot dispense" />
           </div>
           <AdminSectionHeader title="Quick Actions" subtitle="Pharmacy operations" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <AdminQuickAction label="Dispense Medicine" icon={<PillIcon className="h-5 w-5" />} onClick={() => navigate('/admin/pharmacy')} color="emerald" />
             <AdminQuickAction label="View Inventory" icon={<Package className="h-5 w-5" />} onClick={() => navigate('/admin/pharmacy')} color="blue" />
             <AdminQuickAction label="Add Medicine" icon={<UserPlus className="h-5 w-5" />} onClick={() => navigate('/admin/pharmacy')} color="amber" />
@@ -284,7 +307,7 @@ export default function Dashboard() {
             <AdminStatCard title="Total Bills" value={bills.length} icon={<FileText className="h-6 w-6" />} color="purple" subtitle="All time" />
           </div>
           <AdminSectionHeader title="Quick Actions" subtitle="Billing operations" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <AdminQuickAction label="New Bill" icon={<Receipt className="h-5 w-5" />} onClick={() => navigate('/admin/billing')} color="emerald" />
             <AdminQuickAction label="View All Bills" icon={<FileText className="h-5 w-5" />} onClick={() => navigate('/admin/billing')} color="blue" />
             <AdminQuickAction label="View Patients" icon={<Users className="h-5 w-5" />} onClick={() => navigate('/admin/patients')} color="amber" />
@@ -337,7 +360,7 @@ export default function Dashboard() {
             <AdminStatCard title="Doctors On Duty" value={data.active_doctors_count} icon={<Stethoscope className="h-6 w-6" />} color="purple" subtitle="Available" />
           </div>
           <AdminSectionHeader title="Quick Actions" subtitle="Daily tasks" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <AdminQuickAction label="View Patients" icon={<Users className="h-5 w-5" />} onClick={() => navigate('/admin/patients')} color="emerald" />
             <AdminQuickAction label="View Encounters" icon={<Stethoscope className="h-5 w-5" />} onClick={() => navigate('/admin/encounters')} color="blue" />
             <AdminQuickAction label="View Doctors" icon={<UserCheck className="h-5 w-5" />} onClick={() => navigate('/admin/doctors')} color="amber" />

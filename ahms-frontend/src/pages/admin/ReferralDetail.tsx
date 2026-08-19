@@ -223,21 +223,23 @@ export default function ReferralDetail() {
                   <p className="text-xs font-semibold uppercase text-slate-400">Prescription</p>
                   <Badge color={rx.status === 'DISPENSED' ? 'green' : 'blue'}>{rx.status}</Badge>
                 </div>
-                <table className="mt-2 w-full text-sm whitespace-nowrap">
-                  <tbody>
-                    {rx.items.map((it, j) => (
-                      <tr key={j} className="border-t border-slate-100">
-                        <td className="py-1.5 pr-4 font-medium text-slate-700">{it.medicine}</td>
-                        <td className="py-1.5 pr-4 text-slate-600">{it.dose}</td>
-                        <td className="py-1.5 pr-4 text-slate-600">{it.frequency}</td>
-                        <td className="py-1.5 pr-4 text-slate-600">{it.duration}</td>
-                        <td className="py-1.5 text-slate-600">
-                          {it.dispensed_qty}/{it.quantity}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="mt-2 w-full text-sm whitespace-nowrap">
+                    <tbody>
+                      {rx.items.map((it, j) => (
+                        <tr key={j} className="border-t border-slate-100">
+                          <td className="py-1.5 pr-4 font-medium text-slate-700">{it.medicine}</td>
+                          <td className="py-1.5 pr-4 text-slate-600">{it.dose}</td>
+                          <td className="py-1.5 pr-4 text-slate-600">{it.frequency}</td>
+                          <td className="py-1.5 pr-4 text-slate-600">{it.duration}</td>
+                          <td className="py-1.5 text-slate-600">
+                            {it.dispensed_qty}/{it.quantity}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ))}
           </div>

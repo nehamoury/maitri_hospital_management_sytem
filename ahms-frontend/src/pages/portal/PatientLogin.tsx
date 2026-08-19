@@ -75,7 +75,7 @@ export default function PatientLogin() {
           <div className="lg:col-span-2 space-y-8">
             <h2 className="text-3xl font-bold text-emerald-950 mb-6 leading-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
               Your health journey,<br />
-              <span className="text-[#C8A14D]">managed beautifully.</span>
+              <span className="text-teal-600">managed beautifully.</span>
             </h2>
             
             <div className="space-y-6">
@@ -134,7 +134,7 @@ export default function PatientLogin() {
                       onChange={(e) => setUhid(e.target.value)} 
                       placeholder="e.g. AHMS-2026-XXXXXX" 
                       required 
-                      className="w-full h-12 bg-white border border-emerald-200 rounded-xl px-4 text-emerald-950 placeholder:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-[#C8A14D]/50 focus:border-[#C8A14D] transition-all"
+                      className="w-full h-12 bg-white border border-emerald-200 rounded-xl px-4 text-emerald-950 placeholder:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-teal-600/50 focus:border-teal-600 transition-all"
                     />
                   </div>
 
@@ -146,7 +146,7 @@ export default function PatientLogin() {
                       onChange={(e) => setMobile(e.target.value)} 
                       placeholder="Enter 10-digit number" 
                       required 
-                      className="w-full h-12 bg-white border border-emerald-200 rounded-xl px-4 text-emerald-950 placeholder:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-[#C8A14D]/50 focus:border-[#C8A14D] transition-all"
+                      className="w-full h-12 bg-white border border-emerald-200 rounded-xl px-4 text-emerald-950 placeholder:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-teal-600/50 focus:border-teal-600 transition-all"
                     />
                   </div>
 

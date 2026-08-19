@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Calendar, FileText, IndianRupee, LogOut, ArrowRight, User2, MapPin, Phone, Droplet, Activity } from 'lucide-react'
-import { portalApi, getPortalUser, clearPortalAuth, errorMessage } from '../../lib/api'
+import { Calendar, FileText, IndianRupee, ArrowRight, User2, MapPin, Phone, Droplet, Activity } from 'lucide-react'
+import { portalApi, getPortalUser, errorMessage } from '../../lib/api'
 import { Card, CardHeader, Badge, Spinner, EmptyState, Button } from '../../components/ui'
 
 interface Profile {
@@ -77,15 +77,7 @@ export default function PortalHome() {
       .catch(() => {})
   }, [navigate])
 
-  const logout = async () => {
-    try {
-      await portalApi.post('/auth/logout')
-    } catch {
-      // Proceed with local cleanup
-    }
-    clearPortalAuth()
-    navigate('/portal/login')
-  }
+
 
   if (!user) return null
   if (!profile) return error ? <EmptyState message={error} /> : <Spinner label="Loading portal..." />
@@ -124,9 +116,6 @@ export default function PortalHome() {
                 <Activity className="mr-2 h-4 w-4" /> Therapy Sessions
               </Button>
             </Link>
-            <Button variant="secondary" onClick={logout} className="bg-emerald-900/40 text-white hover:bg-emerald-900/60 border border-emerald-700/40">
-              <LogOut className="mr-2 h-4 w-4" /> Logout
-            </Button>
           </div>
         </div>
 

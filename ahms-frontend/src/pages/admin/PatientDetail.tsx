@@ -732,7 +732,7 @@ export default function PatientDetail() {
 
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-wider text-teal-800">Basic Information</p>
-            <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
               <InfoItem label="Full Name" value={patient.full_name} />
               <InfoItem label="Gender" value={patient.gender} />
               <InfoItem label="Age" value={patient.age} />
@@ -748,8 +748,8 @@ export default function PatientDetail() {
 
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-wider text-teal-800">Address Details</p>
-            <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
-              <div className="col-span-2">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+              <div className="col-span-1 sm:col-span-2">
                 <InfoItem label="Address" value={patient.address} />
               </div>
               <InfoItem label="City" value={patient.city} />
@@ -762,7 +762,7 @@ export default function PatientDetail() {
           {(patient.emergency_contact_name || patient.emergency_contact) && (
             <div>
               <p className="mb-3 text-xs font-bold uppercase tracking-wider text-teal-800">Emergency Contact</p>
-              <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                 <InfoItem label="Contact Name" value={patient.emergency_contact_name} />
                 <InfoItem label="Relation" value={patient.emergency_contact_relation} />
                 <InfoItem label="Phone Number" value={patient.emergency_contact} />
@@ -774,7 +774,7 @@ export default function PatientDetail() {
           {(patient.height_cm || patient.weight_kg || patient.blood_pressure) && (
             <div>
               <p className="mb-3 text-xs font-bold uppercase tracking-wider text-teal-800">Vitals & Measurements</p>
-              <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-5">
                 <InfoItem label="Height" value={patient.height_cm ? `${patient.height_cm} cm` : '—'} />
                 <InfoItem label="Weight" value={patient.weight_kg ? `${patient.weight_kg} kg` : '—'} />
                 <InfoItem label="Blood Pressure" value={patient.blood_pressure} />
@@ -787,9 +787,9 @@ export default function PatientDetail() {
           {(patient.referred_by || patient.remarks) && (
             <div>
               <p className="mb-3 text-xs font-bold uppercase tracking-wider text-teal-800">Registration Details</p>
-              <div className="grid gap-3 grid-cols-2 md:grid-cols-3">
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                 <InfoItem label="Referred By" value={patient.referred_by} />
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <InfoItem label="Remarks" value={patient.remarks} />
                 </div>
               </div>
@@ -1203,7 +1203,7 @@ export default function PatientDetail() {
                         {b.payment_status}
                       </Badge>
                     </div>
-                    <div className="mt-3 grid gap-3 grid-cols-2 sm:grid-cols-4">
+                    <div className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                       <InfoItem label="Total" value={`₹${b.total_amount.toLocaleString('en-IN')}`} />
                       <InfoItem label="Discount" value={`₹${b.discount.toLocaleString('en-IN')}`} />
                       <InfoItem label="Paid" value={`₹${b.paid_amount.toLocaleString('en-IN')}`} />

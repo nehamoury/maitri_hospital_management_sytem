@@ -224,14 +224,19 @@
     line-height: 1.2;
     letter-spacing: -0.02em;
   }
+
+  h1 { font-size: clamp(2.5rem, 5vw + 1rem, 4.5rem); }
+  h2 { font-size: clamp(2rem, 4vw + 1rem, 3.5rem); }
+  h3 { font-size: clamp(1.5rem, 3vw + 0.5rem, 2.5rem); }
+  h4 { font-size: clamp(1.25rem, 2vw + 0.5rem, 1.75rem); }
+  h5 { font-size: clamp(1.125rem, 1.5vw + 0.5rem, 1.5rem); }
+  h6 { font-size: clamp(1rem, 1.2vw + 0.5rem, 1.25rem); }
 }
 
 /* ─── New UI Utility Classes ─────────────────────────── */
 @utility container-page {
   margin-inline: auto;
-  width: 100%;
-  max-width: 80rem;
-  padding-inline: 1.25rem;
+  width: min(100% - 2.5rem, 80rem);
 }
 
 @utility glass-panel {
@@ -428,6 +433,15 @@
 
   50% {
     transform: translateY(-30px) rotate(10deg) scale(1.05);
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
   }
 }
 

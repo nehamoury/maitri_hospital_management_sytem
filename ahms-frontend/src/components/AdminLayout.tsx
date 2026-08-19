@@ -104,7 +104,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <nav data-lenis-prevent className="flex-1 overflow-y-auto px-4 py-6 space-y-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {visibleSections.map((section) => (
           <div key={section.label}>
             {!collapsed && (
@@ -212,7 +212,7 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="flex-1 overflow-y-auto p-4 space-y-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <nav data-lenis-prevent className="flex-1 overflow-y-auto p-4 space-y-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {visibleSections.map((section) => (
                 <div key={section.label}>
                   <p className="mb-2 pl-3 text-xs font-bold uppercase tracking-wider text-emerald-400/50">
@@ -261,31 +261,41 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
 // ─── Topbar ─────────────────────────────────────────────────────────
 function Topbar({ onMenuClick, notifications, setNotifications }: { onMenuClick: () => void, notifications: any[], setNotifications: React.Dispatch<React.SetStateAction<any[]>> }) {
   const { user, logout } = useAuth()
+  const { can } = useCan()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<{ patients: any[]; referrals: any[]; bills: any[] }>({ patients: [], referrals: [], bills: [] })
   const [showResults, setShowResults] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(0)
   const [profileOpen, setProfileOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timerRef = useRef<any>(undefined)
   const searchBoxRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const profileBoxRef = useRef<HTMLDivElement>(null)
   const notifBoxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!query.trim()) { setResults({ patients: [], referrals: [], bills: [] }); setShowResults(false); return }
+    if (!query.trim()) { 
+      setResults({ patients: [], referrals: [], bills: [] }); 
+      return 
+    }
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(async () => {
       try {
         const { data } = await api.get('/search', { params: { q: query } })
         const raw = data.data || {}
         setResults({ patients: raw.patients || [], referrals: raw.referrals || [], bills: raw.bills || [] })
-        setShowResults(true)
       } catch { /* ignore */ }
     }, 300)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [query])
+
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [query, results])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -297,10 +307,84 @@ function Topbar({ onMenuClick, notifications, setNotifications }: { onMenuClick:
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const goTo = (path: string) => { setShowResults(false); setQuery(''); navigate(path) }
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+        setShowResults(true)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  type NavItem = {
+    to: string;
+    label: string;
+    icon: React.ElementType;
+    perm?: string;
+    end?: boolean;
+  };
+
+  const availablePages = navSections
+    .flatMap(section => section.items as readonly NavItem[])
+    .filter(item => !item.perm || can(item.perm as any))
+
+  const filteredPages = query.trim() === '' 
+    ? availablePages 
+    : availablePages.filter(p => p.label.toLowerCase().includes(query.toLowerCase()))
+
+  const allOptions = [
+    ...filteredPages.map(p => ({ type: 'page' as const, data: p })),
+    ...results.patients.map(p => ({ type: 'patient' as const, data: p })),
+    ...results.referrals.map(r => ({ type: 'referral' as const, data: r })),
+    ...results.bills.map(b => ({ type: 'bill' as const, data: b }))
+  ]
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showResults && e.key !== 'k') return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.min(prev + 1, Math.max(0, allOptions.length - 1)));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter' && allOptions[selectedIndex]) {
+      e.preventDefault();
+      const opt = allOptions[selectedIndex];
+      if (opt.type === 'page') goTo((opt.data as NavItem).to);
+      else if (opt.type === 'patient') goTo(`/admin/patients/${opt.data.id}`);
+      else if (opt.type === 'referral') goTo('/admin/referrals');
+      else if (opt.type === 'bill') goTo('/admin/billing');
+    }
+  }
+
+  useEffect(() => {
+    if (showResults && dropdownRef.current) {
+      const el = document.getElementById(`search-opt-${selectedIndex}`);
+      const container = dropdownRef.current;
+      if (el && container) {
+        const elTop = el.offsetTop;
+        const elBottom = elTop + el.offsetHeight;
+        const containerTop = container.scrollTop;
+        const containerBottom = containerTop + container.clientHeight;
+
+        if (elTop < containerTop) {
+          container.scrollTop = elTop - 8;
+        } else if (elBottom > containerBottom) {
+          container.scrollTop = elBottom - container.clientHeight + 8;
+        }
+      }
+    }
+  }, [selectedIndex, showResults]);
+
+  const goTo = (path: string) => { setShowResults(false); setQuery(''); setSelectedIndex(0); navigate(path) }
   const total = results.patients.length + results.referrals.length + results.bills.length
 
   const initials = user?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'A'
+  
+  let currentIndex = 0;
 
   return (
     <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b border-border/50 bg-card/70 px-4 backdrop-blur-xl md:px-8">
@@ -316,10 +400,13 @@ function Topbar({ onMenuClick, notifications, setNotifications }: { onMenuClick:
         <div className="group relative flex items-center">
           <Search className="absolute left-4 h-5 w-5 text-muted-foreground transition-colors group-focus-within:text-emerald-500" />
           <input
+            ref={searchInputRef}
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search patients, referrals, bills..."
+            onFocus={() => setShowResults(true)}
+            onKeyDown={handleInputKeyDown}
+            placeholder="Search patients, referrals, bills, pages..."
             className="h-12 w-full rounded-2xl border border-border bg-muted/30/50 pl-12 pr-12 text-[15px] text-foreground placeholder-slate-400 shadow-sm transition-all focus:border-emerald-500 focus:bg-card focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
           />
           <div className="absolute right-4 flex items-center gap-1 opacity-50 transition-opacity group-focus-within:opacity-0 pointer-events-none">
@@ -328,69 +415,101 @@ function Topbar({ onMenuClick, notifications, setNotifications }: { onMenuClick:
           </div>
         </div>
         
-        <AnimatePresence>
-          {showResults && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 5 }}
-              transition={{ duration: 0.15 }}
-              className="absolute left-0 top-[calc(100%+8px)] z-50 w-full max-h-[26rem] overflow-y-auto rounded-2xl border border-border bg-card p-2 shadow-2xl"
-            >
-              {total > 0 ? (
+          <AnimatePresence>
+            {showResults && (
+              <motion.div
+                ref={dropdownRef}
+                data-lenis-prevent
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                transition={{ duration: 0.15 }}
+                className="absolute left-0 top-[calc(100%+8px)] z-50 w-full max-h-[26rem] overflow-y-auto rounded-2xl border border-border bg-card p-2 shadow-2xl"
+              >
+                {total > 0 || filteredPages.length > 0 ? (
                 <>
-                  {results.patients.length > 0 && (
+                  {filteredPages.length > 0 && (
                     <div className="mb-2">
-                      <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-emerald-600/70">Patients</p>
-                      {results.patients.map(p => (
-                        <button key={p.id} onClick={() => goTo(`/admin/patients/${p.id}`)} className="group flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-all hover:bg-muted/30 focus:bg-muted/30 focus:outline-none">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-100">
-                            <Users className="h-5 w-5" />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-foreground">{p.full_name}</span>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                              <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-[10px]">{p.uh_id}</span>
-                              <span>•</span>
-                              <span>{p.mobile}</span>
+                      <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500">Navigation Pages</p>
+                      {filteredPages.map(p => {
+                        const Icon = p.icon
+                        const idx = currentIndex++;
+                        const isSelected = selectedIndex === idx;
+                        return (
+                          <button id={`search-opt-${idx}`} key={p.to} onClick={() => goTo(p.to)} className={`group flex w-full items-center gap-4 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-muted/50 focus:outline-none ${isSelected ? 'bg-muted/50 ring-1 ring-emerald-500/20' : ''}`}>
+                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${isSelected ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 group-hover:bg-emerald-100 group-hover:text-emerald-600'}`}>
+                              <Icon className="h-4 w-4" />
                             </div>
-                          </div>
-                        </button>
-                      ))}
+                            <span className={`font-semibold text-sm ${isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'}`}>{p.label}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {results.patients.length > 0 && (
+                    <div className="mb-2 border-t border-border pt-2">
+                      <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-emerald-600/70">Patients</p>
+                      {results.patients.map(p => {
+                        const idx = currentIndex++;
+                        const isSelected = selectedIndex === idx;
+                        return (
+                          <button id={`search-opt-${idx}`} key={p.id} onClick={() => goTo(`/admin/patients/${p.id}`)} className={`group flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-all hover:bg-muted/50 focus:outline-none ${isSelected ? 'bg-muted/50 ring-1 ring-emerald-500/20' : ''}`}>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-100">
+                              <Users className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-foreground">{p.full_name}</span>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-[10px]">{p.uh_id}</span>
+                                <span>•</span>
+                                <span>{p.mobile}</span>
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
                   )}
                   {results.referrals.length > 0 && (
                     <div className="mb-2 border-t border-border pt-2">
                       <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-orange-600/70">Referrals</p>
-                      {results.referrals.map(r => (
-                        <button key={r.id} onClick={() => goTo('/admin/referrals')} className="group flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-all hover:bg-muted/30 focus:bg-muted/30 focus:outline-none">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600 group-hover:bg-orange-100">
-                            <ArrowLeftRight className="h-5 w-5" />
-                          </div>
-                          <div className="flex flex-col flex-1">
-                            <span className="font-semibold text-foreground">{r.patient_name}</span>
-                            <span className="text-xs text-muted-foreground mt-0.5">{r.from_department_name}</span>
-                          </div>
-                          <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-bold text-orange-700">{r.status}</span>
-                        </button>
-                      ))}
+                      {results.referrals.map(r => {
+                        const idx = currentIndex++;
+                        const isSelected = selectedIndex === idx;
+                        return (
+                          <button id={`search-opt-${idx}`} key={r.id} onClick={() => goTo('/admin/referrals')} className={`group flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-all hover:bg-muted/50 focus:outline-none ${isSelected ? 'bg-muted/50 ring-1 ring-emerald-500/20' : ''}`}>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600 group-hover:bg-orange-100">
+                              <ArrowLeftRight className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col flex-1">
+                              <span className="font-semibold text-foreground">{r.patient_name}</span>
+                              <span className="text-xs text-muted-foreground mt-0.5">{r.from_department_name}</span>
+                            </div>
+                            <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-bold text-orange-700">{r.status}</span>
+                          </button>
+                        )
+                      })}
                     </div>
                   )}
                   {results.bills.length > 0 && (
                     <div className="border-t border-border pt-2">
                       <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-purple-600/70">Bills</p>
-                      {results.bills.map(b => (
-                        <button key={b.id} onClick={() => goTo('/admin/billing')} className="group flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-all hover:bg-muted/30 focus:bg-muted/30 focus:outline-none">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-50 text-purple-600 group-hover:bg-purple-100">
-                            <Receipt className="h-5 w-5" />
-                          </div>
-                          <div className="flex flex-col flex-1">
-                            <span className="font-semibold text-foreground">{b.bill_no}</span>
-                            <span className="text-xs text-muted-foreground mt-0.5">{b.patient_name}</span>
-                          </div>
-                          <span className="text-sm font-bold text-foreground">₹{b.total_amount}</span>
-                        </button>
-                      ))}
+                      {results.bills.map(b => {
+                        const idx = currentIndex++;
+                        const isSelected = selectedIndex === idx;
+                        return (
+                          <button id={`search-opt-${idx}`} key={b.id} onClick={() => goTo('/admin/billing')} className={`group flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-all hover:bg-muted/50 focus:outline-none ${isSelected ? 'bg-muted/50 ring-1 ring-emerald-500/20' : ''}`}>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-50 text-purple-600 group-hover:bg-purple-100">
+                              <Receipt className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col flex-1">
+                              <span className="font-semibold text-foreground">{b.bill_no}</span>
+                              <span className="text-xs text-muted-foreground mt-0.5">{b.patient_name}</span>
+                            </div>
+                            <span className="text-sm font-bold text-foreground">₹{b.total_amount}</span>
+                          </button>
+                        )
+                      })}
                     </div>
                   )}
                 </>
@@ -612,7 +731,7 @@ export function AdminLayout() {
   }, [token])
 
   return (
-    <div className="flex h-screen overflow-hidden bg-muted/30/50">
+    <div className="flex h-screen overflow-hidden bg-muted/30/50" data-lenis-prevent>
       <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(v => !v)} />
       <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col relative">
@@ -620,7 +739,7 @@ export function AdminLayout() {
         <div className="absolute top-0 inset-x-0 h-64 bg-gradient-to-b from-white to-transparent pointer-events-none -z-10" />
         
         <Topbar onMenuClick={() => setMenuOpen(v => !v)} notifications={notifications} setNotifications={setNotifications} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+        <main data-lenis-prevent className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
           <Outlet />
         </main>
       </div>

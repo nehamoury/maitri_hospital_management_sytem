@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { Link } from 'react-router-dom'
 import { Hero } from '../../components/home/Hero'
 
 import { DepartmentSection } from '../../components/home/DepartmentSection'
@@ -7,6 +8,7 @@ import { PanchakarmaSection } from '../../components/home/PanchakarmaSection'
 import { DoctorSection } from '../../components/home/DoctorSection'
 import { TestimonialCard, FeatureCard, StaggerGrid } from '../../design-system/Cards'
 import { SectionTitle, Section } from '../../design-system/Layout'
+import { AutoScrollCarousel } from '../../design-system/Carousel'
 import { LinkButton } from '../../design-system/Buttons'
 import { blogs, testimonials } from '../../lib/site-data'
 import { fetchDoctors, fetchDepartments, fetchTreatments, type PublicTreatment } from '../../lib/public-site'
@@ -46,7 +48,7 @@ export default function Home() {
       .then(([docList, deptList, treatmentList]) => {
         if (!active) return
         setDoctors(
-          docList.slice(0, 4).map((d) => ({
+          docList.slice(0, 8).map((d) => ({
             id: d.id || d.slug,
             full_name: d.name,
             department_name: d.department,
@@ -133,11 +135,15 @@ export default function Home() {
           title="Real Healing, Real Lives"
           subtitle="Hear from patients whose lives have been transformed through authentic Ayurvedic care."
         />
-        <StaggerGrid className="grid gap-6 md:grid-cols-3">
-          {testimonials.map((t) => (
-            <TestimonialCard key={t.name} name={t.name} city={t.city} quote={t.text} rating={5} treatment="" />
-          ))}
-        </StaggerGrid>
+        <div className="-mx-4 sm:-mx-8">
+          <AutoScrollCarousel speed="normal" gap="gap-6" className="py-8">
+            {testimonials.map((t) => (
+              <div key={t.name} className="w-[320px] sm:w-[400px]">
+                <TestimonialCard name={t.name} city={t.city} quote={t.text} rating={5} treatment="" />
+              </div>
+            ))}
+          </AutoScrollCarousel>
+        </div>
       </Section>
 
       {/* Blog Section */}
@@ -159,7 +165,7 @@ export default function Home() {
           {blogs.slice(0, 3).map((b, idx) => {
             const cardImg = idx === 0 ? blogHerbs : idx === 1 ? panchakarmaImg : blogYoga;
             return (
-              <article key={b.slug} className="group bg-card shadow-sm border border-border hover:shadow-md hover:-translate-y-1.5 transition-all duration-300 rounded-3xl overflow-hidden flex flex-col h-full cursor-pointer">
+              <Link to={`/blog/understanding-your-prakriti`} key={b.slug} className="group bg-card shadow-sm border border-border hover:shadow-md hover:-translate-y-1.5 transition-all duration-300 rounded-3xl overflow-hidden flex flex-col h-full cursor-pointer">
                 <div className="aspect-[16/9] overflow-hidden bg-primary/5">
                   <img 
                     src={cardImg} 
@@ -176,7 +182,7 @@ export default function Home() {
                     {b.author} · {b.read} read
                   </p>
                 </div>
-              </article>
+              </Link>
             );
           })}
         </div>

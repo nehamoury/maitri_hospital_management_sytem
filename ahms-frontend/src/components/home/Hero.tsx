@@ -67,7 +67,7 @@ export function Hero() {
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="relative z-10 w-full container-page"
+        className="relative z-10 w-full max-w-[96%] mx-auto px-4 md:px-8"
       >
         <div className="max-w-3xl">
           <motion.div variants={fadeUp} className="mb-6 flex items-center gap-3">

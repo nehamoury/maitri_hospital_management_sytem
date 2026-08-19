@@ -430,7 +430,16 @@ export default function Appointment() {
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none bg-card text-foreground"
+                      onClick={(e) => {
+                        if ('showPicker' in HTMLInputElement.prototype) {
+                          try {
+                            e.currentTarget.showPicker();
+                          } catch (err) {
+                            // ignore if already showing
+                          }
+                        }
+                      }}
+                      className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none bg-card text-foreground cursor-pointer"
                     />
                     <div className="mt-4 flex items-center gap-2 rounded-xl border border-border/80 bg-muted/30 px-4 py-3">
                       {STATUS_META[doctorStatuses[selectedDocId]] ? (

@@ -49,6 +49,7 @@ const Facilities = lazy(() => import('./pages/public/Facilities'))
 const Research = lazy(() => import('./pages/public/Research'))
 const Gallery = lazy(() => import('./pages/public/Gallery'))
 const Blog = lazy(() => import('./pages/public/Blog'))
+const BlogDetail = lazy(() => import('./pages/public/BlogDetail'))
 const NotFound = lazy(() => import('./pages/public/NotFound'))
 const Terms = lazy(() => import('@/pages/public/Terms'))
 const Privacy = lazy(() => import('@/pages/public/Privacy'))
@@ -94,12 +95,14 @@ function ScrollToTop() {
 }
 
 import { ThemeProvider } from './components/ThemeProvider'
+import { ScrollProvider } from './components/site/ScrollProvider'
 
 export default function App() {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="ahms-theme">
+    <ThemeProvider defaultTheme="system" storageKey="ahms-theme-system">
       <BrowserRouter>
-        <ScrollToTop />
+        <ScrollProvider>
+          <ScrollToTop />
         <AuthProvider>
           <Toaster position="top-right" richColors />
           <Suspense fallback={<PageFallback />}>
@@ -167,6 +170,7 @@ export default function App() {
             <Route path="/research" element={<PublicPage><Research /></PublicPage>} />
             <Route path="/gallery" element={<PublicPage><Gallery /></PublicPage>} />
             <Route path="/blog" element={<PublicPage><Blog /></PublicPage>} />
+            <Route path="/blog/:id" element={<PublicPage><BlogDetail /></PublicPage>} />
             <Route path="/appointment" element={<PublicPage><Appointment /></PublicPage>} />
             <Route path="/contact" element={<PublicPage><Contact /></PublicPage>} />
             <Route path="/terms" element={<PublicPage><Terms /></PublicPage>} />
@@ -177,6 +181,7 @@ export default function App() {
           </Routes>
         </Suspense>
         </AuthProvider>
+        </ScrollProvider>
       </BrowserRouter>
     </ThemeProvider>
   )

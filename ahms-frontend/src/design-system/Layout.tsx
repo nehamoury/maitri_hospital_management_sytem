@@ -95,10 +95,10 @@ interface PageHeroProps {
 
 export function PageHero({ title, subtitle, tag, bgImage }: PageHeroProps) {
   return (
-    <div className="relative overflow-hidden"
+    <div className="relative overflow-hidden flex flex-col justify-center min-h-[400px] sm:min-h-[450px] md:min-h-[500px]"
       style={{
-        paddingTop: '120px',
-        paddingBottom: '80px',
+        paddingTop: '100px',
+        paddingBottom: '60px',
       }}
     >
       <div
@@ -123,7 +123,7 @@ export function PageHero({ title, subtitle, tag, bgImage }: PageHeroProps) {
       <div className="absolute -left-12 bottom-0 w-64 h-64 rounded-full opacity-8"
         style={{ background: 'radial-gradient(circle, #14B8A6, transparent)' }} />
 
-      <div className="relative mx-auto max-w-[96%] px-4 sm:px-6 lg:px-8 text-center pt-8 md:pt-12">
+      <div className="relative mx-auto max-w-[96%] px-4 sm:px-6 lg:px-8 text-center w-full">
 
         {tag && (
           <div className="inline-flex items-center gap-2 mb-4">
@@ -221,7 +221,7 @@ export function InfoSection({ title, subtitle, content, imageSrc, reverse = fals
 interface FeatureCardProps {
   title: string
   description: string
-  icon?: string
+  icon?: React.ReactNode
 }
 
 export function FeatureCards({ features }: { features: FeatureCardProps[] }) {
@@ -235,18 +235,17 @@ export function FeatureCards({ features }: { features: FeatureCardProps[] }) {
           whileInView="visible"
           viewport={viewportOpts}
           transition={{ delay: i * 0.1 }}
-          className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group relative overflow-hidden"
+          className="bg-white p-8 sm:p-10 rounded-[2rem] shadow-sm border border-slate-100/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
         >
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-600 to-amber-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
           {feature.icon && (
-            <div className="text-4xl mb-6 bg-teal-50 w-16 h-16 rounded-2xl flex items-center justify-center">
+            <div className="text-xl mb-6 bg-teal-50 text-teal-700 w-12 h-12 rounded-full flex items-center justify-center">
               {feature.icon}
             </div>
           )}
-          <h3 className="text-xl font-bold text-slate-900 mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
+          <h3 className="text-lg font-bold text-slate-900 mb-2.5 tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
             {feature.title}
           </h3>
-          <p className="text-slate-600 leading-relaxed">
+          <p className="text-[15px] text-slate-500 leading-relaxed">
             {feature.description}
           </p>
         </motion.div>

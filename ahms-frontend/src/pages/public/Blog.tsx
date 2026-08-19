@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { PageHero, Section, CTASection } from '../../design-system/Layout'
 import { SEO } from '../../components/SEO'
 import blogHerbs from '../../assets/blog_herbs.jpg'
@@ -79,12 +80,12 @@ export default function Blog() {
         </div>
 
         {/* Featured Article */}
-        <div className="mb-16 rounded-3xl overflow-hidden bg-card shadow-sm border border-border group cursor-pointer hover:shadow-md transition-shadow">
-          <div className="grid grid-cols-1 md:grid-cols-2">
-            <div className="aspect-[4/3] md:aspect-auto overflow-hidden">
-              <img src={featuredPost.image} alt={featuredPost.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <Link to="/blog/understanding-your-prakriti" className="mb-16 block rounded-3xl overflow-hidden bg-card shadow-sm border border-border group cursor-pointer hover:shadow-md transition-shadow">
+          <div className="grid grid-cols-1 lg:grid-cols-12">
+            <div className="lg:col-span-5 aspect-[16/9] lg:aspect-auto overflow-hidden relative">
+              <img src={featuredPost.image} alt={featuredPost.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
             </div>
-            <div className="p-8 md:p-12 flex flex-col justify-center">
+            <div className="lg:col-span-7 p-8 md:p-12 flex flex-col justify-center">
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-primary">{featuredPost.category}</span>
                 <span className="text-slate-300">•</span>
@@ -93,22 +94,22 @@ export default function Blog() {
               <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
                 {featuredPost.title}
               </h2>
-              <p className="text-muted-foreground mb-8 leading-relaxed">
+              <p className="text-muted-foreground mb-8 leading-relaxed text-lg">
                 {featuredPost.excerpt}
               </p>
-              <div className="mt-auto">
-                <span className="text-primary font-semibold group-hover:text-primary flex items-center gap-2">
-                  Read Article <span>→</span>
+              <div className="mt-auto pt-4 flex">
+                <span className="text-primary font-semibold flex items-center gap-2 transition-all px-5 py-2 rounded-full group-hover:bg-red-500 group-hover:text-white">
+                  Read Article <span className="transition-transform group-hover:translate-x-1">→</span>
                 </span>
               </div>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Article Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {posts.map(post => (
-            <div key={post.id} className="bg-card rounded-3xl overflow-hidden shadow-sm border border-border group cursor-pointer hover:shadow-md transition-shadow flex flex-col">
+            <Link to={`/blog/${post.id}`} key={post.id} className="bg-card rounded-3xl overflow-hidden shadow-sm border border-border group cursor-pointer hover:shadow-md transition-shadow flex flex-col">
               <div className="aspect-[16/9] overflow-hidden">
                 <img src={post.image} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
               </div>
@@ -124,10 +125,12 @@ export default function Blog() {
                 </p>
                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
                   <span className="text-sm text-muted-foreground">{post.date}</span>
-                  <span className="text-primary font-semibold text-sm group-hover:text-primary">Read <span>→</span></span>
+                  <span className="text-primary font-semibold text-sm flex items-center gap-1 transition-all px-4 py-1.5 rounded-full group-hover:bg-red-500 group-hover:text-white">
+                    Read <span className="transition-transform group-hover:translate-x-1">→</span>
+                  </span>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </Section>
@@ -136,13 +139,13 @@ export default function Blog() {
         title="Stay Updated"
         subtitle="Subscribe to our newsletter for weekly Ayurvedic health tips."
       >
-        <div className="flex w-full max-w-md mx-auto">
+        <div className="flex flex-col sm:flex-row w-full max-w-md mx-auto gap-3">
           <input 
             type="email" 
             placeholder="Enter your email address" 
-            className="flex-1 px-4 py-3 rounded-l-2xl border-none focus:ring-0"
+            className="flex-1 px-5 py-3 rounded-2xl border border-white/30 bg-white/10 text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:bg-white/20 transition-all shadow-sm"
           />
-          <button className="px-6 py-3 bg-amber-500 text-teal-950 font-bold rounded-r-2xl hover:bg-amber-400 transition-colors">
+          <button className="px-8 py-3 bg-white text-teal-950 font-bold rounded-2xl hover:bg-slate-100 transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
             Subscribe
           </button>
         </div>

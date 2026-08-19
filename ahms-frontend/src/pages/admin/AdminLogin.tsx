@@ -28,17 +28,9 @@ export default function AdminLogin() {
   }
 
   const testAccounts = [
-    { role: 'Super Admin', email: 'admin@ahms.local', pass: 'ChangeMe123!' },
     { role: 'Hospital Admin', email: 'demo.hadmin@ahms.local', pass: 'Demo@12345' },
     { role: 'Receptionist', email: 'demo.receptionist@ahms.local', pass: 'Demo@12345' },
     { role: 'Doctor', email: 'demo.doctor@ahms.local', pass: 'Demo@12345' },
-    { role: 'Panchakarma Doctor', email: 'demo.pkdoctor@ahms.local', pass: 'Demo@12345' },
-    { role: 'Nurse', email: 'demo.nurse@ahms.local', pass: 'Demo@12345' },
-    { role: 'Therapist', email: 'demo.therapist@ahms.local', pass: 'Demo@12345' },
-    { role: 'Pharmacist', email: 'demo.pharmacist@ahms.local', pass: 'Demo@12345' },
-    { role: 'Billing / Accounts', email: 'demo.billing@ahms.local', pass: 'Demo@12345' },
-    { role: 'Ward Staff', email: 'demo.wardstaff@ahms.local', pass: 'Demo@12345' },
-    { role: 'Lab Staff', email: 'demo.lab@ahms.local', pass: 'Demo@12345' },
   ]
 
   const handleQuickLogin = (testEmail: string, testPass: string) => {

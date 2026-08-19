@@ -1,6 +1,7 @@
 import { PageHero, Section, FeatureCards, CTASection } from '../../design-system/Layout'
 import { Link } from 'react-router-dom'
 import { SEO } from '../../components/SEO'
+import { BedDouble, Sparkles, FlaskConical, Armchair, Stethoscope, Leaf } from 'lucide-react'
 import hospitalImg from '../../assets/hero-hospital.jpg'
 
 export default function Facilities() {
@@ -8,32 +9,32 @@ export default function Facilities() {
     {
       title: 'Modern OPD',
       description: 'Fully equipped Outpatient Departments for all major Ayurvedic specialties with digital record keeping.',
-      icon: '🏥',
+      icon: <Stethoscope className="w-5 h-5" />,
     },
     {
       title: 'In-House Pharmacy',
       description: 'Authentic Ayurvedic medicines sourced from certified manufacturers and prepared under expert supervision.',
-      icon: '💊',
+      icon: <FlaskConical className="w-5 h-5" />,
     },
     {
       title: 'Consultation Rooms',
       description: 'Private, comfortable spaces designed to facilitate deep conversations between Vaidyas and patients.',
-      icon: '🚪',
+      icon: <Armchair className="w-5 h-5" />,
     },
     {
       title: 'Peaceful Waiting Area',
       description: 'A serene environment designed to calm the mind before your consultation or treatment.',
-      icon: '🛋️',
+      icon: <Sparkles className="w-5 h-5" />,
     },
     {
       title: 'Therapy Rooms',
       description: 'Hygienic, traditional wooden massage tables (Dronis) with attached bath facilities for complete privacy.',
-      icon: '🛏️',
+      icon: <BedDouble className="w-5 h-5" />,
     },
     {
       title: 'Herbal Garden',
       description: 'A lush garden featuring over 150 species of medicinal plants used in our treatments.',
-      icon: '🌿',
+      icon: <Leaf className="w-5 h-5" />,
     },
   ]
 
@@ -66,13 +67,13 @@ export default function Facilities() {
       >
         <Link
           to="/appointment"
-          className="px-8 py-4 rounded-2xl font-semibold text-primary bg-card hover:bg-muted/30 transition-colors shadow-lg"
+          className="px-8 py-4 rounded-2xl font-semibold text-primary bg-card hover:bg-primary hover:text-white transition-colors shadow-lg"
         >
           Book Appointment
         </Link>
         <Link
           to="/contact"
-          className="px-8 py-4 rounded-2xl font-semibold text-white border-2 border-white/20 hover:bg-card/10 transition-colors"
+          className="px-8 py-4 rounded-2xl font-semibold text-white border-2 border-white/20 hover:bg-white/10 transition-colors"
         >
           Get Directions
         </Link>

@@ -4,6 +4,7 @@ import { DepartmentCard, DepartmentSkeleton, StaggerGrid } from '../../design-sy
 import { PageHero, Section, EmptyState } from '../../design-system/Layout'
 import { fadeUp } from '../../design-system/animations'
 import { fetchDepartments } from '../../lib/public-site'
+import heroBg from '../../assets/hero_treatment_room.png'
 
 interface Department {
   id: string
@@ -138,6 +139,7 @@ export default function Departments() {
         title="Our Departments"
         subtitle="Specialized Ayurvedic departments staffed by experienced practitioners for comprehensive holistic care."
         tag="Specialized Care"
+        bgImage={heroBg}
       />
 
       <Section>
